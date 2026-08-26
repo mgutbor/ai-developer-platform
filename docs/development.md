@@ -2,7 +2,7 @@
 
 ## Foundation actual
 
-La Foundation está implementada como un monorepo pnpm con Angular para web, Fastify para API y un package de contracts compartidos. El analyzer, GitHub ingestion, SQLite y la IA siguen planificados para fases posteriores.
+Phase 2 añade un package de dominio puro al monorepo pnpm. Angular y Fastify siguen siendo la web y API de Foundation; el analyzer, GitHub ingestion, SQLite, `AnalysisJob` y la IA siguen planificados para fases posteriores.
 
 ## Requisitos
 
@@ -35,6 +35,7 @@ pnpm --filter @ai-developer-platform/web start
 ## Quality commands
 
 ```bash
+pnpm check:architecture
 pnpm lint
 pnpm format:check
 pnpm typecheck
@@ -50,11 +51,12 @@ El test de API utiliza `fastify.inject()`. Angular utiliza el builder de tests b
 apps/web/             # Angular; consume API contracts
 apps/api/             # Fastify; endpoint health y composición inicial
 packages/contracts/   # contratos externos compartidos
+packages/domain/      # modelo e invariantes sin infraestructura
 ```
 
-La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos.
+La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos. `pnpm check:architecture` verifica que `packages/domain` no importe infraestructura.
 
-Los futuros packages `domain`, `github`, `ingestion`, `analyzer` y `report` se crearán cuando exista una responsabilidad real. No se crearán carpetas vacías para anticipar funcionalidades.
+`github`, `ingestion`, `analyzer` y `report` se crearán cuando exista una responsabilidad real. `domain` ya tiene responsabilidad implementada y no depende de infraestructura. No se crearán carpetas vacías para anticipar funcionalidades.
 
 ## Configuración
 
@@ -86,6 +88,8 @@ La Foundation cubre:
 - éxito y error de la llamada `/health`;
 - respuesta y status code de la API;
 - contratos TypeScript mediante compilación;
+- invariantes de dominio mediante tests unitarios;
+- límite de dependencias del dominio mediante `pnpm check:architecture`;
 - lint, format, typecheck y build.
 
 E2E, accessibility completa, GitHub integration tests y analyzer fixtures pertenecen a fases posteriores.

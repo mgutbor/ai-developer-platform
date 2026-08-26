@@ -35,6 +35,9 @@ jobs:
       - name: Dependency audit
         run: pnpm audit --audit-level=high
 
+      - name: Check architecture boundaries
+        run: pnpm check:architecture
+
       - name: Lint
         run: pnpm lint
 

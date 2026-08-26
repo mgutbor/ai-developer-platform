@@ -18,13 +18,13 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Objective:** definir el lenguaje mínimo del report.
 
-**Scope:** `AnalysisJob`, `RepositorySnapshot`, `Fact`, `Metric`, `Evidence`, `Finding`, `Recommendation` y resultado determinista.
+**Scope:** paquete `domain` puro con `RepositorySnapshot`, `Fact`, `Metric`, `Evidence`, `Finding`, `Recommendation`, `DimensionScore` y `AnalysisResult`; contratos API serializables y factories validadas. `AnalysisJob` queda fuera hasta que exista su lifecycle real.
 
 **Dependencies:** Phase 1.
 
-**Acceptance criteria:** invariantes y estados inválidos se rechazan; evidence referencia snapshot/path; contracts distinguen observación, problema y acción.
+**Acceptance criteria:** invariantes y estados inválidos se rechazan; evidence referencia snapshot/path; contracts distinguen observación, problema y acción; los tests cubren referencias huérfanas, snapshots cruzados, rutas inseguras, incertidumbre y scores nulos.
 
-**Definition of Done:** unit tests, contract tests, documentación de modelo y ADR-009 alineado.
+**Definition of Done:** unit tests de dominio, compilación de contracts, documentación de modelo y ADR-014 aceptado.
 
 ## Phase 3 — GitHub REST ingestion
 

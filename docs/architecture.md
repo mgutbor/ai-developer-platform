@@ -1,36 +1,40 @@
 # Arquitectura
 
-## Estado tras la Foundation
+## Estado tras Phase 2
 
-Esta sección distingue lo que existe realmente de lo que sigue siendo diseño. La Fase 1 no implementa análisis de repositories ni persistencia de resultados.
+La Foundation y el modelo de dominio están implementados. La ingesta de repositories, el analyzer, la persistencia y los endpoints de report siguen planificados.
 
 ### Implementado
 
 ```text
 apps/web/              # Angular 22 standalone application
-    ↓ HTTP GET /health
+    |
+    | HTTP GET /health
+    v
 apps/api/              # Fastify 5 API
-    ↓
-packages/contracts/    # HealthResponse compartido
+    |
+    +--> packages/contracts/  # DTOs de frontera
+    +--> packages/domain/     # significado e invariantes
 ```
 
 - `apps/web`: pantalla Foundation, routing preparado, environment configuration y cliente mínimo de health.
 - `apps/api`: composición Fastify, `GET /health`, CORS local, headers básicos, logging integrado y error handler público.
-- `packages/contracts`: contrato externo `HealthResponse`, separado de entidades internas.
+- `packages/contracts`: contratos serializables de API (`HealthResponse` y el shape futuro de `AnalysisResultResponse`). No importa entidades del dominio.
+- `packages/domain`: tipos, value sets y factories validadas para snapshots, facts, metrics, evidence, findings, recommendations, dimension scores y resultados.
 - Root: pnpm workspaces, TypeScript strict, ESLint, Prettier, tests y GitHub Actions.
 
 ### Planificado
 
 ```text
-packages/
-  domain/
-  github/
-  ingestion/
-  analyzer/
-  report/
+apps/api
+    |
+    +--> application/report mapping
+    +--> github/ingestion adapters
+    +--> analyzer rules
+    +--> SQLite adapter
 ```
 
-Estos packages no se crean todavía porque no tienen comportamiento implementado en Foundation. Se incorporarán con sus primeras responsabilidades reales en las fases del roadmap.
+Los módulos `github`, `ingestion`, `analyzer` y `report` se crearán cuando cada uno tenga una responsabilidad y un consumidor real. No se crean packages vacíos.
 
 ## Arquitectura objetivo refinada
 
@@ -38,81 +42,92 @@ El producto evolucionará hacia un monolito modular con dos aplicaciones runtime
 
 ```text
 Angular web
-    ↓ HTTP API
+    | HTTP API contracts
+    v
 Fastify API
-    ↓ in-process AnalysisJob runner
-GitHub REST ingestion
-    ↓
-TypeScript/JavaScript analyzer
-    ↓
-SQLite
+    | application orchestration
+    v
+Domain model
+    | ports and adapters
+    +--> GitHub REST snapshot
+    +--> deterministic analyzer
+    +--> SQLite persistence
 ```
 
-No se crea `apps/worker` en el MVP inicial. El runner será extraíble si aparecen señales de duración, concurrencia o disponibilidad.
+El runner de `AnalysisJob` permanecerá inicialmente dentro de la API. No se crea `apps/worker` hasta que duración, concurrencia o disponibilidad lo justifiquen.
 
 ## Dependency direction
 
 ```text
 web
- ↓
-contracts
- ↓
-application/domain
- ↓
-infrastructure adapters
+  |
+  v
+contracts <---- API DTO mapping ---- apps/api
+                                      |
+                                      v
+                                    domain
+                                      |
+                                      v
+                              infrastructure adapters
 ```
 
 Reglas vigentes:
 
-- `packages/contracts` no depende del dominio.
+- `packages/domain` no depende de Angular, HTTP, Fastify, GitHub, SQLite, filesystem, browser APIs ni IA.
+- `packages/contracts` no depende de `packages/domain`; representa la frontera serializable.
 - `apps/web` puede depender de `packages/contracts`, pero no de `domain`, `github`, `analyzer`, `report` o SQLite.
-- `apps/api` compone contracts y Fastify; no expone entidades internas directamente.
-- El futuro `domain` no dependerá de Angular, HTTP, Fastify, GitHub, SQLite, filesystem o IA.
+- `apps/api` compone transporte, contratos, aplicación y adapters; no expone entidades internas directamente.
 - Los adapters dependerán de abstracciones del dominio, no al revés.
 
-En Foundation la dirección se verifica mediante estructura de imports, referencias TypeScript y revisión de PR. Se añadirá una regla automatizada más fuerte solo cuando existan varios packages con dependencias reales; no se introduce un dependency-cruiser-like tool prematuramente.
+En Phase 2 la independencia del dominio se verifica por sus dependencias declaradas, imports exclusivamente locales, compilación aislada y `pnpm check:architecture`. Se añadirá una regla automatizada más fuerte solo cuando existan varios adapters con dependencias reales.
 
 ## Current repository structure
 
 ```text
 apps/
-  web/
-    src/app/core/api/health.service.ts
-    src/app/app.ts
-    src/app/app.html
-  api/
-    src/app.ts
-    src/server.ts
-    src/app.test.ts
+  web/                 # Angular Foundation
+  api/                 # Fastify Foundation
 packages/
-  contracts/
-    src/index.ts
+  contracts/           # contratos externos serializables
+  domain/              # modelo e invariantes de negocio
 
 docs/
 ```
 
+## Domain and report model
+
+```text
+RepositorySnapshot
+        |
+       Facts
+        |
+      Metrics
+        |
+     Evidence
+        |
+     Findings
+        |
+ Recommendations
+        |
+  AnalysisResult
+```
+
+`RepositorySnapshot` fija owner, repository, ref y commit SHA. Facts son observaciones directas; metrics son medidas derivadas; evidence es soporte minimizado; findings son problemas interpretados; recommendations son acciones vinculadas. `AnalysisResult` valida la integridad de las referencias y conserva las versiones del analyzer y del ruleset.
+
+El dominio usa factories explícitas, value sets cerrados y objetos/arrays de solo lectura en runtime. `unknown`, `not_detected` e `insufficient_data` no se convierten en `false` ni en cero. Los dimension scores son nullable y no existe score global en este vertical slice.
+
 ## Frontend Foundation
 
-Angular usa standalone components, routing preparado y environment file replacement para distinguir desarrollo y producción. La aplicación tiene una única pantalla de Foundation y no contiene dashboard, report, forms de análisis ni state manager global.
-
-El cliente HTTP está aislado en un service de data access. La UI muestra loading, online y unavailable, con retry en caso de error. La API URL local se configura únicamente en el environment de desarrollo; producción usa una ruta relativa `/api`.
+Angular usa standalone components, routing preparado y environment file replacement. La aplicación tiene una única pantalla de Foundation y no contiene dashboard, report, forms de análisis ni state manager global.
 
 ## Backend Foundation
 
-Fastify se compone mediante `buildApp`, separado del proceso de escucha, lo que permite tests con `fastify.inject()`. La API expone únicamente:
-
-```text
-GET /health
-```
-
-No existen todavía endpoints de análisis, findings, recommendations o facts.
-
-La API aplica CORS explícito para los origins locales de Angular y headers básicos de seguridad. La configuración mínima de `HOST` y `PORT` se valida antes de escuchar.
+Fastify se compone mediante `buildApp`, separado del proceso de escucha, lo que permite tests con `fastify.inject()`. La API expone únicamente `GET /health`.
 
 ## Contracts
 
-`HealthResponse` es un contrato externo compartido por web y API. Las entidades internas del futuro dominio no se exportarán directamente a la web ni se mezclarán con DTOs públicos.
+`packages/contracts` contiene `HealthResponse` y tipos serializables del futuro report. Estos tipos no sustituyen la validación de `packages/domain`: el mapping de API deberá convertir explícitamente entidades válidas a DTOs cuando existan endpoints de report.
 
 ## Future flow
 
-La ingesta, el analyzer determinista, SQLite y `AnalysisJob` pertenecen a fases posteriores. La IA, providers, prompts, structured output y validation quedan condicionados a la validación del MVP determinista.
+La ingesta GitHub, las reglas deterministas, SQLite, `AnalysisJob`, los mappings HTTP y la IA pertenecen a fases posteriores. Esta fase solo establece el lenguaje e invariantes que esos componentes consumirán.

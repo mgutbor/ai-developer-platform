@@ -1,77 +1,81 @@
 # Modelo de análisis
 
-## Alcance del analyzer
+## Capas canónicas
 
-El MVP analiza profundamente TypeScript y JavaScript. Angular, React y Node.js se detectan como contexto mediante manifests, configuración y convenciones, pero no se hacen afirmaciones profundas específicas de framework sin reglas y evidencia suficientes. Otros lenguajes se registran como metadata y quedan fuera del scoring profundo.
+Phase 2 separa deliberadamente cinco conceptos:
 
-El vertical slice prioriza Architecture, Testing, Documentation, Dependencies y Code Quality. Maintainability se limita a señales estáticas simples. Accessibility y Security se expresan inicialmente como cobertura de tooling/configuración, no como auditorías completas.
-
-## Capas de resultado
-
-- **Fact:** observación directa del snapshot, por ejemplo `has_ci_config = true`.
-- **Metric:** medida derivada con método y denominador explícitos.
-- **Finding:** problema o riesgo respaldado por evidence.
+- **Fact:** observación directa del snapshot. Ejemplo: existe `README.md`.
+- **Metric:** medida derivada de facts o de datos del snapshot. Ejemplo: `test_file_ratio = 0.18`.
+- **Evidence:** soporte verificable y minimizado para una observación o medida.
+- **Finding:** problema o riesgo interpretado, respaldado por una o más evidencias.
 - **Recommendation:** acción concreta vinculada a uno o más findings.
 
-La ausencia de una señal significa `unknown` o `not_detected`, no necesariamente `false`.
-
-## Dimensiones del MVP
-
-| Dimensión | Deterministic sin ejecutar | Finding razonable | Limitación |
-| --- | --- | --- | --- |
-| Architecture | árbol, entry points, imports, profundidad, módulos inferibles y ciclos simples | dependencias circulares o boundaries estructurales observables | no demuestra runtime architecture ni intención |
-| Testing | test files/directories, framework/config, coverage config, CI test commands | ausencia de señales mínimas de testing en áreas detectables | no se ejecutan tests y presencia no implica calidad |
-| Documentation | README, docs, contribution guide, changelog y referencias básicas | documentación mínima ausente o claramente incompleta | no mide conocimiento tácito ni exactitud completa |
-| Dependencies | manifests, lockfiles, package manager, versiones, duplicados y metadata disponible | dependencia declarada sin lockfile o señales verificables de gestión débil | no instala ni resuelve dependencias del repository |
-| Code Quality | lint, formatting, typecheck configs, generated files, tamaños y patrones simples | falta de tooling declarado o inconsistencias mecánicas | no conoce estándares internos |
-| Maintainability | tamaño, complejidad sintáctica disponible, duplicación limitada y hotspots | archivo o módulo excesivamente grande según regla | heurísticas no equivalen a mantenibilidad real |
-| Accessibility | tooling/config de accessibility y señales estáticas seleccionadas en TS/JS | ausencia de tooling declarado, con wording de cobertura limitada | no renderiza ni ejecuta auditoría WCAG |
-| Security | patterns redactados, security tooling, workflow/config y advisories verificables | señales concretas de secreto o configuración insegura | no es SAST/DAST ni garantiza ausencia de vulnerabilidades |
-
-Los findings de Accessibility y Security deben usar lenguaje de señal detectada, nunca afirmar una auditoría completa.
-
-## Provenance y evidence
-
-Cada fact o metric debe poder indicar:
-
 ```text
-id
-kind
-value
-source = deterministic
-method
-snapshotId
-locations[]
-limitations[]
-```
-
-Una evidence publicada debe resolver esta cadena:
-
-```text
-Finding
-   ↓ evidenceId
-Evidence
-   ↓ snapshotId + path + range
 RepositorySnapshot
-   ↓ commit SHA
-GitHub repository revision
+        |
+       Facts
+        |
+      Metrics
+        |
+     Evidence
+        |
+     Findings
+        |
+ Recommendations
+        |
+  AnalysisResult
 ```
 
-El modelo mínimo de evidence es:
+Ninguna de estas capas debe convertirse silenciosamente en otra. En particular, un fact no es un finding y una métrica no es una recomendación.
+
+## RepositorySnapshot
+
+`RepositorySnapshot` representa la revisión exacta analizada:
 
 ```text
 id
-kind = file | config | metric | metadata | dependency | workflow
-snapshotId
-path
-range
-redactedExcerpt or excerptHash
-factId/metricId
+owner
+name
+repositoryUrl
+ref
+commitSha
+createdAt
 ```
 
-`path` debe ser relativo, normalizado y perteneciente al tree fijado. `range` es opcional para metadata y obligatorio cuando el finding depende de una ubicación concreta. No se guardan excerpts completos por defecto.
+Owner y repository se normalizan a minúsculas. La identidad es siempre `snapshot:owner/name@commitSha`; la branch/ref es contexto mutable y el `commitSha` completo es la identidad de la fuente. La factory valida una URL HTTPS sintácticamente pública de GitHub, la correspondencia con owner/name y un commit SHA completo de 40 o 64 caracteres hexadecimales. La visibilidad real del repository se comprobará en la integración GitHub posterior.
+
+## Fact y Metric
+
+`Fact` contiene `type`, `key`, un valor primitivo o una lista de strings, estado, provenance y metadata escalar opcional. El estado es uno de:
+
+```text
+observed | not_detected | unknown | insufficient_data
+```
+
+Un fact observado tiene valor; los demás tienen valor `null`.
+
+`Metric` contiene nombre, valor numérico o textual, unidad opcional, IDs de facts de origen, provenance y `ruleVersion`. Una métrica no observada también tiene valor `null`. Las factories validan que sus facts de origen existan dentro del `AnalysisResult`.
+
+## Evidence
+
+`Evidence` contiene:
+
+```text
+id
+snapshotId
+kind
+location
+excerptHash | redactedExcerpt
+sourceId
+```
+
+`location` puede ser `null` para evidence de tipo `metric` o `metadata`; evidence de archivo, config, dependency y workflow requiere path. El path es relativo, normalizado y no puede ser absoluto ni contener traversal. Un rango opcional usa posiciones positivas y no puede terminar antes de empezar.
+
+Por minimización, una evidence de fuente usa un `excerptHash` o un `redactedExcerpt`, nunca ambos, y nunca almacena un archivo completo. Su `snapshotId` debe coincidir con el resultado y su `sourceId` debe resolver a un fact o metric del mismo resultado.
 
 ## Finding
+
+Un finding contiene:
 
 ```text
 id
@@ -79,79 +83,53 @@ category
 severity
 title
 description
-evidenceIds[]
-locations[]
 impact
-recommendationIds[]
+evidenceIds
+recommendationIds
 confidence
-source = deterministic
-status
-snapshotId
+source
 ruleId
+ruleVersion
+provenance
 ```
 
-En el MVP `source` es `deterministic`. Los valores `ai` y `combined` quedan reservados para una fase posterior.
-
-`severity` distingue impacto (`critical`, `high`, `medium`, `low`, `info`) y no certeza. `confidence` expresa la confianza en la validez de la afirmación.
+`category` usa las ocho dimensiones actuales. `severity`, `confidence` y `source` son value sets cerrados. Todo finding requiere al menos una evidencia. Los findings deterministas requieren `ruleId` y `ruleVersion` tanto en el finding como en su provenance.
 
 ## Recommendation
 
+Una recommendation contiene `id`, título, descripción, prioridad, IDs de findings y source. Debe referenciar al menos un finding. `AnalysisResult` exige que la relación sea recíproca: cada recommendation aparece en el finding que declara atender y viceversa.
+
+## AnalysisResult y scoring
+
+`AnalysisResult` es el aggregate report de Phase 2:
+
 ```text
 id
-title
-description
-findingIds[]
-priority
-expectedImpact
-effort
-acceptanceHint
-source = deterministic
-```
-
-Las recommendations iniciales deben derivarse de reglas conocidas. No se generarán recomendaciones de texto libre sin un finding verificable.
-
-## Scoring strategy
-
-El MVP publicará un score determinista nullable por dimensión. No se publicará score global en el primer vertical slice.
-
-```text
-score = clamp(baseScore - rulePenalties, 0, 10)
-```
-
-Cada regla debe definir:
-
-- señal requerida;
-- valor esperado;
-- peso o penalización;
-- evidence generada;
-- comportamiento cuando faltan datos;
-- versión de regla;
-- fixtures y casos límite.
-
-La respuesta del report incluirá:
-
-```text
-deterministicScore: 0..10 | null
-confidenceBand: low | medium | high
-evidenceCount: integer
-coverage: complete | partial | insufficient
+snapshot
+facts
+metrics
+evidence
+findings
+recommendations
+dimensionScores
+confidence
+coverage
 ruleSetVersion
-limitations[]
+analyzerVersion
+limitations
+createdAt
 ```
 
-No se mezclan scores deterministas y de IA. Cuando la IA se incorpore, producirá una `aiAssessment` separada con claims y confidence, sin modificar automáticamente el score determinista. Solo una evaluación comparativa posterior podría justificar una combinación y requeriría un ADR nuevo.
+La factory valida IDs únicos, referencias resolubles, consistencia de snapshot, ausencia de evidence huérfana, relaciones recíprocas y versiones presentes. `DimensionScore` contiene un score entre 0 y 10 o `null`, confidence, evidence count, coverage y limitaciones. Un score `null` exige coverage `insufficient`; no existe score global ni cálculo de scoring en esta fase.
 
-`score = null` se usa cuando no hay señales mínimas o el denominador no es fiable. Nunca se representa desconocido como `0`.
+## Provenance y versionado
 
-## Reconciliation
+Toda observación, métrica y finding tiene provenance con source, method y snapshot ID. La provenance determinista requiere rule ID y rule version. `analyzerVersion` identifica la implementación del analyzer y `ruleSetVersion` identifica las reglas aplicadas; se conservan por separado porque pueden cambiar independientemente.
 
-Antes de publicar:
+## Uncertainty
 
-1. Deduplicar por rule, category, location y snapshot.
-2. Verificar que evidence pertenece al snapshot.
-3. Normalizar paths y rangos.
-4. Validar enums y rangos.
-5. Asociar recommendations a findings existentes.
-6. Marcar `insufficient_data` y archivos excluidos.
+`unknown`, `not_detected` e `insufficient_data` son estados distintos. Los valores desconocidos se expresan con `null` y estado explícito. Nunca se representa desconocido como `false` ni insuficiencia como score `0`.
 
-La reproducibilidad se define por repository, commit SHA, configuración, versión del analyzer y versión de reglas.
+## Alcance no implementado
+
+Este modelo no implementa ingestión GitHub, reglas de analyzer, cálculo de scores, persistencia SQLite, lifecycle de `AnalysisJob`, endpoints ni IA. Es la base que esos componentes deberán consumir.

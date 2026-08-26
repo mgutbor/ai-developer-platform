@@ -6,7 +6,8 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 
 - API: test de integración de `GET /health` con `fastify.inject()`.
 - Angular: tests de creación de la aplicación y estados online/unavailable del cliente health.
-- Contracts: compilación TypeScript.
+- Contracts: compilación TypeScript de DTOs de frontera.
+- Domain: tests unitarios de factories, invariantes, trazabilidad, incertidumbre e inmutabilidad.
 - Repository: lint, format check, typecheck, tests y build.
 
 ## Testing strategy
@@ -17,17 +18,20 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Angular application creation.
 - Angular HTTP success/error states.
 - TypeScript strict compilation.
-- Workspace build de contracts, API y web.
+- Domain invariants and relationship integrity.
+- Domain dependency boundary check.
+- Workspace build de contracts, domain, API y web.
 - ESLint y Prettier.
 
 ### SHOULD en fases siguientes
 
-- Domain invariants y job lifecycle.
+- API mapping tests entre domain y contracts.
+- Job lifecycle.
 - Analyzer fixtures TypeScript/JavaScript.
 - Evidence paths, ranges y snapshot SHA.
 - GitHub URL validation, limits, redaction, symlinks y path traversal.
 - SQLite states, cleanup, idempotency y reinicio.
-- API contracts del report.
+- API endpoint contracts del report.
 - E2E y accessibility checks del flujo completo.
 
 ### LATER
@@ -45,6 +49,7 @@ No se usa un provider de IA real en CI.
 
 ```text
 install --frozen-lockfile
+check:architecture
 lint
 format:check
 typecheck

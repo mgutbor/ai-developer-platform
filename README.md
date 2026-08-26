@@ -2,7 +2,7 @@
 
 Plataforma para analizar repositories de GitHub y generar un Developer Health Report respaldado por evidencia determinista, análisis estático y una capa futura de IA.
 
-> Estado: **Fase 1 — Foundation & Developer Experience completada**. El vertical slice de análisis todavía no está implementado.
+> Estado: **Phase 2 — Domain & Report Contracts completada**. La ingesta, el analyzer y el vertical slice de análisis todavía no están implementados.
 
 ## Objetivo
 
@@ -29,14 +29,15 @@ Las versiones de Angular y sus peer dependencies se mantienen alineadas. Node `v
 
 ## Foundation implementada
 
-- Monorepo ejecutable con `apps/web`, `apps/api` y `packages/contracts`.
+- Monorepo ejecutable con `apps/web`, `apps/api`, `packages/contracts` y `packages/domain`.
 - Pantalla Angular mínima de Foundation.
 - Endpoint `GET /health`.
 - Comunicación Angular → API con estados loading, online y unavailable.
-- Contrato `HealthResponse` compartido sin exponer entidades internas.
+- Contratos API explícitos para health y report, sin exponer entidades internas.
+- Dominio puro con factories validadas para snapshots, facts, metrics, evidence, findings, recommendations y resultados.
 - TypeScript estricto, ESLint, Prettier y scripts raíz.
-- Tests de API y Angular.
-- Workflow de GitHub Actions para install, lint, format, typecheck, test y build.
+- Tests unitarios del dominio, además de tests de API y Angular.
+- Workflow de GitHub Actions para install, architecture check, lint, format, typecheck, test y build.
 
 ## Estructura actual
 
@@ -46,11 +47,12 @@ apps/
   api/                 # Fastify API y composición de Foundation
 packages/
   contracts/           # contratos públicos compartidos
+  domain/              # modelo e invariantes de negocio
 
 docs/                  # producto, arquitectura, seguridad, roadmap y ADRs
 ```
 
-Los packages `domain`, `github`, `ingestion`, `analyzer` y `report` están diseñados, pero todavía no se crean porque no tienen responsabilidad implementada en esta fase.
+El package `domain` ya está implementado. `github`, `ingestion`, `analyzer` y `report` siguen planificados y se crearán cuando tengan una responsabilidad real.
 
 ## Requisitos
 
@@ -82,6 +84,7 @@ La pantalla de Foundation comprueba automáticamente la disponibilidad de la API
 ## Quality commands
 
 ```bash
+pnpm check:architecture
 pnpm lint
 pnpm format:check
 pnpm typecheck
@@ -101,9 +104,10 @@ pnpm format
 - [Architecture review](docs/architecture-review.md)
 - [Guía de desarrollo](docs/development.md)
 - [Modelo de análisis](docs/analysis-model.md)
+- [Modelo de dominio](docs/domain-model.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 
 ## Funcionalidades todavía no implementadas
 
-GitHub ingestion, analyzer, findings, evidence, recommendations, scoring, SQLite, `AnalysisJob` real, IA, autenticación y dashboard pertenecen a fases posteriores. No se ejecuta código de repositories analizados.
+GitHub ingestion, analyzer, SQLite, `AnalysisJob` real, cálculo de scoring, IA, autenticación y dashboard pertenecen a fases posteriores. El dominio define findings, evidence y recommendations, pero todavía no los produce desde repositories. No se ejecuta código de repositories analizados.
