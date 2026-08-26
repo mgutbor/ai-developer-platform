@@ -1,0 +1,125 @@
+<main class="page-shell" aria-labelledby="report-title">
+  <a class="back-link" [routerLink]="['/analyses', analysisId]">Back to analysis</a>
+  @if (loading()) {
+    <p role="status" aria-live="polite">Loading report…</p>
+  } @else if (error()) {
+    <section class="panel" role="alert">
+      <h1>Report unavailable</h1>
+      <p>We could not load this report. Please retry shortly.</p>
+      <button type="button" (click)="load()">Retry</button>
+    </section>
+  } @else if (report(); as currentReport) {
+    <header class="report-header">
+      <p class="eyebrow">Developer Health Report</p>
+      <h1 id="report-title">
+        {{ currentReport.snapshot.owner }}/{{ currentReport.snapshot.name }}
+      </h1>
+      <p>
+        Analyzed commit <code>{{ currentReport.snapshot.commitSha }}</code>
+      </p>
+      <p class="metadata">
+        Analyzer {{ currentReport.analyzerVersion }} · Rules {{ currentReport.ruleSetVersion }}
+      </p>
+    </header>
+
+    <section class="panel score-panel" aria-labelledby="score-title">
+      <h2 id="score-title">Deterministic assessment</h2>
+      <p><strong>Confidence:</strong> {{ currentReport.confidence }}</p>
+      <p><strong>Coverage:</strong> {{ currentReport.coverage }}</p>
+      <div class="score-grid">
+        @for (score of currentReport.dimensionScores; track score.dimension) {
+          <article class="score-card">
+            <h3>{{ score.dimension }}</h3>
+            @if (score.score === null) {
+              <p class="score-unavailable">Score unavailable</p>
+            } @else {
+              <p class="score">{{ score.score }}/10</p>
+            }
+            <p>{{ score.confidence }} confidence · {{ score.evidenceCount }} evidence items</p>
+          </article>
+        }
+      </div>
+    </section>
+
+    @if (currentReport.limitations.length > 0) {
+      <section class="panel limitations" aria-labelledby="limitations-title">
+        <h2 id="limitations-title">Limitations</h2>
+        <ul>
+          @for (limitation of currentReport.limitations; track limitation) {
+            <li>{{ limitation }}</li>
+          }
+        </ul>
+      </section>
+    }
+
+    <section aria-labelledby="findings-title">
+      <h2 id="findings-title">Findings</h2>
+      @if (currentReport.findings.length === 0) {
+        <p class="empty">No findings detected.</p>
+      } @else {
+        <div class="finding-list">
+          @for (finding of currentReport.findings; track finding.id) {
+            <article class="panel finding-card">
+              <p class="finding-meta">
+                <strong>{{ finding.severity }}</strong> · {{ finding.category }} ·
+                {{ finding.confidence }} confidence
+              </p>
+              <h3>{{ finding.title }}</h3>
+              <p>{{ finding.description }}</p>
+              <p><strong>Impact:</strong> {{ finding.impact }}</p>
+              @if (finding.ruleId) {
+                <p class="metadata">Rule: {{ finding.ruleId }}</p>
+              }
+              <h4>Evidence</h4>
+              @if (evidenceFor(finding, currentReport).length === 0) {
+                <p class="empty">No evidence available for this finding.</p>
+              } @else {
+                <ul class="evidence-list">
+                  @for (evidence of evidenceFor(finding, currentReport); track evidence.id) {
+                    <li>
+                      <strong>{{ evidence.kind }}</strong>
+                      @if (evidence.location; as location) {
+                        <span>
+                          — {{ location.path }}
+                          @if (location.range; as range) {
+                            (lines {{ range.start.line }}–{{ range.end.line }})
+                          }
+                        </span>
+                      }
+                      @if (evidence.excerptHash) {
+                        <span class="metadata"> — evidence hash {{ evidence.excerptHash }}</span>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+              <h4>Recommendations</h4>
+              @if (recommendationsFor(finding, currentReport).length === 0) {
+                <p class="empty">No recommendations available.</p>
+              } @else {
+                <ul>
+                  @for (
+                    recommendation of recommendationsFor(finding, currentReport);
+                    track recommendation.id
+                  ) {
+                    <li>
+                      <strong>{{ recommendation.title }}</strong> — {{ recommendation.description }}
+                    </li>
+                  }
+                </ul>
+              }
+            </article>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="panel details" aria-labelledby="details-title">
+      <h2 id="details-title">Analysis details</h2>
+      <p>
+        {{ currentReport.facts.length }} facts · {{ currentReport.metrics.length }} metrics ·
+        {{ currentReport.evidence.length }} evidence items
+      </p>
+    </section>
+  }
+</main>

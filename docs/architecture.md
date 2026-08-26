@@ -24,7 +24,7 @@ Fastify API
 
 ## Runtime components
 
-- `apps/web`: Angular 22 standalone application. La pantalla actual sigue siendo Foundation; el report UI pertenece a Phase 6.
+- `apps/web`: Angular 22 standalone application con input de repository, progreso con polling y report accesible.
 - `apps/api`: Fastify 5, application service, runner in-process, endpoints de análisis y mapping explícito a contratos.
 - `packages/contracts`: DTOs serializables de health, jobs y report; no importa entidades del dominio.
 - `packages/domain`: significado e invariantes de snapshots, jobs y reportes; no depende de infraestructura.
@@ -140,8 +140,8 @@ SQLite guarda metadata del job y un payload de resultado validado. No se guardan
 
 ## Deferred
 
-- Angular report experience.
 - Public API rate limiting and broader hardening.
+- Automated axe audit and browser E2E hardening.
 - Cleanup scheduler.
 - AI assessment and provider integration.
 - Global score.

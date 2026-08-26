@@ -1,0 +1,97 @@
+.page-shell {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+.back-link {
+  color: #005c8a;
+  font-weight: 700;
+}
+.report-header {
+  margin: 1.5rem 0 2rem;
+}
+.report-header h1 {
+  margin: 0.25rem 0 0.75rem;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+}
+.eyebrow {
+  color: #005c8a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.metadata {
+  color: #475569;
+  font-size: 0.9rem;
+}
+.panel {
+  margin: 1.5rem 0;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid #d5deeb;
+  border-radius: 0.8rem;
+  background: #fff;
+}
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+.score-card {
+  padding: 1rem;
+  border: 1px solid #d5deeb;
+  border-radius: 0.6rem;
+  background: #f8fafc;
+}
+.score-card h3 {
+  margin-top: 0;
+  text-transform: capitalize;
+}
+.score {
+  margin: 0.25rem 0;
+  color: #005c8a;
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+.score-unavailable {
+  font-weight: 700;
+}
+.finding-list {
+  display: grid;
+  gap: 1rem;
+}
+.finding-card {
+  margin: 0;
+}
+.finding-meta {
+  color: #475569;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+.finding-card h3 {
+  margin-bottom: 0.5rem;
+}
+.finding-card h4 {
+  margin-bottom: 0.4rem;
+}
+.evidence-list {
+  padding-left: 1.25rem;
+}
+.empty {
+  color: #475569;
+  font-style: italic;
+}
+.limitations {
+  border-left: 0.35rem solid #a16207;
+}
+button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: #005c8a;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}

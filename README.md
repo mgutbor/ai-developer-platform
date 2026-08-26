@@ -90,7 +90,7 @@ pnpm dev
 - API: `http://127.0.0.1:3000`
 - Health: `http://127.0.0.1:3000/health`
 
-La pantalla de Foundation comprueba automáticamente la disponibilidad de la API.
+La aplicación Angular permite iniciar análisis, consultar su progreso y abrir el report persistido. La navegación usa `/`, `/analyses/:id` y `/analyses/:id/report`; el cliente hace polling controlado y renderiza findings, evidence y recommendations como texto seguro.
 
 ## Quality commands
 
@@ -118,6 +118,7 @@ pnpm format
 - [Modelo de dominio](docs/domain-model.md)
 - [GitHub ingestion](docs/github-ingestion.md)
 - [Analyzer](docs/analyzer.md)
+- [Frontend](docs/frontend.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 

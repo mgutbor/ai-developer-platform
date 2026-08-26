@@ -1,0 +1,44 @@
+.page-shell {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+.back-link {
+  color: #005c8a;
+  font-weight: 700;
+}
+.panel {
+  margin-top: 1.5rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid #d5deeb;
+  border-radius: 1rem;
+  background: #fff;
+}
+.eyebrow {
+  color: #005c8a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.status {
+  font-weight: 700;
+}
+.error {
+  color: #9b1c1c;
+  font-weight: 600;
+}
+button,
+.button-link {
+  display: inline-block;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: #005c8a;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}

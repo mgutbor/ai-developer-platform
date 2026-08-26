@@ -1,0 +1,81 @@
+.page-shell {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem;
+}
+.hero {
+  margin-bottom: 2rem;
+}
+.hero h1 {
+  max-width: 38rem;
+  margin: 0.25rem 0 1rem;
+  font-size: clamp(2rem, 6vw, 4rem);
+  line-height: 1.05;
+}
+.hero p {
+  max-width: 42rem;
+  font-size: 1.1rem;
+}
+.eyebrow {
+  color: #005c8a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.panel {
+  padding: clamp(1.25rem, 4vw, 2rem);
+  border: 1px solid #d5deeb;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 1rem 2.5rem rgb(23 43 77 / 8%);
+}
+.panel h2 {
+  margin-top: 0;
+}
+.field {
+  margin: 1.25rem 0;
+}
+label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-weight: 700;
+}
+input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #64748b;
+  border-radius: 0.4rem;
+  color: inherit;
+  font: inherit;
+}
+.hint {
+  margin: 0.4rem 0 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+.error {
+  color: #9b1c1c;
+  font-weight: 600;
+}
+button {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: #005c8a;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+@media (max-width: 600px) {
+  .page-shell {
+    padding-top: 2rem;
+  }
+}

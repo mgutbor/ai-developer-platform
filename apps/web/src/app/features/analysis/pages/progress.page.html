@@ -1,0 +1,36 @@
+<main class="page-shell" aria-labelledby="progress-title">
+  <a class="back-link" routerLink="/">Start another analysis</a>
+  <h1 id="progress-title">Analysis progress</h1>
+
+  @if (loading() && !job()) {
+    <p role="status" aria-live="polite">Loading analysis status…</p>
+  }
+  @if (error()) {
+    <section class="panel" role="alert">
+      <h2>Could not load this analysis</h2>
+      <p>There may be a temporary connection problem.</p>
+      <button type="button" (click)="retry()">Retry</button>
+    </section>
+  }
+  @if (job(); as currentJob) {
+    <section class="panel" aria-labelledby="status-title">
+      <p class="eyebrow">{{ currentJob.repository.owner }}/{{ currentJob.repository.name }}</p>
+      <h2 id="status-title">{{ statusMessage(currentJob.status) }}</h2>
+      <p class="status" role="status" aria-live="polite">Status: {{ currentJob.status }}</p>
+      @if (currentJob.commitSha) {
+        <p>
+          <strong>Commit:</strong> <code>{{ currentJob.commitSha }}</code>
+        </p>
+      }
+      @if (currentJob.status === 'failed') {
+        <p class="error">We could not complete this analysis. Please try again.</p>
+      }
+      @if (currentJob.status === 'cancelled') {
+        <p>This analysis was cancelled before a report was available.</p>
+      }
+      @if (currentJob.resultAvailable) {
+        <a class="button-link" [routerLink]="['/analyses', currentJob.id, 'report']">Open report</a>
+      }
+    </section>
+  }
+</main>
