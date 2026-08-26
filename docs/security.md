@@ -1,0 +1,54 @@
+# Seguridad y privacidad
+
+## Revisión de amenazas
+
+El repository analizado es entrada no confiable y puede contener código malicioso, archivos enormes, secretos, instrucciones dirigidas al LLM, dependencias comprometidas o datos personales. La superficie incluye también la API pública, GitHub, SQLite, logs y cualquier futuro proveedor de IA.
+
+| Riesgo | Likelihood | Impact | Mitigation | Requisito MVP | Futuro |
+| --- | --- | --- | --- | --- | --- |
+| SSRF | Media | Alto | solo aceptar URLs de GitHub, resolver hosts permitidos, bloquear redirecciones externas y no aceptar fetch arbitrario | obligatorio | ampliar allowlist solo con threat model |
+| Prompt injection | No aplica al vertical slice; alta cuando exista IA | Alto | tratar contenido como dato, separar instrucciones/contexto, validar output y evidence | no enviar a IA todavía | obligatorio antes de habilitar IA |
+| Malicious repository | Alta | Alto | nunca ejecutar contenido ni scripts; leer solo blobs seleccionados | obligatorio | sandbox solo mediante ADR nuevo |
+| Secrets | Media | Alto | detectar/redactar patrones, excluir `.env` y private keys, no loggear contenido | obligatorio | secret scanning más amplio |
+| API abuse | Media | Alto | validación, rate limiting por IP, payload limits, idempotency | obligatorio antes de exponer públicamente | identidad y cuotas por usuario |
+| GitHub rate limits | Alta | Medio | limitar requests, cachear metadata de una ejecución y devolver error/limitación clara | obligatorio | app authentication si procede |
+| Denial of service | Media | Alto | límites de archivos, bytes, profundidad, tiempo y concurrencia | obligatorio | worker aislado y cuotas |
+| Huge repositories | Alta | Medio/Alto | tree cap, file cap, byte cap y report limitado | obligatorio | procesamiento por shards |
+| Zip/archive bombs | Baja en el MVP | Alto | no usar archives como transporte inicial ni descomprimir entradas no confiables | evitado por diseño | sandbox y extracción limitada si cambia transporte |
+| Path traversal | Media | Alto | paths relativos normalizados, rechazar `..`, no escribir rutas controladas por repository | obligatorio | tests fuzzing adicionales |
+| Symlinks | Media | Alto | no seguir destinos fuera del snapshot; preferiblemente excluirlos | obligatorio | política específica por adapter |
+| Malicious filenames | Media | Medio | no usar nombres como comandos, logs estructurados y encoding seguro | obligatorio | fuzzing |
+| Sensitive data to LLM | No aplica al vertical slice; alta después | Alto | IA desactivada inicialmente, minimización y redacción antes de transferir | no aplica todavía | consentimiento y política de provider |
+
+## Regla crítica: no ejecutar código
+
+La plataforma solo debe leer y parsear bytes dentro de límites definidos. No debe ejecutar scripts, hooks, tests, builds, package managers, binarios, containers ni herramientas declaradas por el repository. El analyzer inicial usa parsing propio y reglas sobre contenido recibido.
+
+## GitHub MVP
+
+- Solo repositories públicos.
+- GitHub REST como único origen externo.
+- Validar owner/name, branch y commit SHA.
+- Rechazar esquemas distintos de HTTP(S), hosts no permitidos y redirecciones fuera de GitHub.
+- Fijar el análisis a un commit.
+- Obtener tree y blobs textuales dentro de límites.
+- Excluir binarios, archivos generados, `node_modules`, secretos y contenidos fuera del alcance.
+- Respetar rate limits y abortar de forma controlada.
+
+## Secrets y logs
+
+- No persistir tokens ni API keys en SQLite.
+- Redactar patrones de credentials, private keys y `.env` antes de evidence o contexto.
+- No incluir contenido completo del repository en logs, errores ni analytics.
+- No registrar URLs con credenciales ni stack traces al cliente.
+- Si se habilita IA, no transferir secretos detectados ni archivos completos por defecto.
+
+## API y abuso
+
+La futura API debe validar input, imponer límites de payload y tamaño, aplicar rate limiting por IP, usar idempotency key para evitar jobs duplicados y devolver errores públicos seguros. CORS, headers de seguridad y CSRF se decidirán según el mecanismo de sesión elegido.
+
+## Privacidad y retención MVP
+
+Guardar solo request normalizada, repository, commit SHA, estado, facts, metrics, findings, evidence references, recommendations y score. SQLite tendrá una retención corta, inicialmente 24 horas, con limpieza explícita. No se guardarán blobs completos ni contexto AI por defecto.
+
+Repositories privados requerirán consentimiento, gestión segura de tokens, política de proveedor, retención y transferencia de datos antes de habilitarse.
