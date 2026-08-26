@@ -14,7 +14,7 @@ Responder de forma estructurada a estas preguntas sobre un repository:
 - Qué impacto puede tener.
 - Qué debería mejorarse primero.
 
-La arquitectura prioriza análisis determinista, reproducibilidad, seguridad y trazabilidad antes de incorporar IA.
+La arquitectura prioriza análisis determinista, reproducibilidad, seguridad y trazabilidad; la IA se mantiene opcional y secundaria.
 
 ## Stack actual
 
@@ -32,7 +32,7 @@ Las versiones de Angular y sus peer dependencies se mantienen alineadas. Node `v
 
 - Monorepo ejecutable con `apps/web`, `apps/api`, `packages/contracts`, `packages/domain`, `packages/github`, `packages/analyzer`, `packages/scoring` y `packages/persistence`.
 
-- Pantalla Angular mínima de Foundation.
+- Experiencia Angular para crear análisis, seguir progreso y consultar el report.
 - Endpoint `GET /health`.
 - Comunicación Angular → API con estados loading, online y unavailable.
 - Contratos API explícitos para health y report, sin exponer entidades internas.
@@ -124,6 +124,8 @@ pnpm format
 - [AI architecture](docs/ai.md)
 - [AI evaluation](docs/ai-evaluation.md)
 - [Release readiness](docs/release-readiness.md)
+- [Release notes v1.0.0](docs/release-notes-v1.0.0.md)
+- [Changelog](../CHANGELOG.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 

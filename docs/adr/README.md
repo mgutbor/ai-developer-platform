@@ -32,3 +32,7 @@ Los ADRs registran decisiones con impacto transversal o difícil de revertir. No
 ## Decisiones de Phase 5
 
 - [ADR-016 — Pipeline de análisis y adapter SQLite](ADR-016-analysis-pipeline-and-sqlite.md)
+
+## Release
+
+La release global `v1.0.0` congela la arquitectura del MVP sin introducir versionado independiente por package. La validación y sus limitaciones están documentadas en `docs/release-readiness.md`.

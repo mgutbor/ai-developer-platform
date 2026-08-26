@@ -121,7 +121,15 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Acceptance criteria:** el report determinista permanece idéntico; referencias inválidas se rechazan; provider failure no rompe el report; costes/latencias no se inventan; decisión de producto documentada.
 
-## Phase 10 — Operational scaling (conditional)
+## Phase 10 — MVP final review and release readiness
+
+**Status:** completada. El MVP queda preparado para una release global `v1.0.0` con limitaciones explícitas.
+
+**Objective:** revisar producto, arquitectura, seguridad, documentación y criterios de release sin añadir funcionalidades.
+
+**Outcome:** recomendación `READY WITH LIMITATIONS`; arquitectura congelada para el MVP y E2E/browser audit, AI live validation y operación distribuida permanecen no validados.
+
+## Phase 11 — Operational scaling (conditional)
 
 **Objective:** extraer componentes solo ante señales medibles.
 

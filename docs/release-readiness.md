@@ -4,7 +4,48 @@
 
 **READY WITH LIMITATIONS**
 
+This checklist is the Phase 10 assessment carried into the v1.0.0 release preparation. The formal release remains suitable for a controlled MVP release, not for an unqualified production-readiness claim.
+
 The MVP demonstrates the complete product flow from a public GitHub repository URL to a persisted deterministic report and optional AI interpretation. It is suitable for a controlled first public release, but it should not be described as production-ready infrastructure.
+
+## Validated release checklist
+
+### Repository
+
+- [x] Global product version strategy defined.
+- [x] Reproducible install command documented.
+- [x] Node version defined in `.nvmrc`, `package.json` and CI.
+- [x] pnpm version defined in `package.json` and CI.
+- [x] Local database remains ignored and is not a release artifact.
+
+### Quality
+
+- [x] Lint.
+- [x] Format.
+- [x] Typecheck.
+- [x] Tests.
+- [x] Build.
+- [x] Dependency audit.
+
+### Architecture and security
+
+- [x] Package boundaries validated.
+- [x] Deterministic analyzer isolated.
+- [x] AI provider isolated and optional.
+- [x] SSRF, path and prompt-injection controls reviewed.
+- [x] No repository code execution.
+- [x] No secrets or credentials tracked.
+
+### Product and documentation
+
+- [x] Analysis flow.
+- [x] Report.
+- [x] Findings and evidence.
+- [x] Recommendations.
+- [x] Dimensional scoring.
+- [x] Optional AI interpretation.
+- [x] README, architecture, development, security and roadmap documentation.
+- [x] Changelog and v1.0.0 release notes.
 
 ## Implemented
 
