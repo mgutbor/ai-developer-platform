@@ -25,4 +25,8 @@ Los ADRs registran decisiones con impacto transversal o difícil de revertir. No
 
 - [ADR-014 — Modelo de dominio y contratos de report](ADR-014-domain-model-and-report-contracts.md)
 
+## Decisiones de Phase 3
+
+- [ADR-015 — GitHub REST ingestion y snapshotting seguro](ADR-015-github-rest-ingestion-and-secure-snapshotting.md)
+
 Cada ADR incluye `Status`, `Context`, `Decision`, `Consequences` y `Alternatives considered`. Una decisión nueva debe enlazar la anterior cuando la modifique y conservar el historial.

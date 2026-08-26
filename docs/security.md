@@ -6,16 +6,16 @@ El repository analizado es entrada no confiable y puede contener código malicio
 
 | Riesgo | Likelihood | Impact | Mitigation | Requisito MVP | Futuro |
 | --- | --- | --- | --- | --- | --- |
-| SSRF | Media | Alto | solo aceptar URLs de GitHub, resolver hosts permitidos, bloquear redirecciones externas y no aceptar fetch arbitrario | obligatorio | ampliar allowlist solo con threat model |
+| SSRF | Media | Alto | `packages/github` solo acepta referencias HTTPS de `github.com`, construye endpoints fijos de `api.github.com` y usa redirects=`error` | implementado en Phase 3 | ampliar allowlist solo con threat model |
 | Prompt injection | No aplica al vertical slice; alta cuando exista IA | Alto | tratar contenido como dato, separar instrucciones/contexto, validar output y evidence | no enviar a IA todavía | obligatorio antes de habilitar IA |
-| Malicious repository | Alta | Alto | nunca ejecutar contenido ni scripts; leer solo blobs seleccionados | obligatorio | sandbox solo mediante ADR nuevo |
+| Malicious repository | Alta | Alto | nunca ejecutar contenido ni scripts; leer solo blobs seleccionados y tratar el contenido como datos | implementado en Phase 3 | sandbox solo mediante ADR nuevo |
 | Secrets | Media | Alto | detectar/redactar patrones, excluir `.env` y private keys, no loggear contenido | obligatorio | secret scanning más amplio |
 | API abuse | Media | Alto | validación, rate limiting por IP, payload limits, idempotency | obligatorio antes de exponer públicamente | identidad y cuotas por usuario |
-| GitHub rate limits | Alta | Medio | limitar requests, cachear metadata de una ejecución y devolver error/limitación clara | obligatorio | app authentication si procede |
-| Denial of service | Media | Alto | límites de archivos, bytes, profundidad, tiempo y concurrencia | obligatorio | worker aislado y cuotas |
+| GitHub rate limits | Alta | Medio | límite de requests por cliente, retry máximo de una vez y categoría `rate_limited` sin exponer cuerpos | implementado en Phase 3 | app authentication si procede |
+| Denial of service | Media | Alto | límites de archivos, bytes, tree, requests, respuestas JSON y timeout de request/ingestión | implementado en Phase 3 | worker aislado y cuotas |
 | Huge repositories | Alta | Medio/Alto | tree cap, file cap, byte cap y report limitado | obligatorio | procesamiento por shards |
 | Zip/archive bombs | Baja en el MVP | Alto | no usar archives como transporte inicial ni descomprimir entradas no confiables | evitado por diseño | sandbox y extracción limitada si cambia transporte |
-| Path traversal | Media | Alto | paths relativos normalizados, rechazar `..`, no escribir rutas controladas por repository | obligatorio | tests fuzzing adicionales |
+| Path traversal | Media | Alto | paths relativos normalizados, rechazo de `..`, rutas absolutas, separadores ambiguos y acceso local inexistente | implementado en Phase 3 | tests fuzzing adicionales |
 | Symlinks | Media | Alto | no seguir destinos fuera del snapshot; preferiblemente excluirlos | obligatorio | política específica por adapter |
 | Malicious filenames | Media | Medio | no usar nombres como comandos, logs estructurados y encoding seguro | obligatorio | fuzzing |
 | Sensitive data to LLM | No aplica al vertical slice; alta después | Alto | IA desactivada inicialmente, minimización y redacción antes de transferir | no aplica todavía | consentimiento y política de provider |
@@ -38,7 +38,7 @@ La plataforma solo debe leer y parsear bytes dentro de límites definidos. No de
 ## Secrets y logs
 
 - No persistir tokens ni API keys en SQLite.
-- Redactar patrones de credentials, private keys y `.env` antes de evidence o contexto.
+- La ingesta excluye nombres de credentials, private keys, `.env`, `.npmrc` y `.netrc`; la redacción basada en contenido se mantiene como requisito previo a evidence/contexto del analyzer.
 - No incluir contenido completo del repository en logs, errores ni analytics.
 - No registrar URLs con credenciales ni stack traces al cliente.
 - Si se habilita IA, no transferir secretos detectados ni archivos completos por defecto.

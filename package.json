@@ -9,13 +9,13 @@
   },
   "scripts": {
     "dev": "concurrently --kill-others-on-fail \"pnpm --filter @ai-developer-platform/api dev\" \"pnpm --filter @ai-developer-platform/web start\"",
-    "build": "pnpm --filter @ai-developer-platform/contracts build && pnpm --filter @ai-developer-platform/domain build && pnpm --filter @ai-developer-platform/api build && pnpm --filter @ai-developer-platform/web build",
-    "test": "pnpm --filter @ai-developer-platform/domain test && pnpm --filter @ai-developer-platform/api test && pnpm --filter @ai-developer-platform/web test",
+    "build": "pnpm --filter @ai-developer-platform/contracts build && pnpm --filter @ai-developer-platform/domain build && pnpm --filter @ai-developer-platform/github build && pnpm --filter @ai-developer-platform/api build && pnpm --filter @ai-developer-platform/web build",
+    "test": "pnpm --filter @ai-developer-platform/domain test && pnpm --filter @ai-developer-platform/github test && pnpm --filter @ai-developer-platform/api test && pnpm --filter @ai-developer-platform/web test",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm --filter @ai-developer-platform/contracts typecheck && pnpm --filter @ai-developer-platform/domain typecheck && pnpm --filter @ai-developer-platform/api typecheck && pnpm --filter @ai-developer-platform/web typecheck",
-    "check:architecture": "node scripts/check-domain-boundary.mjs",
+    "typecheck": "pnpm --filter @ai-developer-platform/contracts typecheck && pnpm --filter @ai-developer-platform/domain typecheck && pnpm --filter @ai-developer-platform/github typecheck && pnpm --filter @ai-developer-platform/api typecheck && pnpm --filter @ai-developer-platform/web typecheck",
+    "check:architecture": "node scripts/check-package-boundaries.mjs",
     "test:watch": "pnpm --filter @ai-developer-platform/api test:watch"
   },
   "devDependencies": {

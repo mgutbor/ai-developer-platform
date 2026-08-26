@@ -30,13 +30,13 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Objective:** obtener snapshots públicos, acotados y reproducibles.
 
-**Scope:** URL validation, repository metadata, branch-to-SHA resolution, tree, blobs textuales, limits, redaction y GitHub errors.
+**Scope:** package `github` framework-independent, URL/ref validation, repository metadata, branch-to-SHA resolution, tree, blobs textuales, limits, safe path/encoding handling y GitHub errors. No endpoint HTTP todavía.
 
 **Dependencies:** Phase 2.
 
 **Acceptance criteria:** mismo commit produce el mismo snapshot lógico; no se siguen symlinks peligrosos; no se descargan archives ni se ejecuta contenido; repositories fuera de límites terminan con limitación explícita.
 
-**Definition of Done:** unit/integration/security tests, fixtures y ADR-010 alineado.
+**Definition of Done:** tests deterministas unitarios/security, fixture client sin red, documentación de límites, ADR-015 aceptado y quality gates verdes.
 
 ## Phase 4 — TypeScript/JavaScript deterministic analyzer
 

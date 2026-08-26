@@ -2,7 +2,7 @@
 
 ## Foundation actual
 
-Phase 2 añade un package de dominio puro al monorepo pnpm. Angular y Fastify siguen siendo la web y API de Foundation; el analyzer, GitHub ingestion, SQLite, `AnalysisJob` y la IA siguen planificados para fases posteriores.
+Phase 3 añade `packages/github` al monorepo pnpm. Angular y Fastify siguen siendo la web y API de Foundation; GitHub ingestion está implementado como librería desacoplada, mientras analyzer, SQLite, `AnalysisJob`, endpoint HTTP e IA siguen planificados.
 
 ## Requisitos
 
@@ -52,11 +52,12 @@ apps/web/             # Angular; consume API contracts
 apps/api/             # Fastify; endpoint health y composición inicial
 packages/contracts/   # contratos externos compartidos
 packages/domain/      # modelo e invariantes sin infraestructura
+packages/github/      # adapter REST e ingestión acotada
 ```
 
-La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos. `pnpm check:architecture` verifica que `packages/domain` no importe infraestructura.
+La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos. `pnpm check:architecture` verifica que `domain` no importe infraestructura y que `github` no importe UI, Fastify, persistencia ni IA.
 
-`github`, `ingestion`, `analyzer` y `report` se crearán cuando exista una responsabilidad real. `domain` ya tiene responsabilidad implementada y no depende de infraestructura. No se crearán carpetas vacías para anticipar funcionalidades.
+`domain` y `github` tienen responsabilidades implementadas. `github` no contiene handlers ni analyzer; el endpoint HTTP, `analyzer` y `report` se crearán cuando tengan un consumidor real. No se crean carpetas vacías para anticipar funcionalidades.
 
 ## Configuración
 
@@ -78,7 +79,8 @@ La API valida `PORT`, usa `HOST` configurable y limita CORS a origins locales ex
 | tsx | Ejecutar tests TypeScript de API | Evita compilar manualmente antes de cada test | Node test runner sobre JS compilado | Solo desarrollo |
 | ESLint + typescript-eslint | Calidad estática | Detecta errores simples en TS | Reglas propias, menos consistentes | Configuración deliberadamente pequeña |
 | Prettier | Formato común | Check reproducible en CI | Formato manual, descartado | Documentación prose excluida |
-| concurrently | Arranque local web/API | Un único `pnpm dev` | Dos terminales, menos DX | Solo herramienta de desarrollo |
+| `concurrently` | Arranque local web/API | Un único `pnpm dev` | Dos terminales, menos DX | Solo herramienta de desarrollo |
+| `@ai-developer-platform/github` | Resolución e ingestión REST acotada | Responsabilidad real de Phase 3 | SDK de GitHub, descartado | Adapter propio; límites y validación cubiertos por tests |
 
 ## Testing scope
 
@@ -89,7 +91,8 @@ La Foundation cubre:
 - respuesta y status code de la API;
 - contratos TypeScript mediante compilación;
 - invariantes de dominio mediante tests unitarios;
-- límite de dependencias del dominio mediante `pnpm check:architecture`;
+- URL/ref validation, REST response validation, selección, decodificación, límites y reproducibilidad de GitHub mediante tests sin red;
+- límites de dependencias de `domain` y `github` mediante `pnpm check:architecture`;
 - lint, format, typecheck y build.
 
-E2E, accessibility completa, GitHub integration tests y analyzer fixtures pertenecen a fases posteriores.
+E2E, accessibility completa, endpoint HTTP de ingestión, integración live de GitHub y analyzer fixtures pertenecen a fases posteriores; los tests del adapter usan transporte inyectado y no dependen de red.

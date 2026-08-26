@@ -122,6 +122,22 @@ importers:
         specifier: 6.0.2
         version: 6.0.2
 
+  packages/github:
+    dependencies:
+      '@ai-developer-platform/domain':
+        specifier: workspace:*
+        version: link:../domain
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      tsx:
+        specifier: 4.23.12
+        version: 4.23.12
+      typescript:
+        specifier: 6.0.2
+        version: 6.0.2
+
 packages:
 
   '@acemir/cssom@0.9.31':

@@ -2,7 +2,7 @@
 
 Plataforma para analizar repositories de GitHub y generar un Developer Health Report respaldado por evidencia determinista, análisis estático y una capa futura de IA.
 
-> Estado: **Phase 2 — Domain & Report Contracts completada**. La ingesta, el analyzer y el vertical slice de análisis todavía no están implementados.
+> Estado: **Phase 3 — GitHub REST Ingestion & Secure Repository Snapshotting completada**. El analyzer, la persistencia y el vertical slice de análisis todavía no están implementados.
 
 ## Objetivo
 
@@ -29,12 +29,13 @@ Las versiones de Angular y sus peer dependencies se mantienen alineadas. Node `v
 
 ## Foundation implementada
 
-- Monorepo ejecutable con `apps/web`, `apps/api`, `packages/contracts` y `packages/domain`.
+- Monorepo ejecutable con `apps/web`, `apps/api`, `packages/contracts`, `packages/domain` y `packages/github`.
 - Pantalla Angular mínima de Foundation.
 - Endpoint `GET /health`.
 - Comunicación Angular → API con estados loading, online y unavailable.
 - Contratos API explícitos para health y report, sin exponer entidades internas.
 - Dominio puro con factories validadas para snapshots, facts, metrics, evidence, findings, recommendations y resultados.
+- Ingestión GitHub REST acotada para repositories públicos, con resolución de commit, selección segura de archivos y límites explícitos.
 - TypeScript estricto, ESLint, Prettier y scripts raíz.
 - Tests unitarios del dominio, además de tests de API y Angular.
 - Workflow de GitHub Actions para install, architecture check, lint, format, typecheck, test y build.
@@ -48,11 +49,12 @@ apps/
 packages/
   contracts/           # contratos públicos compartidos
   domain/              # modelo e invariantes de negocio
+  github/              # adapter REST e ingestión segura acotada
 
 docs/                  # producto, arquitectura, seguridad, roadmap y ADRs
 ```
 
-El package `domain` ya está implementado. `github`, `ingestion`, `analyzer` y `report` siguen planificados y se crearán cuando tengan una responsabilidad real.
+Los packages `domain` y `github` ya están implementados. `github` concentra la validación de referencias, el adapter REST y la ingestión acotada; no contiene handlers Fastify ni lógica de analyzer. `ingestion`, `analyzer` y `report` se crearán cuando tengan una responsabilidad real.
 
 ## Requisitos
 
@@ -105,9 +107,10 @@ pnpm format
 - [Guía de desarrollo](docs/development.md)
 - [Modelo de análisis](docs/analysis-model.md)
 - [Modelo de dominio](docs/domain-model.md)
+- [GitHub ingestion](docs/github-ingestion.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 
 ## Funcionalidades todavía no implementadas
 
-GitHub ingestion, analyzer, SQLite, `AnalysisJob` real, cálculo de scoring, IA, autenticación y dashboard pertenecen a fases posteriores. El dominio define findings, evidence y recommendations, pero todavía no los produce desde repositories. No se ejecuta código de repositories analizados.
+El analyzer, SQLite, `AnalysisJob` real, cálculo de scoring, IA, autenticación, dashboard y endpoint HTTP de ingestión pertenecen a fases posteriores. `packages/github` produce snapshots y archivos textuales acotados, pero todavía no genera findings ni ejecuta código de repositories analizados.

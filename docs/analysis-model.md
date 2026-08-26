@@ -42,7 +42,7 @@ commitSha
 createdAt
 ```
 
-Owner y repository se normalizan a minúsculas. La identidad es siempre `snapshot:owner/name@commitSha`; la branch/ref es contexto mutable y el `commitSha` completo es la identidad de la fuente. La factory valida una URL HTTPS sintácticamente pública de GitHub, la correspondencia con owner/name y un commit SHA completo de 40 o 64 caracteres hexadecimales. La visibilidad real del repository se comprobará en la integración GitHub posterior.
+Owner y repository se normalizan a minúsculas. La identidad es siempre `snapshot:owner/name@commitSha`; la branch/ref es contexto mutable y el `commitSha` completo es la identidad de la fuente. La factory valida una URL HTTPS sintácticamente pública de GitHub, la correspondencia con owner/name y un commit SHA completo de 40 o 64 caracteres hexadecimales. La visibilidad real del repository se comprueba en `packages/github`; el dominio solo valida la forma canónica de la identidad.
 
 ## Fact y Metric
 
@@ -132,4 +132,4 @@ Toda observación, métrica y finding tiene provenance con source, method y snap
 
 ## Alcance no implementado
 
-Este modelo no implementa ingestión GitHub, reglas de analyzer, cálculo de scores, persistencia SQLite, lifecycle de `AnalysisJob`, endpoints ni IA. Es la base que esos componentes deberán consumir.
+Phase 3 implementa la ingestión GitHub fuera del dominio: produce un `RepositorySnapshot` y archivos textuales acotados para consumo futuro. Este modelo todavía no implementa reglas de analyzer, cálculo de scores, persistencia SQLite, lifecycle de `AnalysisJob`, endpoints de report ni IA.

@@ -8,6 +8,7 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Angular: tests de creación de la aplicación y estados online/unavailable del cliente health.
 - Contracts: compilación TypeScript de DTOs de frontera.
 - Domain: tests unitarios de factories, invariantes, trazabilidad, incertidumbre e inmutabilidad.
+- GitHub: tests sin red de referencias, REST response validation, límites, selección, decodificación, errores y reproducibilidad.
 - Repository: lint, format check, typecheck, tests y build.
 
 ## Testing strategy
@@ -19,8 +20,8 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Angular HTTP success/error states.
 - TypeScript strict compilation.
 - Domain invariants and relationship integrity.
-- Domain dependency boundary check.
-- Workspace build de contracts, domain, API y web.
+- Domain/GitHub dependency boundary check.
+- Workspace build de contracts, domain, github, API y web.
 - ESLint y Prettier.
 
 ### SHOULD en fases siguientes
@@ -29,7 +30,7 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Job lifecycle.
 - Analyzer fixtures TypeScript/JavaScript.
 - Evidence paths, ranges y snapshot SHA.
-- GitHub URL validation, limits, redaction, symlinks y path traversal.
+- GitHub live integration controlado, endpoint mapping y redacción basada en contenido antes de habilitar una API pública.
 - SQLite states, cleanup, idempotency y reinicio.
 - API endpoint contracts del report.
 - E2E y accessibility checks del flujo completo.
@@ -41,7 +42,7 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Load tests para worker, PostgreSQL y colas si se extraen.
 - Realtime e histórico.
 
-No se usa un provider de IA real en CI.
+No se usa un provider de IA real ni la red de GitHub en CI. `pnpm audit --audit-level=high` se ejecuta en CI junto con los demás gates.
 
 ## CI/CD
 
@@ -55,6 +56,7 @@ format:check
 typecheck
 test
 build
+audit --audit-level=high
 ```
 
 No se introducen E2E, Playwright, Docker o despliegue en esta fase.

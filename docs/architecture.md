@@ -1,8 +1,8 @@
 # Arquitectura
 
-## Estado tras Phase 2
+## Estado tras Phase 3
 
-La Foundation y el modelo de dominio están implementados. La ingesta de repositories, el analyzer, la persistencia y los endpoints de report siguen planificados.
+La Foundation, el modelo de dominio y el package de ingestión GitHub están implementados. El analyzer, la persistencia, los jobs y los endpoints de report siguen planificados.
 
 ### Implementado
 
@@ -15,12 +15,15 @@ apps/api/              # Fastify 5 API
     |
     +--> packages/contracts/  # DTOs de frontera
     +--> packages/domain/     # significado e invariantes
+
+packages/github/              # REST + snapshotting acotado, sin handlers
 ```
 
 - `apps/web`: pantalla Foundation, routing preparado, environment configuration y cliente mínimo de health.
 - `apps/api`: composición Fastify, `GET /health`, CORS local, headers básicos, logging integrado y error handler público.
 - `packages/contracts`: contratos serializables de API (`HealthResponse` y el shape futuro de `AnalysisResultResponse`). No importa entidades del dominio.
 - `packages/domain`: tipos, value sets y factories validadas para snapshots, facts, metrics, evidence, findings, recommendations, dimension scores y resultados.
+- `packages/github`: validación de referencias públicas, cliente REST nativo con host allowlist, selección acotada, decodificación UTF-8, errores clasificados y `IngestionResult` en memoria. No genera findings.
 - Root: pnpm workspaces, TypeScript strict, ESLint, Prettier, tests y GitHub Actions.
 
 ### Planificado
@@ -29,12 +32,12 @@ apps/api/              # Fastify 5 API
 apps/api
     |
     +--> application/report mapping
-    +--> github/ingestion adapters
     +--> analyzer rules
     +--> SQLite adapter
+    +--> ingestion HTTP endpoint
 ```
 
-Los módulos `github`, `ingestion`, `analyzer` y `report` se crearán cuando cada uno tenga una responsabilidad y un consumidor real. No se crean packages vacíos.
+Los módulos `analyzer` y `report` se crearán cuando cada uno tenga una responsabilidad y un consumidor real. `packages/github` ya implementa el adapter y la ingestión; Fastify todavía no lo compone en un endpoint.
 
 ## Arquitectura objetivo refinada
 
@@ -79,7 +82,7 @@ Reglas vigentes:
 - `apps/api` compone transporte, contratos, aplicación y adapters; no expone entidades internas directamente.
 - Los adapters dependerán de abstracciones del dominio, no al revés.
 
-En Phase 2 la independencia del dominio se verifica por sus dependencias declaradas, imports exclusivamente locales, compilación aislada y `pnpm check:architecture`. Se añadirá una regla automatizada más fuerte solo cuando existan varios adapters con dependencias reales.
+Las fronteras de `domain` y `github` se verifican mediante dependencias declaradas, compilación aislada, imports prohibidos y `pnpm check:architecture`. GitHub puede depender del dominio para crear snapshots; el dominio no puede conocer GitHub.
 
 ## Current repository structure
 
@@ -90,6 +93,7 @@ apps/
 packages/
   contracts/           # contratos externos serializables
   domain/              # modelo e invariantes de negocio
+  github/              # adapter REST e ingestión acotada
 
 docs/
 ```
@@ -130,4 +134,4 @@ Fastify se compone mediante `buildApp`, separado del proceso de escucha, lo que 
 
 ## Future flow
 
-La ingesta GitHub, las reglas deterministas, SQLite, `AnalysisJob`, los mappings HTTP y la IA pertenecen a fases posteriores. Esta fase solo establece el lenguaje e invariantes que esos componentes consumirán.
+`packages/github` implementa la ingesta REST acotada, pero no existe todavía un endpoint HTTP ni un mapping de API. Las reglas deterministas, SQLite, `AnalysisJob`, el report HTTP y la IA pertenecen a fases posteriores.
