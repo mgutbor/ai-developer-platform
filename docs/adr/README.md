@@ -19,5 +19,6 @@ Los ADRs registran decisiones con impacto transversal o difícil de revertir. No
 - [ADR-010 — GitHub REST para snapshots del MVP](ADR-010-github-rest-snapshot.md)
 - [ADR-011 — Alcance incremental del analyzer](ADR-011-analysis-scope.md)
 - [ADR-012 — SQLite como persistencia del MVP](ADR-012-mvp-persistence.md)
+- [ADR-013 — Fastify como framework de API](ADR-013-fastify-api.md)
 
 Cada ADR incluye `Status`, `Context`, `Decision`, `Consequences` y `Alternatives considered`. Una decisión nueva debe enlazar la anterior cuando la modifique y conservar el historial.

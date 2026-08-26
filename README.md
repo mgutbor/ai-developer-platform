@@ -1,8 +1,8 @@
 # AI Developer Platform
 
-Plataforma para analizar repositorios de GitHub y generar un Developer Health Report respaldado por evidencias deterministas, análisis estático y una capa opcional de IA.
+Plataforma para analizar repositories de GitHub y generar un Developer Health Report respaldado por evidencia determinista, análisis estático y una capa futura de IA.
 
-> Estado: Fase 0.1 completada. El repositorio contiene únicamente documentación de producto, arquitectura y revisión crítica; todavía no existe una aplicación implementada.
+> Estado: **Fase 1 — Foundation & Developer Experience completada**. El vertical slice de análisis todavía no está implementado.
 
 ## Objetivo
 
@@ -13,42 +13,97 @@ Responder de forma estructurada a estas preguntas sobre un repository:
 - Qué impacto puede tener.
 - Qué debería mejorarse primero.
 
-La IA complementa los hechos y métricas obtenidos por analizadores deterministas. No se considera una fuente de verdad independiente.
+La arquitectura prioriza análisis determinista, reproducibilidad, seguridad y trazabilidad antes de incorporar IA.
 
-## Documentación
+## Stack actual
 
-- [Definición del producto](docs/product.md)
+- Node.js 24 LTS.
+- pnpm workspaces.
+- TypeScript 6 en modo strict.
+- Angular 22 standalone components.
+- Fastify 5 para la API.
+- Vitest para tests Angular y Node test runner mediante `tsx` para la API.
+- ESLint flat config y Prettier.
+
+Las versiones de Angular y sus peer dependencies se mantienen alineadas. Node `v25` está EOL; se recomienda usar la línea 24 definida en `.nvmrc`.
+
+## Foundation implementada
+
+- Monorepo ejecutable con `apps/web`, `apps/api` y `packages/contracts`.
+- Pantalla Angular mínima de Foundation.
+- Endpoint `GET /health`.
+- Comunicación Angular → API con estados loading, online y unavailable.
+- Contrato `HealthResponse` compartido sin exponer entidades internas.
+- TypeScript estricto, ESLint, Prettier y scripts raíz.
+- Tests de API y Angular.
+- Workflow de GitHub Actions para install, lint, format, typecheck, test y build.
+
+## Estructura actual
+
+```text
+apps/
+  web/                 # Angular standalone application
+  api/                 # Fastify API y composición de Foundation
+packages/
+  contracts/           # contratos públicos compartidos
+
+docs/                  # producto, arquitectura, seguridad, roadmap y ADRs
+```
+
+Los packages `domain`, `github`, `ingestion`, `analyzer` y `report` están diseñados, pero todavía no se crean porque no tienen responsabilidad implementada en esta fase.
+
+## Requisitos
+
+- Node.js `24`.
+- pnpm `10.34.5`.
+
+Usa `.nvmrc` o un gestor de versiones equivalente para seleccionar Node 24. El entorno utilizado para esta fase tenía Node `v25.3.0`, que muestra un warning de engine por estar fuera de la línea recomendada.
+
+## Instalación
+
+```bash
+pnpm install --frozen-lockfile
+```
+
+## Desarrollo
+
+Arrancar Angular y Fastify conjuntamente:
+
+```bash
+pnpm dev
+```
+
+- Web: `http://localhost:4200`
+- API: `http://127.0.0.1:3000`
+- Health: `http://127.0.0.1:3000/health`
+
+La pantalla de Foundation comprueba automáticamente la disponibilidad de la API.
+
+## Quality commands
+
+```bash
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+Para aplicar formato:
+
+```bash
+pnpm format
+```
+
+## Arquitectura y roadmap
+
 - [Arquitectura](docs/architecture.md)
-- [Revisión de arquitectura y refinamiento del MVP](docs/architecture-review.md)
-- [Modelo de análisis](docs/analysis-model.md)
+- [Architecture review](docs/architecture-review.md)
 - [Guía de desarrollo](docs/development.md)
-- [Modelo de calidad, CI/CD y observabilidad](docs/quality.md)
-- [Arquitectura de IA](docs/ai.md)
-- [Seguridad y privacidad](docs/security.md)
+- [Modelo de análisis](docs/analysis-model.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 
-La arquitectura refinada usa Angular, GitHub REST, un runner de jobs dentro de la API y SQLite para el MVP. La IA queda condicionada a una fase posterior.
+## Funcionalidades todavía no implementadas
 
-## Estado actual
-
-La Fase 0 define el producto, sus límites, el modelo de análisis, la arquitectura propuesta, los riesgos y el plan de ejecución. No se han creado componentes, endpoints funcionales, servicios, integraciones ni dependencias de runtime.
-
-## Principios
-
-1. Evidence over opinion.
-2. Deterministic first.
-3. AI as an analysis layer.
-4. Provider agnostic.
-5. Maintainability over cleverness.
-6. Open source mindset.
-
-## Alcance inicial propuesto
-
-El MVP analizará repositories públicos de GitHub, fijados a un commit concreto, mediante GitHub REST y lectura de metadata, árbol de archivos y contenido textual permitido. Producirá facts, métricas, findings, recomendaciones y score determinista para TypeScript/JavaScript en un job consultable desde una interfaz Angular.
-
-Los repositories privados, la ejecución de código no confiable, los cambios automáticos y los comentarios en pull requests quedan fuera del MVP.
-
-## Contribución
-
-La guía de desarrollo se incorporará antes de comenzar la implementación y deberá mantenerse sincronizada con las decisiones registradas en los ADRs. Cada cambio relevante debe incluir tests, documentación y una evaluación de seguridad proporcional a su impacto.
+GitHub ingestion, analyzer, findings, evidence, recommendations, scoring, SQLite, `AnalysisJob` real, IA, autenticación y dashboard pertenecen a fases posteriores. No se ejecuta código de repositories analizados.

@@ -1,0 +1,30 @@
+{
+  "name": "ai-developer-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=24.15.0 <25",
+    "pnpm": ">=10.34.5 <11"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail \"pnpm --filter @ai-developer-platform/api dev\" \"pnpm --filter @ai-developer-platform/web start\"",
+    "build": "pnpm --filter @ai-developer-platform/contracts build && pnpm --filter @ai-developer-platform/api build && pnpm --filter @ai-developer-platform/web build",
+    "test": "pnpm --filter @ai-developer-platform/api test && pnpm --filter @ai-developer-platform/web test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm --filter @ai-developer-platform/contracts typecheck && pnpm --filter @ai-developer-platform/api typecheck && pnpm --filter @ai-developer-platform/web typecheck",
+    "test:watch": "pnpm --filter @ai-developer-platform/api test:watch"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "concurrently": "10.0.5",
+    "eslint": "10.9.1",
+    "prettier": "3.9.6",
+    "tsx": "4.23.12",
+    "typescript": "6.0.2",
+    "typescript-eslint": "8.68.0"
+  }
+}

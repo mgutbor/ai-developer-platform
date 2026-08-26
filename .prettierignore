@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.angular/
+apps/web/.angular/
+.vscode/
+pnpm-lock.yaml
+README.md
+docs/

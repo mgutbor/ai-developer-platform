@@ -9,7 +9,7 @@ Web y API compartirán contracts, tipos, reglas de dominio y utilidades limitada
 
 ## Decision
 
-Usar un monorepo TypeScript con workspace y lockfile único. Las aplicaciones iniciales vivirán en `apps/web` y `apps/api`; los módulos reutilizables vivirán en `packages/` solo cuando tengan una responsabilidad real. Cada package tendrá un API público pequeño y una dirección de dependencias verificable. La elección del package manager se hará en M01, atendiendo a disponibilidad del equipo y soporte estable de workspaces.
+Usar un monorepo TypeScript con pnpm workspace y lockfile único. Las aplicaciones iniciales viven en `apps/web` y `apps/api`; los módulos reutilizables viven en `packages/` solo cuando tienen una responsabilidad real. Cada package tiene un API público pequeño y una dirección de dependencias verificable. La Foundation fija pnpm 10.34.5 y Node 24 mediante `.nvmrc`.
 
 ## Consequences
 

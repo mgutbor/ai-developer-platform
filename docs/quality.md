@@ -1,89 +1,73 @@
 # Calidad, CI/CD y observabilidad
 
-## Testing strategy review
+## Foundation implementada
 
-La prioridad se basa en lo que puede romper realmente el producto, no en cantidad de suites.
+La Foundation verifica infraestructura básica, no funcionalidades de producto:
 
-### MUST
+- API: test de integración de `GET /health` con `fastify.inject()`.
+- Angular: tests de creación de la aplicación y estados online/unavailable del cliente health.
+- Contracts: compilación TypeScript.
+- Repository: lint, format check, typecheck, tests y build.
 
-- Unit tests de invariantes y lifecycle de `AnalysisJob`.
-- Unit tests de scoring determinista, `null`, `insufficient_data`, deduplicación y límites.
-- Analyzer fixtures para TypeScript/JavaScript con y sin tests, docs, linting, dependencies y CI.
-- Tests de evidence: paths normalizados, ranges válidos y snapshot SHA correcto.
-- GitHub ingestion tests para URL validation, rate limits, pagination, file limits, symlinks, paths, redaction y host restrictions.
-- SQLite persistence tests para estados, cleanup, idempotency y reinicio.
-- API contract tests para create/status/report y errores públicos.
-- Frontend tests del flujo input → progress → report, incluyendo error y partial states.
-- Accessibility checks y revisión manual de teclado del flujo principal.
+## Testing strategy
 
-### SHOULD
+### MUST en Foundation
 
-- Integration test de un snapshot completo sintético.
-- Regression tests por cada finding corregido.
-- Fuzz/property tests de paths, filenames y límites.
-- E2E sobre API y web en entorno aislado.
-- Security checks de dependencias y secrets.
+- API health response y status code.
+- Angular application creation.
+- Angular HTTP success/error states.
+- TypeScript strict compilation.
+- Workspace build de contracts, API y web.
+- ESLint y Prettier.
+
+### SHOULD en fases siguientes
+
+- Domain invariants y job lifecycle.
+- Analyzer fixtures TypeScript/JavaScript.
+- Evidence paths, ranges y snapshot SHA.
+- GitHub URL validation, limits, redaction, symlinks y path traversal.
+- SQLite states, cleanup, idempotency y reinicio.
+- API contracts del report.
+- E2E y accessibility checks del flujo completo.
 
 ### LATER
 
-- Provider contract tests y AI response validation cuando llegue Phase 8.
-- Load tests para worker, PostgreSQL y colas solo si se extraen.
-- Comparación histórica y pruebas de realtime si se incorporan.
+- AI provider contracts y response validation.
+- Prompt-injection tests.
+- Load tests para worker, PostgreSQL y colas si se extraen.
+- Realtime e histórico.
 
-No se usará un provider de IA real en CI.
+No se usa un provider de IA real en CI.
 
-## CI/CD propuesta
+## CI/CD
 
-GitHub Actions ejecutará progresivamente:
+`.github/workflows/ci.yml` utiliza Node 24 desde `.nvmrc` y pnpm 10.34.5. Ejecuta:
 
-1. instalación reproducible con lockfile;
-2. lint y format check;
-3. typecheck;
-4. unit tests;
-5. integration y contract tests;
-6. build de web y API;
-7. E2E y accessibility checks;
-8. dependency audit y secret scanning.
+```text
+install --frozen-lockfile
+lint
+format:check
+typecheck
+test
+build
+```
 
-Los gates MUST del MVP son lint, typecheck, unit, integration/contract, build y security checks básicos. E2E y accessibility serán gates de release una vez exista la aplicación web.
-
-No se necesita Kubernetes, Terraform ni despliegue multi-servicio para el MVP.
+No se introducen E2E, Playwright, Docker o despliegue en esta fase.
 
 ## Observability mínima
 
-Registrar eventos sin contenido sensible:
-
-- `analysis_started`;
-- `analysis_completed`;
-- `analysis_completed_with_limitations`;
-- `analysis_failed`;
-- `github_api_failure`;
-- `retention_cleanup_completed`.
-
-Métricas iniciales:
-
-- completion rate por estado;
-- duración del analysis;
-- número y tamaño de archivos incluidos/excluidos;
-- evidence coverage;
-- errores y rate limits de GitHub;
-- concurrencia del runner;
-- resultados de cleanup.
-
-Las métricas de IA se añadirán solo en Phase 8. No se registran tokens, API keys, prompts completos, responses completas, código ni excerpts sin redacción.
+Fastify registra el arranque y las requests mediante su logger integrado. No se registran secrets, credenciales ni headers sensibles. Tracing, métricas y dashboards quedan para fases posteriores.
 
 ## Global Definition of Done
 
-Un milestone se considera terminado cuando, según aplique:
+Para Foundation:
 
-- los límites de arquitectura están respetados;
-- contracts y tipos están actualizados;
-- tests MUST pasan y cubren errores y límites;
-- lint, typecheck y build pasan;
-- documentación y ADRs afectados están actualizados;
-- accesibilidad del flujo afectado está validada;
-- se revisan secretos, SSRF, rate limits, path traversal y retención;
-- CI ejecuta los gates definidos;
-- observabilidad y limitaciones están documentadas;
-- existe una verificación reproducible;
-- no se añade infraestructura o abstracción sin una necesidad explícita.
+- código alineado con los límites de arquitectura;
+- contracts y tipos actualizados;
+- tests básicos pasando;
+- lint, format, typecheck y build pasando;
+- CI ejecutando los mismos comandos;
+- accesibilidad básica de la pantalla Foundation;
+- CORS y error handling mínimos definidos;
+- documentación y ADR del framework actualizados;
+- no se añade infraestructura o abstracción sin necesidad explícita.

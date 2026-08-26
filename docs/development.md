@@ -1,63 +1,91 @@
 # Guía de desarrollo
 
-## Estado
+## Foundation actual
 
-La Fase 0.1 no instala dependencias ni define comandos ejecutables. Esta guía describe el primer stack y los gates que deberá materializar la implementación.
+La Foundation está implementada como un monorepo pnpm con Angular para web, Fastify para API y un package de contracts compartidos. El analyzer, GitHub ingestion, SQLite y la IA siguen planificados para fases posteriores.
 
-## Orden de implementación
+## Requisitos
 
-1. Foundation del monorepo con Angular web y API TypeScript.
-2. Contracts y entidades mínimas del dominio.
-3. GitHub REST ingestion segura.
-4. Analyzer determinista TypeScript/JavaScript.
-5. SQLite, `AnalysisJob` y runner dentro de API.
-6. Report y score determinista.
-7. Flujo Angular completo.
-8. Hardening, métricas, accesibilidad y validación del MVP.
-9. IA solo como fase condicional posterior.
+- Node.js 24 LTS, seleccionado mediante `.nvmrc`.
+- pnpm 10.34.5.
 
-## Principios
+El entorno usado para validar la Foundation tiene Node `v25.3.0`, que está fuera de la línea recomendada y genera un warning de engine. CI utiliza Node 24.
 
-- Mantener los cambios pequeños y orientados al vertical slice.
-- Preferir tipos y contracts explícitos.
-- Mantener dominio independiente de Angular, HTTP, GitHub y SQLite.
-- No ejecutar código procedente del repository analizado.
-- No crear packages vacíos para anticipar una arquitectura futura.
-- Documentar decisiones difíciles de revertir en ADRs.
-- Tratar seguridad, coste, privacidad y límites como requisitos funcionales.
+## Instalación
 
-## Toolchain inicial
-
-Angular + TypeScript se utilizará para `apps/web`. La API y los packages de dominio usarán TypeScript. El package manager y las librerías concretas de API, schemas y testing se decidirán durante Foundation según soporte estable y necesidades observadas; no se instalan en esta fase.
-
-## Contratos y versionado
-
-Los contratos públicos se versionan ante breaking changes. Los DTOs de API no se reutilizan automáticamente como entidades internas. Findings, evidence y recommendations mantienen referencias estables dentro de un snapshot.
-
-## Jobs y persistencia
-
-El MVP mantiene un `AnalysisJob`, pero el runner se ejecuta dentro de la API con concurrencia limitada. SQLite es un adapter de persistencia temporal. La interfaz debe permitir extraer el runner o migrar a PostgreSQL solo cuando existan señales medibles.
-
-## Fixtures
-
-Los tests usarán repositories sintéticos y pequeños, sin secretos ni contenido de terceros innecesario. Deben cubrir TypeScript/JavaScript, manifests, tests, docs, CI, linting, formatting, dependencias, archivos generados, symlinks y paths maliciosos.
-
-## Configuración y seguridad
-
-La configuración se valida al iniciar. Los secretos no se guardan en el repository ni en SQLite. No se ejecutan scripts del snapshot y no se envía contenido a un proveedor de IA en el MVP.
-
-## Calidad local
-
-La implementación deberá proporcionar comandos para:
-
-```text
-install
-lint
-format check
-typecheck
-unit tests
-integration tests
-build
+```bash
+pnpm install --frozen-lockfile
 ```
 
-Los comandos reales se documentarán cuando exista package manager y toolchain.
+## Desarrollo
+
+```bash
+pnpm dev
+```
+
+Esto arranca la web Angular en `http://localhost:4200` y la API Fastify en `http://127.0.0.1:3000`. La pantalla inicial consulta `GET /health` y muestra los estados loading, online o unavailable.
+
+También pueden arrancarse por separado:
+
+```bash
+pnpm --filter @ai-developer-platform/api dev
+pnpm --filter @ai-developer-platform/web start
+```
+
+## Quality commands
+
+```bash
+pnpm lint
+pnpm format:check
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+El test de API utiliza `fastify.inject()`. Angular utiliza el builder de tests basado en Vitest generado por Angular CLI.
+
+## Estructura y límites
+
+```text
+apps/web/             # Angular; consume API contracts
+apps/api/             # Fastify; endpoint health y composición inicial
+packages/contracts/   # contratos externos compartidos
+```
+
+La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos.
+
+Los futuros packages `domain`, `github`, `ingestion`, `analyzer` y `report` se crearán cuando exista una responsabilidad real. No se crearán carpetas vacías para anticipar funcionalidades.
+
+## Configuración
+
+Angular usa `src/environments/environment.ts` para producción y `environment.development.ts` para desarrollo. La API acepta `HOST`, `PORT` y una configuración local fija de CORS para la Foundation. No hay secrets reales ni URLs de producción configuradas.
+
+## Security baseline
+
+La API valida `PORT`, usa `HOST` configurable y limita CORS a origins locales explícitos. Expone headers básicos de seguridad y errores internos como `Internal server error`. No se implementan todavía SSRF protection completa, rate limiting avanzado, OAuth ni GitHub security porque aún no existe ese flujo.
+
+## Dependency review
+
+| Package | Purpose | Why needed now | Alternative | Risk |
+| --- | --- | --- | --- | --- |
+| Angular 22 | Foundation web y standalone components | Requisito arquitectónico y pantalla inicial | React, descartado por ADR-008 | Framework principal y compatibilidad con Node/TypeScript |
+| Fastify 5 | API y `/health` | HTTP, logging, plugins y testing por injection | Express o NestJS, evaluados en ADR-013 | Dependencia de framework encapsulada en API |
+| `@fastify/cors` | CORS local explícito | Permite comunicación web/API en desarrollo | Hook propio, menos mantenible | Solo origins locales conocidos |
+| TypeScript 6 | Compilación strict | Contratos y apps TypeScript | TypeScript 7 incompatible con peer range Angular actual | Actualizar según compatibilidad Angular |
+| Vitest + jsdom | Tests Angular | Builder de unit tests de Angular CLI | Karma, no necesario para el setup actual | Solo dev dependency |
+| tsx | Ejecutar tests TypeScript de API | Evita compilar manualmente antes de cada test | Node test runner sobre JS compilado | Solo desarrollo |
+| ESLint + typescript-eslint | Calidad estática | Detecta errores simples en TS | Reglas propias, menos consistentes | Configuración deliberadamente pequeña |
+| Prettier | Formato común | Check reproducible en CI | Formato manual, descartado | Documentación prose excluida |
+| concurrently | Arranque local web/API | Un único `pnpm dev` | Dos terminales, menos DX | Solo herramienta de desarrollo |
+
+## Testing scope
+
+La Foundation cubre:
+
+- creación y estados de la aplicación Angular;
+- éxito y error de la llamada `/health`;
+- respuesta y status code de la API;
+- contratos TypeScript mediante compilación;
+- lint, format, typecheck y build.
+
+E2E, accessibility completa, GitHub integration tests y analyzer fixtures pertenecen a fases posteriores.

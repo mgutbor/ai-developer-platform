@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.angular/
+apps/web/.angular/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+.DS_Store
+.vscode/
