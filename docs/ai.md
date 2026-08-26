@@ -1,57 +1,82 @@
 # Arquitectura de IA
 
-## Decisión de alcance
+## Estado de Phase 8
 
-La IA **no forma parte del primer vertical slice**. El producto puede demostrar valor con snapshots reproducibles, facts, métricas, findings y score determinista. Añadir IA antes de validar la calidad de esas bases dificultaría atribuir los resultados y aumentaría coste, privacidad y superficie de ataque.
-
-La arquitectura futura debe abstraer correctamente, pero implementar solo lo necesario cuando exista una tarea semántica validada.
-
-## Puerto mínimo futuro
-
-Se reservará conceptualmente un puerto pequeño:
+La interpretación AI es opcional y está separada del report determinista:
 
 ```text
-AIProvider
-- analyze(request, options) -> structured response
+AnalysisResult determinista
+        ├── report determinista
+        └── AIContext → AIProvider → interpretación validada
 ```
 
-El puerto no se añadirá como package vacío ni obligará a implementar varios providers. En la primera fase AI se implementará un único adapter seleccionado por requisitos de privacidad, coste y disponibilidad, junto con un provider de test para pruebas. NVIDIA, OpenAI y Ollama son alternativas futuras, no entregables iniciales.
+La IA no modifica facts, metrics, evidence, findings, recommendations ni dimension scores. Si no hay provider, falla o devuelve JSON inválido, el report determinista continúa disponible.
 
-## Límites de responsabilidades
+## Package y provider
 
-Cuando llegue la fase AI, se separarán estas responsabilidades solo si el caso lo necesita:
+`packages/ai` contiene:
 
-- orchestration: deadline, presupuesto, contexto y retries;
-- prompt management: prompts versionados;
-- response validation: schema y reglas de dominio;
-- provider adapter: transporte y formato externo;
-- analysis domain: claims, evidence, assessment y limitaciones.
+- `AIContext` builder determinista y acotado;
+- prompt versionado (`1.0.0`);
+- `AIProvider` intercambiable;
+- `FakeAIProvider` para tests;
+- `OpenAIProvider` basado en `fetch` nativo, sin SDK adicional;
+- validación de structured output y referencias.
 
-No se utilizarán AI frameworks, agent frameworks, RAG, embeddings ni vector database en el alcance previsto. El pipeline es conocido, el contexto es acotado y no existe una base documental externa que recuperar.
+La selección inicial de OpenAI se debe a su soporte de structured JSON output y a que el MVP puede usar HTTP nativo sin añadir una dependencia de SDK. No se crean cuentas ni credenciales automáticamente.
 
-## AI output
+Configuración prevista para el adapter real:
 
-La IA futura producirá una `aiAssessment` separada del score determinista:
+```text
+AI_PROVIDER=openai
+AI_API_URL=https://api.openai.com/v1/chat/completions
+AI_API_KEY=<server-side secret>
+AI_MODEL=<configured model>
+```
 
-- claims o findings candidatos;
-- evidence references existentes;
-- rationale breve;
-- confidence acotada;
-- limitaciones;
-- prompt/model metadata no sensible.
+Las API keys permanecen únicamente en el servidor. Nunca se exponen al frontend, logs o SQLite.
 
-La respuesta tendrá structured output validado primero por schema y después por reglas de dominio. Un finding AI sin evidence existente, con location inexistente o con severidad fuera de rango se rechaza.
+## Contexto
 
-## Fiabilidad
+El contexto incluye repository, commit SHA, versiones, coverage, confidence, dimension scores, findings, evidence minimizada, recommendations y limitations. No incluye blobs, secretos, SQLite, datos de infraestructura ni prompts persistidos.
 
-- timeout por request y deadline total;
-- límite de tokens y contexto;
-- retries limitados solo para errores transitorios;
-- fallback a resultado determinista;
-- feature flag para activar/desactivar IA;
-- métricas agregadas de latencia, validación y fallback;
-- ninguna dependencia de un provider real en CI.
+El contexto ordena de forma estable y limita el número de findings, evidence y recommendations. Si se reduce, añade una limitation explícita.
 
-## Evolución
+## Structured output
 
-La decisión de incorporar IA se tomará después de que el analyzer determinista tenga fixtures, métricas de false positives y feedback de usuarios. La primera tarea candidata es interpretar relaciones arquitectónicas ya respaldadas por facts y evidence, no generar un reporte completo desde cero.
+La respuesta debe contener summary, key insights, priorities, limitations y evidence references. Todas las referencias se validan contra el `AnalysisResult` original:
+
+- finding IDs deben existir;
+- evidence IDs deben existir;
+- recommendation IDs deben existir;
+- no se aceptan paths o rangos nuevos;
+- no se aceptan scores ni findings nuevos.
+
+## Prompt injection
+
+El contenido del repository se introduce únicamente dentro de una sección de datos delimitada. El system prompt indica que ese contenido es untrusted data y nunca instrucciones. La salida se trata como no confiable y se valida antes de persistirla.
+
+## API y frontend
+
+- `POST /analyses/:id/ai`: solicita/genera interpretación opcional.
+- `GET /analyses/:id/ai`: recupera el estado o `unavailable`.
+
+El report Angular muestra una sección separada y etiquetada como AI-assisted interpretation. Usa interpolación de texto, no `innerHTML`.
+
+## Persistencia y fallos
+
+La tabla `ai_interpretations` guarda metadata, estado y la interpretación estructurada serializada. No guarda blobs ni prompts completos. `generatedAt` es metadata operacional; no forma parte del resultado determinista.
+
+Estados:
+
+- `completed`: interpretación validada disponible;
+- `failed`: provider o respuesta no válida;
+- `unavailable`: provider no configurado o rate-limited.
+
+Ninguno cambia el estado del `AnalysisJob` determinista.
+
+## Live validation
+
+La validación live del provider queda omitida si no existe configuración segura y credenciales proporcionadas por el usuario. Los tests usan `FakeAIProvider`; no hay credenciales en el repository ni en CI.
+
+RAG, embeddings, agents, streaming, chat, multi-provider orchestration y AI scoring permanecen fuera de alcance.

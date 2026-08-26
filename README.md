@@ -41,6 +41,7 @@ Las versiones de Angular y sus peer dependencies se mantienen alineadas. Node `v
 - Pipeline `POST /analyses` → job in-process → ingestion → analyzer → scoring por dimensión → SQLite → report.
 - Endpoints `GET /analyses/:id`, `/report`, `/findings`, `/recommendations` y `/facts`.
 - Idempotencia por repository/ref/version, timeout de análisis y cleanup explícito.
+- Interpretación AI opcional mediante `packages/ai`, con contexto limitado, referencias validadas y endpoint separado `/analyses/:id/ai`.
 
 - TypeScript estricto, ESLint, Prettier y scripts raíz.
 - Tests unitarios del dominio, además de tests de API y Angular.

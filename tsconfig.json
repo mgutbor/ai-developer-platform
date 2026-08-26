@@ -11,6 +11,9 @@
       "path": "./packages/github"
     },
     {
+      "path": "./packages/ai"
+    },
+    {
       "path": "./packages/analyzer"
     },
     {

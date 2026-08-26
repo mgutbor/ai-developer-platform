@@ -41,6 +41,50 @@
       </div>
     </section>
 
+    <section class="panel ai-panel" aria-labelledby="ai-title">
+      <h2 id="ai-title">AI-assisted interpretation</h2>
+      <p>
+        This optional interpretation is generated from the deterministic report and is not
+        authoritative.
+      </p>
+      @if (ai(); as interpretation) {
+        @if (interpretation.status === 'completed' && interpretation.summary) {
+          <p class="ai-summary">{{ interpretation.summary }}</p>
+          @if (interpretation.keyInsights.length > 0) {
+            <h3>Key insights</h3>
+            <ul>
+              @for (insight of interpretation.keyInsights; track insight.id) {
+                <li>
+                  <strong>{{ insight.title }}</strong> — {{ insight.description }}
+                </li>
+              }
+            </ul>
+          }
+          @if (interpretation.priorities.length > 0) {
+            <h3>Priorities</h3>
+            <ul>
+              @for (priority of interpretation.priorities; track priority.id) {
+                <li>
+                  <strong>{{ priority.title }}</strong> — {{ priority.description }}
+                </li>
+              }
+            </ul>
+          }
+        } @else {
+          <p role="status">AI interpretation is currently unavailable.</p>
+        }
+      } @else if (aiLoading()) {
+        <p role="status" aria-live="polite">Generating interpretation…</p>
+      } @else {
+        <button type="button" (click)="requestAI()">Generate optional interpretation</button>
+      }
+      @if (aiError()) {
+        <p class="error" role="alert">
+          The AI interpretation could not be generated. The deterministic report remains available.
+        </p>
+      }
+    </section>
+
     @if (currentReport.limitations.length > 0) {
       <section class="panel limitations" aria-labelledby="limitations-title">
         <h2 id="limitations-title">Limitations</h2>

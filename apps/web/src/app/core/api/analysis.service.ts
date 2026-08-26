@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import type {
+  AiInterpretationResponse,
   AnalysisCreatedResponse,
   AnalysisJobResponse,
   AnalysisRequest,
@@ -24,6 +25,19 @@ export class AnalysisService {
   getReport(id: string) {
     return this.http.get<AnalysisResultResponse>(
       `${this.apiUrl}/analyses/${encodeURIComponent(id)}/report`,
+    );
+  }
+
+  generateAI(id: string) {
+    return this.http.post<AiInterpretationResponse>(
+      `${this.apiUrl}/analyses/${encodeURIComponent(id)}/ai`,
+      {},
+    );
+  }
+
+  getAI(id: string) {
+    return this.http.get<AiInterpretationResponse>(
+      `${this.apiUrl}/analyses/${encodeURIComponent(id)}/ai`,
     );
   }
 }

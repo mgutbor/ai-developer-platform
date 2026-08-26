@@ -169,6 +169,40 @@ export interface ApiDimensionScore {
   readonly limitations: readonly string[];
 }
 
+export type AiInterpretationStatus = 'completed' | 'failed' | 'unavailable';
+
+export interface AiInsightResponse {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly severity: ApiSeverity;
+  readonly findingIds: readonly string[];
+  readonly evidenceIds: readonly string[];
+  readonly recommendationIds: readonly string[];
+}
+
+export interface AiPriorityResponse {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string;
+  readonly findingIds: readonly string[];
+  readonly recommendationIds: readonly string[];
+}
+
+export interface AiInterpretationResponse {
+  readonly status: AiInterpretationStatus;
+  readonly summary: string | null;
+  readonly keyInsights: readonly AiInsightResponse[];
+  readonly priorities: readonly AiPriorityResponse[];
+  readonly limitations: readonly string[];
+  readonly evidenceReferences: readonly string[];
+  readonly provider: string | null;
+  readonly model: string | null;
+  readonly promptVersion: string | null;
+  readonly contextVersion: string | null;
+  readonly generatedAt: string | null;
+}
+
 export interface AnalysisResultResponse {
   readonly id: string;
   readonly snapshot: ApiRepositorySnapshot;

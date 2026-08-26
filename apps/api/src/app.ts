@@ -13,6 +13,7 @@ import { GitHubRestClient, ingestRepository } from '@ai-developer-platform/githu
 import { scoreAnalysis } from '@ai-developer-platform/scoring';
 import { SqlitePersistence, type PersistenceStore } from '@ai-developer-platform/persistence';
 import { AnalysisApplication, ApplicationError } from './application.js';
+import { mapAIInterpretation } from './ai-mapper.js';
 import { mapAnalysisResult, mapFacts, mapFindings, mapJob, mapRecommendations } from './mapper.js';
 
 export interface BuildAppOptions extends FastifyServerOptions {
@@ -110,6 +111,15 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
   app.get<{ Params: { id: string }; Reply: AnalysisResultResponse | ApiErrorResponse }>(
     '/analyses/:id/report',
     async (request) => mapAnalysisResult(analysisApplication.getResult(request.params.id)),
+  );
+
+  app.post<{ Params: { id: string }; Reply: unknown }>('/analyses/:id/ai', async (request) => {
+    await analysisApplication.generateAIInterpretation(request.params.id);
+    return mapAIInterpretation(analysisApplication.getAIInterpretation(request.params.id));
+  });
+
+  app.get<{ Params: { id: string }; Reply: unknown }>('/analyses/:id/ai', async (request) =>
+    mapAIInterpretation(analysisApplication.getAIInterpretation(request.params.id)),
   );
 
   app.get<{ Params: { id: string }; Reply: unknown }>('/analyses/:id/findings', async (request) =>

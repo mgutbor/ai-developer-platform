@@ -84,6 +84,16 @@
 .limitations {
   border-left: 0.35rem solid #a16207;
 }
+.ai-panel {
+  border-left: 0.35rem solid #6d28d9;
+}
+.ai-summary {
+  font-size: 1.1rem;
+}
+.error {
+  color: #9b1c1c;
+  font-weight: 600;
+}
 button {
   min-height: 2.75rem;
   padding: 0.65rem 1rem;

@@ -18,6 +18,7 @@ Fastify API
     |       +--> deterministic analyzer
     |       +--> deterministic dimension scorer
     |       +--> SQLite persistence
+    |       +--> optional AI interpretation
     |
     +--> report contract mappings
 ```
@@ -32,6 +33,7 @@ Fastify API
 - `packages/analyzer`: facts, metrics, evidence, findings y recommendations deterministas sobre snapshots limitados.
 - `packages/scoring`: cálculo puro de dimension scores; no calcula un score global.
 - `packages/persistence`: adapter SQLite sobre `node:sqlite`; no expone filas ni APIs SQLite fuera del package.
+- `packages/ai`: contexto limitado, provider AI opcional y structured output validado; no depende de GitHub ni modifica el dominio determinista.
 
 No existe `packages/report`: el mapping actual es pequeño y pertenece al boundary HTTP de `apps/api`. No existe `apps/worker`.
 
@@ -143,6 +145,6 @@ SQLite guarda metadata del job y un payload de resultado validado. No se guardan
 - Public API rate limiting and broader hardening.
 - Automated axe audit and browser E2E hardening.
 - Cleanup scheduler.
-- AI assessment and provider integration.
+- AI chat, RAG, embeddings, agents, streaming and multi-provider orchestration.
 - Global score.
 - Dedicated worker, queue, PostgreSQL, realtime and multi-instance deployment.

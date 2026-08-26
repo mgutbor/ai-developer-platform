@@ -2,6 +2,7 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import type {
+  AiInterpretationResponse,
   AnalysisResultResponse,
   ApiEvidence,
   ApiFinding,
@@ -24,6 +25,9 @@ export class ReportPage {
   protected readonly report = signal<AnalysisResultResponse | null>(null);
   protected readonly loading = signal(true);
   protected readonly error = signal(false);
+  protected readonly ai = signal<AiInterpretationResponse | null>(null);
+  protected readonly aiLoading = signal(false);
+  protected readonly aiError = signal(false);
 
   constructor() {
     this.load();
@@ -43,6 +47,24 @@ export class ReportPage {
         error: () => {
           this.loading.set(false);
           this.error.set(true);
+        },
+      });
+  }
+
+  protected requestAI(): void {
+    this.aiLoading.set(true);
+    this.aiError.set(false);
+    this.analysisService
+      .generateAI(this.analysisId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (interpretation) => {
+          this.ai.set(interpretation);
+          this.aiLoading.set(false);
+        },
+        error: () => {
+          this.aiLoading.set(false);
+          this.aiError.set(true);
         },
       });
   }

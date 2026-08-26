@@ -60,7 +60,18 @@ test('survives a file-backed persistence restart and cleanup is idempotent', asy
   const second = new SqlitePersistence(databasePath);
   try {
     assert.deepEqual(second.findJobById(oldJob.id), oldJob);
-    assert.equal(second.deleteOlderThan('2026-02-01T00:00:00.000Z'), 1);
+    second.saveAIInterpretation({
+      analysisId: oldJob.id,
+      contextVersion: '1.0.0',
+      generatedAt: oldJob.createdAt,
+      interpretation: null,
+      model: 'none',
+      promptVersion: '1.0.0',
+      provider: 'unavailable',
+      status: 'unavailable',
+    });
+    assert.equal(second.findAIInterpretationByAnalysisId(oldJob.id)?.status, 'unavailable');
+    assert.equal(second.deleteOlderThan('2026-02-01T00:00:00.000Z'), 2);
     assert.equal(second.findJobById(oldJob.id), undefined);
     assert.equal(second.deleteOlderThan('2026-02-01T00:00:00.000Z'), 0);
   } finally {

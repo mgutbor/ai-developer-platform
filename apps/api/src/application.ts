@@ -11,6 +11,7 @@ import type { AnalysisRequest } from '@ai-developer-platform/contracts';
 import { DEFAULT_ANALYZER_OPTIONS } from '@ai-developer-platform/analyzer';
 import { SCORING_RULE_SET_VERSION } from '@ai-developer-platform/scoring';
 import type { PersistenceStore } from '@ai-developer-platform/persistence';
+import { buildAIContext, type AIProvider, AI_PROMPT_VERSION } from '@ai-developer-platform/ai';
 
 export interface AnalysisApplicationDependencies {
   readonly persistence: PersistenceStore;
@@ -21,6 +22,7 @@ export interface AnalysisApplicationDependencies {
   readonly createId?: () => string;
   readonly maxConcurrentJobs?: number;
   readonly analysisTimeoutMs?: number;
+  readonly aiProvider?: AIProvider;
 }
 
 export interface AnalysisCreated {
@@ -290,5 +292,61 @@ export class AnalysisApplication {
 
   cleanupExpired(cutoffIso: string): number {
     return this.dependencies.persistence.deleteOlderThan(cutoffIso);
+  }
+
+  async generateAIInterpretation(id: string): Promise<AnalysisResult> {
+    const result = this.getResult(id);
+    const provider = this.dependencies.aiProvider;
+    if (provider === undefined) {
+      this.dependencies.persistence.saveAIInterpretation({
+        analysisId: id,
+        contextVersion: '1.0.0',
+        generatedAt: nowIso(this.dependencies),
+        interpretation: null,
+        model: 'unconfigured',
+        promptVersion: AI_PROMPT_VERSION,
+        provider: 'unavailable',
+        status: 'unavailable',
+      });
+      return result;
+    }
+    try {
+      const interpretation = await provider.interpret({
+        context: buildAIContext(result),
+        promptVersion: AI_PROMPT_VERSION,
+        result,
+      });
+      this.dependencies.persistence.saveAIInterpretation({
+        analysisId: id,
+        contextVersion: interpretation.contextVersion,
+        generatedAt: interpretation.generatedAt,
+        interpretation: JSON.stringify(interpretation),
+        model: interpretation.model,
+        promptVersion: interpretation.promptVersion,
+        provider: interpretation.provider,
+        status: 'completed',
+      });
+    } catch (error) {
+      const status =
+        error instanceof Error && 'code' in error && error.code === 'rate_limited'
+          ? 'unavailable'
+          : 'failed';
+      this.dependencies.persistence.saveAIInterpretation({
+        analysisId: id,
+        contextVersion: '1.0.0',
+        generatedAt: nowIso(this.dependencies),
+        interpretation: null,
+        model: provider.name,
+        promptVersion: AI_PROMPT_VERSION,
+        provider: provider.name,
+        status,
+      });
+    }
+    return result;
+  }
+
+  getAIInterpretation(id: string) {
+    this.getResult(id);
+    return this.dependencies.persistence.findAIInterpretationByAnalysisId(id);
   }
 }

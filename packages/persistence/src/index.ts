@@ -21,7 +21,24 @@ export interface AnalysisResultRepository {
   deleteOlderThan(cutoffIso: string): number;
 }
 
-export interface PersistenceStore extends AnalysisJobRepository, AnalysisResultRepository {
+export interface AIInterpretationRecord {
+  readonly analysisId: string;
+  readonly provider: string;
+  readonly model: string;
+  readonly promptVersion: string;
+  readonly contextVersion: string;
+  readonly status: 'completed' | 'failed' | 'unavailable';
+  readonly interpretation: string | null;
+  readonly generatedAt: string;
+}
+
+export interface AIInterpretationRepository {
+  findAIInterpretationByAnalysisId(analysisId: string): AIInterpretationRecord | undefined;
+  saveAIInterpretation(record: AIInterpretationRecord): void;
+}
+
+export interface PersistenceStore
+  extends AnalysisJobRepository, AnalysisResultRepository, AIInterpretationRepository {
   close(): void;
 }
 
@@ -204,6 +221,16 @@ export class SqlitePersistence implements PersistenceStore {
       ) STRICT;
       CREATE INDEX IF NOT EXISTS idx_analysis_jobs_created_at ON analysis_jobs(created_at);
       CREATE INDEX IF NOT EXISTS idx_analysis_results_created_at ON analysis_results(created_at);
+      CREATE TABLE IF NOT EXISTS ai_interpretations (
+        analysis_id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        model TEXT NOT NULL,
+        prompt_version TEXT NOT NULL,
+        context_version TEXT NOT NULL,
+        status TEXT NOT NULL,
+        interpretation TEXT,
+        generated_at TEXT NOT NULL
+      ) STRICT;
     `);
   }
 
@@ -318,6 +345,41 @@ export class SqlitePersistence implements PersistenceStore {
     });
   }
 
+  findAIInterpretationByAnalysisId(analysisId: string): AIInterpretationRecord | undefined {
+    const row = this.database
+      .prepare('SELECT * FROM ai_interpretations WHERE analysis_id = ?')
+      .get(analysisId) as Record<string, unknown> | undefined;
+    if (row === undefined) return undefined;
+    return {
+      analysisId: asString(row['analysis_id'], 'analysis_id'),
+      contextVersion: asString(row['context_version'], 'context_version'),
+      generatedAt: asString(row['generated_at'], 'generated_at'),
+      interpretation:
+        row['interpretation'] === null ? null : asString(row['interpretation'], 'interpretation'),
+      model: asString(row['model'], 'model'),
+      promptVersion: asString(row['prompt_version'], 'prompt_version'),
+      provider: asString(row['provider'], 'provider'),
+      status: asString(row['status'], 'status') as AIInterpretationRecord['status'],
+    };
+  }
+
+  saveAIInterpretation(record: AIInterpretationRecord): void {
+    this.database
+      .prepare(
+        `INSERT INTO ai_interpretations (analysis_id, provider, model, prompt_version, context_version, status, interpretation, generated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(analysis_id) DO UPDATE SET provider=excluded.provider, model=excluded.model, prompt_version=excluded.prompt_version, context_version=excluded.context_version, status=excluded.status, interpretation=excluded.interpretation, generated_at=excluded.generated_at`,
+      )
+      .run(
+        record.analysisId,
+        record.provider,
+        record.model,
+        record.promptVersion,
+        record.contextVersion,
+        record.status,
+        record.interpretation,
+        record.generatedAt,
+      );
+  }
+
   deleteOlderThan(cutoffIso: string): number {
     const resultChanges = this.database
       .prepare('DELETE FROM analysis_results WHERE created_at < ?')
@@ -325,7 +387,10 @@ export class SqlitePersistence implements PersistenceStore {
     const jobChanges = this.database
       .prepare('DELETE FROM analysis_jobs WHERE created_at < ?')
       .run(cutoffIso);
-    return Number(resultChanges.changes) + Number(jobChanges.changes);
+    const aiChanges = this.database
+      .prepare('DELETE FROM ai_interpretations WHERE generated_at < ?')
+      .run(cutoffIso);
+    return Number(resultChanges.changes) + Number(jobChanges.changes) + Number(aiChanges.changes);
   }
 
   close(): void {

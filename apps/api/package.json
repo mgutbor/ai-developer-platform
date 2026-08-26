@@ -12,6 +12,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@ai-developer-platform/ai": "workspace:*",
     "@ai-developer-platform/analyzer": "workspace:*",
     "@ai-developer-platform/contracts": "workspace:*",
     "@ai-developer-platform/domain": "workspace:*",

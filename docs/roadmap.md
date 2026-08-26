@@ -95,7 +95,9 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Definition of Done:** CI completa, security/accessibility gates, runbook breve, métricas de éxito y riesgos publicados.
 
-## Phase 8 — AI assessment (conditional)
+## Phase 8 — AI assessment
+
+**Status:** implementación inicial completada con fake provider, provider OpenAI preparado, contexto limitado y validación estructurada. Live provider validation queda diferida sin credenciales configuradas.
 
 **Objective:** comprobar si la IA añade valor semántico sobre resultados deterministas.
 

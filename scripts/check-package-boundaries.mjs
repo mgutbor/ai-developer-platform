@@ -36,6 +36,12 @@ const rules = [
     label: 'scoring',
   },
   {
+    directory: resolve(scriptDirectory, '../packages/ai/src'),
+    forbidden:
+      /(?:from|import\s*\()["'][^"']*(?:angular|fastify|github|sqlite|persistence|openai|anthropic|ollama|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,
+    label: 'ai',
+  },
+  {
     directory: resolve(scriptDirectory, '../packages/analyzer/src'),
     forbidden:
       /(?:from|import\s*\()["'][^"']*(?:angular|fastify|github|sqlite|openai|anthropic|ollama|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,

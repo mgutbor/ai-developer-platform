@@ -7,7 +7,7 @@ El repository analizado es entrada no confiable y puede contener código malicio
 | Riesgo | Likelihood | Impact | Mitigation | Requisito MVP | Futuro |
 | --- | --- | --- | --- | --- | --- |
 | SSRF | Media | Alto | `packages/github` solo acepta referencias HTTPS de `github.com`, construye endpoints fijos de `api.github.com` y usa redirects=`error` | implementado en Phase 3 | ampliar allowlist solo con threat model |
-| Prompt injection | No aplica al vertical slice; alta cuando exista IA | Alto | tratar contenido como dato, separar instrucciones/contexto, validar output y evidence | no enviar a IA todavía | obligatorio antes de habilitar IA |
+| Prompt injection | Alta | Alto | contenido delimitado como datos, system prompt explícito, contexto estructurado y validación estricta de referencias | implementado en Phase 8 | ampliar evaluación con más modelos |
 | Malicious repository | Alta | Alto | nunca ejecutar contenido ni scripts; leer solo blobs seleccionados y tratar el contenido como datos | implementado en Phase 3 | sandbox solo mediante ADR nuevo |
 | Secrets | Media | Alto | detectar/redactar patrones, excluir `.env` y private keys, no loggear contenido | obligatorio | secret scanning más amplio |
 | API abuse | Media | Alto | validación, rate limiting por IP, payload limits, idempotency | obligatorio antes de exponer públicamente | identidad y cuotas por usuario |
@@ -41,7 +41,8 @@ La plataforma solo debe leer y parsear bytes dentro de límites definidos. No de
 - La ingesta excluye nombres de credentials, private keys, `.env`, `.npmrc` y `.netrc`. El analyzer puede detectar patrones de contenido en archivos recibidos y conserva únicamente hashes en la evidence; no persiste secretos completos.
 - No incluir contenido completo del repository en logs, errores ni analytics.
 - No registrar URLs con credenciales ni stack traces al cliente.
-- Si se habilita IA, no transferir secretos detectados ni archivos completos por defecto.
+- La IA recibe únicamente un `AIContext` limitado con metadata, findings y evidence minimizada; no recibe blobs completos ni secretos.
+- Las respuestas AI se validan contra IDs del report antes de persistirse; no pueden introducir paths, rangos, findings ni scores nuevos.
 
 ## API y abuso
 
