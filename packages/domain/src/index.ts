@@ -1,4 +1,11 @@
 export { DomainValidationError } from './errors.js';
+export { createAnalysisJob, transitionAnalysisJob } from './job.js';
+export type {
+  AnalysisJob,
+  AnalysisJobStatus,
+  CreateAnalysisJobInput,
+  TransitionAnalysisJobInput,
+} from './job.js';
 export {
   createAnalysisResult,
   createDimensionScore,

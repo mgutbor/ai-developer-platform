@@ -1,11 +1,72 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
-import type { HealthResponse } from '@ai-developer-platform/contracts';
+import type {
+  AnalysisCreatedResponse,
+  AnalysisJobResponse,
+  AnalysisRequest,
+  AnalysisResultResponse,
+  ApiErrorResponse,
+  HealthResponse,
+} from '@ai-developer-platform/contracts';
+import { analyze } from '@ai-developer-platform/analyzer';
+import { GitHubRestClient, ingestRepository } from '@ai-developer-platform/github';
+import { scoreAnalysis } from '@ai-developer-platform/scoring';
+import { SqlitePersistence, type PersistenceStore } from '@ai-developer-platform/persistence';
+import { AnalysisApplication, ApplicationError } from './application.js';
+import { mapAnalysisResult, mapFacts, mapFindings, mapJob, mapRecommendations } from './mapper.js';
 
-export function buildApp(options: FastifyServerOptions = {}): FastifyInstance {
+export interface BuildAppOptions extends FastifyServerOptions {
+  readonly persistence?: PersistenceStore;
+  readonly analysisApplication?: AnalysisApplication;
+  readonly databasePath?: string;
+}
+
+function isAnalysisRequest(value: unknown): value is AnalysisRequest {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate['repositoryUrl'] === 'string' &&
+    (candidate['ref'] === undefined || typeof candidate['ref'] === 'string')
+  );
+}
+
+function applicationFrom(
+  options: BuildAppOptions,
+  persistence: PersistenceStore,
+): AnalysisApplication {
+  if (options.analysisApplication !== undefined) {
+    return options.analysisApplication;
+  }
+  const client = new GitHubRestClient();
+  return new AnalysisApplication({
+    analyze,
+    ingest: (repositoryUrl, ref) =>
+      ingestRepository(repositoryUrl, client, ref === undefined ? {} : { ref }),
+    persistence,
+    score: scoreAnalysis,
+  });
+}
+
+export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
+  const {
+    analysisApplication: suppliedApplication,
+    databasePath,
+    persistence: suppliedPersistence,
+    ...fastifyOptions
+  } = options;
+  const persistence =
+    suppliedPersistence ??
+    (suppliedApplication === undefined
+      ? new SqlitePersistence(databasePath ?? ':memory:')
+      : undefined);
+  const analysisApplication =
+    suppliedApplication ?? applicationFrom(fastifyOptions, persistence as PersistenceStore);
+  const ownsPersistence = suppliedPersistence === undefined && persistence !== undefined;
   const app = Fastify({
-    ...options,
-    logger: options.logger ?? { level: 'info' },
+    ...fastifyOptions,
+    logger: fastifyOptions.logger ?? { level: 'info' },
   });
 
   app.register(cors, {
@@ -22,9 +83,61 @@ export function buildApp(options: FastifyServerOptions = {}): FastifyInstance {
     service: 'api',
     status: 'ok',
   }));
-  app.setErrorHandler((error, _request, reply) => {
-    app.log.error(error);
 
+  app.post<{ Body: unknown; Reply: AnalysisCreatedResponse | ApiErrorResponse }>(
+    '/analyses',
+    async (request, reply) => {
+      if (!isAnalysisRequest(request.body)) {
+        return reply.status(400).send({
+          code: 'INVALID_REQUEST',
+          message: 'repositoryUrl and optional ref are required',
+          status: 'error',
+        });
+      }
+      const created = analysisApplication.createAnalysis(request.body);
+      return reply.status(created.existing ? 200 : 202).send({
+        id: created.job.id,
+        status: created.job.status,
+      });
+    },
+  );
+
+  app.get<{ Params: { id: string }; Reply: AnalysisJobResponse | ApiErrorResponse }>(
+    '/analyses/:id',
+    async (request) => mapJob(analysisApplication.getJob(request.params.id)),
+  );
+
+  app.get<{ Params: { id: string }; Reply: AnalysisResultResponse | ApiErrorResponse }>(
+    '/analyses/:id/report',
+    async (request) => mapAnalysisResult(analysisApplication.getResult(request.params.id)),
+  );
+
+  app.get<{ Params: { id: string }; Reply: unknown }>('/analyses/:id/findings', async (request) =>
+    mapFindings(analysisApplication.getResult(request.params.id)),
+  );
+  app.get<{ Params: { id: string }; Reply: unknown }>(
+    '/analyses/:id/recommendations',
+    async (request) => mapRecommendations(analysisApplication.getResult(request.params.id)),
+  );
+  app.get<{ Params: { id: string }; Reply: unknown }>('/analyses/:id/facts', async (request) =>
+    mapFacts(analysisApplication.getResult(request.params.id)),
+  );
+
+  app.addHook('onClose', async () => {
+    if (ownsPersistence && persistence !== undefined) {
+      persistence.close();
+    }
+  });
+
+  app.setErrorHandler((error, _request, reply) => {
+    if (error instanceof ApplicationError) {
+      return reply.status(error.statusCode).send({
+        code: error.code,
+        message: error.message,
+        status: 'error',
+      });
+    }
+    app.log.error(error);
     const statusCode =
       error instanceof Error &&
       'statusCode' in error &&
@@ -32,13 +145,12 @@ export function buildApp(options: FastifyServerOptions = {}): FastifyInstance {
       error.statusCode < 500
         ? error.statusCode
         : 500;
-    const message =
-      statusCode < 500 && error instanceof Error ? error.message : 'Internal server error';
-
-    return reply.status(statusCode).send({
-      message,
+    const response: ApiErrorResponse = {
+      code: statusCode < 500 ? 'INVALID_REQUEST' : 'INTERNAL_ERROR',
+      message: statusCode < 500 && error instanceof Error ? error.message : 'Internal server error',
       status: 'error',
-    });
+    };
+    return reply.status(statusCode).send(response);
   });
 
   return app;

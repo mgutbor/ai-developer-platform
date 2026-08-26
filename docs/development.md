@@ -1,8 +1,9 @@
 # Guía de desarrollo
 
-## Foundation actual
+## Phase 5
 
-Phase 4 añade `packages/analyzer` al monorepo pnpm. Angular y Fastify siguen siendo la web y API de Foundation; GitHub ingestion y el analyzer están implementados como librerías desacopladas, mientras SQLite, `AnalysisJob`, endpoints HTTP de análisis e IA siguen planificados.
+Phase 5 connects GitHub ingestion, the deterministic analyzer, dimension scoring and SQLite through an in-process `AnalysisJob` runner. The Angular application remains the Foundation screen; the complete report UI is planned for Phase 6.
+
 
 ## Requisitos
 
@@ -53,20 +54,23 @@ apps/api/             # Fastify; endpoint health y composición inicial
 packages/contracts/   # contratos externos compartidos
 packages/domain/      # modelo e invariantes sin infraestructura
 packages/github/      # adapter REST e ingestión acotada
-packages/analyzer/    # análisis determinista puro
+packages/scoring/      # scores deterministas por dimensión
+packages/persistence/  # adapter SQLite aislado
 ```
 
-La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos. `pnpm check:architecture` verifica que `domain` no importe infraestructura, que `github` no importe UI, Fastify, persistencia ni IA, y que `analyzer` no importe GitHub, runtime, filesystem, transporte o IA.
+La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos. `pnpm check:architecture` verifica que `contracts` no dependa del dominio, que `domain` no importe infraestructura, que `github` no importe UI, Fastify, persistencia ni IA, que `analyzer`/`scoring` no importen GitHub, runtime, filesystem, transporte o IA, y que `persistence` no importe transporte ni otros adapters de producto.
 
-`domain`, `github` y `analyzer` tienen responsabilidades implementadas. `github` no contiene handlers ni reglas de analyzer; `analyzer` consume datos estructurales de ingestion y no accede al filesystem. El endpoint HTTP, `report` y persistencia se crearán cuando tengan un consumidor real.
+`domain`, `github`, `analyzer`, `scoring` y `persistence` tienen responsabilidades implementadas. `apps/api` contiene la aplicación, el runner, el mapping y los endpoints HTTP; `packages/persistence` es el único consumidor de `node:sqlite`. No se ejecutan scripts, tests, builds ni package managers del repository analizado.
+
 
 ## Configuración
 
-Angular usa `src/environments/environment.ts` para producción y `environment.development.ts` para desarrollo. La API acepta `HOST`, `PORT` y una configuración local fija de CORS para la Foundation. No hay secrets reales ni URLs de producción configuradas.
+La API acepta `HOST`, `PORT`, `DATABASE_PATH` y una configuración local fija de CORS para la Foundation. `DATABASE_PATH` permite usar un fichero SQLite persistente; los tests usan `:memory:`. No hay secrets reales ni URLs de producción configuradas.
+
 
 ## Security baseline
 
-La API valida `PORT`, usa `HOST` configurable y limita CORS a origins locales explícitos. Expone headers básicos de seguridad y errores internos como `Internal server error`. No se implementan todavía SSRF protection completa, rate limiting avanzado, OAuth ni GitHub security porque aún no existe ese flujo.
+La API valida `PORT`, usa `HOST` configurable y limita CORS a origins locales explícitos. Expone headers básicos de seguridad y errores internos como `Internal server error`. La protección SSRF de la ingestión GitHub y sus límites de red ya están implementados; rate limiting público avanzado, OAuth y controles de GitHub adicionales quedan para hardening posterior.
 
 ## Dependency review
 
@@ -90,7 +94,9 @@ La Foundation cubre:
 
 - creación y estados de la aplicación Angular;
 - éxito y error de la llamada `/health`;
-- respuesta y status code de la API;
+- pipeline API con fake ingestion, analyzer, scorer y SQLite;
+- round-trip y restart de persistencia SQLite;
+- lifecycle de AnalysisJob, idempotencia, errores sanitizados y cleanup;
 - contratos TypeScript mediante compilación;
 - invariantes de dominio mediante tests unitarios;
 - URL/ref validation, REST response validation, selección, decodificación, límites y reproducibilidad de GitHub mediante tests sin red;
@@ -98,4 +104,4 @@ La Foundation cubre:
 - analyzer fixtures in-memory, golden assertions, malformed input, security, determinism y performance sanity;
 - lint, format, typecheck y build.
 
-E2E, accessibility completa, endpoint HTTP de ingestión/análisis, SQLite y report frontend pertenecen a fases posteriores; los tests de GitHub y analyzer no dependen de red ni filesystem externo.
+E2E, accessibility completa y report frontend pertenecen a fases posteriores. Los tests de GitHub y analyzer no dependen de red; los tests del pipeline usan fake ingestion y SQLite en memoria.

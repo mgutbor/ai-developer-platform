@@ -48,6 +48,6 @@ Other entity IDs are opaque strings supplied by the creation boundary. This avoi
 
 `unknown`, `not_detected`, and `insufficient_data` are distinct states. Non-observed facts and metrics carry `null` values. A dimension score may also be `null` only with `insufficient` coverage. Unknown data is never converted to `false`, and insufficient data is never converted to zero.
 
-## Deliberately deferred
+## Phase 5 lifecycle
 
-`AnalysisJob`, persistence, score calculation, API mapping code, report UI and AI assessment remain deferred. Phase 3 ingestion and Phase 4 analyzer rules consume these records without adding infrastructure concerns to the domain package. Future adapters must preserve the same evidence and snapshot invariants.
+`AnalysisJob` now belongs to the domain because it has a real lifecycle consumer. Valid transitions are `queued → running → completed`, `completed_with_limitations`, `failed`, or `cancelled`; queued jobs may also fail or be cancelled before starting. Persistence and HTTP remain adapters around these domain semantics.

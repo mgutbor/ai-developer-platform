@@ -2,14 +2,18 @@
 
 ## Foundation implementada
 
-La Foundation verifica infraestructura básica, no funcionalidades de producto:
+La calidad cubre ahora el vertical slice de Phase 5 además de la Foundation:
 
 - API: test de integración de `GET /health` con `fastify.inject()`.
 - Angular: tests de creación de la aplicación y estados online/unavailable del cliente health.
 - Contracts: compilación TypeScript de DTOs de frontera.
-- Domain: tests unitarios de factories, invariantes, trazabilidad, incertidumbre e inmutabilidad.
+- Domain: tests unitarios de factories, invariantes, trazabilidad, incertidumbre, inmutabilidad y lifecycle de `AnalysisJob`.
+
 - GitHub: tests sin red de referencias, REST response validation, límites, selección, decodificación, errores y reproducibilidad.
-- Analyzer: tests de clasificación, manifests/config, frameworks, tooling, CI, métricas, reglas, evidence, recomendaciones, input malformado, seguridad, determinismo y baseline de performance.
+- Scoring: determinismo, penalizaciones, cobertura insuficiente y ausencia de score global.
+- Persistence: round-trip de jobs/results, restart file-backed, cleanup e idempotencia.
+- API/application: pipeline con fake ingestion, mapping, idempotencia, errores y status lifecycle.
+
 - Repository: lint, format check, typecheck, tests y build.
 
 ## Testing strategy
@@ -21,9 +25,15 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Angular HTTP success/error states.
 - TypeScript strict compilation.
 - Domain invariants and relationship integrity.
-- Domain/GitHub/analyzer dependency boundary check.
+- `pnpm check:architecture` cubre `domain`, `github`, `analyzer` y `scoring`; `persistence` se mantiene aislado por dependencia declarada y revisión del adapter.
 - Workspace build de contracts, domain, github, analyzer, API y web.
 - ESLint y Prettier.
+
+### MUST en Phase 5
+
+- pipeline API → runner → ingestion fake → analyzer → scorer → SQLite;
+- job transitions, idempotency, timeout/error classification y cleanup;
+- persistence restart y report mapping;
 
 ### SHOULD en fases siguientes
 
@@ -44,7 +54,8 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Load tests para worker, PostgreSQL y colas si se extraen.
 - Realtime e histórico.
 
-No se usa un provider de IA real ni la red de GitHub en CI. `pnpm audit --audit-level=high` se ejecuta en CI junto con los demás gates.
+SQLite emits an experimental Node warning under the current local Node 25 validation runtime; the project engine and CI target Node 24.
+
 
 ## CI/CD
 
@@ -67,9 +78,7 @@ No se introducen E2E, Playwright, Docker o despliegue en esta fase.
 
 Fastify registra el arranque y las requests mediante su logger integrado. No se registran secrets, credenciales ni headers sensibles. Tracing, métricas y dashboards quedan para fases posteriores.
 
-## Global Definition of Done
-
-Para Foundation y Phase 4:
+Para Foundation, Phase 4 y Phase 5:
 
 - código alineado con los límites de arquitectura;
 - contracts y tipos actualizados;

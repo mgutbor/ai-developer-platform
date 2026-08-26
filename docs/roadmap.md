@@ -54,7 +54,7 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 ## Phase 5 — Deterministic report and SQLite job lifecycle
 
-**Status:** siguiente fase recomendada.
+**Status:** completada.
 
 **Objective:** convertir el analyzer en un flujo consultable completo.
 
@@ -64,7 +64,8 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Acceptance criteria:** se puede crear un analysis, consultar estado y leer report; reinicio y duplicación tienen comportamiento definido; no se almacenan blobs completos; `insufficient_data` es visible.
 
-**Definition of Done:** integration/contract tests, límites de concurrencia, cleanup test, documentación y ADR-012 alineado.
+**Definition of Done:** integration/contract tests, límites de concurrencia, cleanup test, persistencia restart, documentación y ADR-016 alineado. PASS.
+
 
 ## Phase 6 — Angular report experience
 

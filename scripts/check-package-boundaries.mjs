@@ -6,6 +6,12 @@ import { fileURLToPath } from 'node:url';
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const rules = [
   {
+    directory: resolve(scriptDirectory, '../packages/contracts/src'),
+    forbidden:
+      /(?:from|import\s*\()["'][^"']*(?:domain|angular|fastify|github|sqlite|analyzer|scoring|persistence|openai|anthropic|ollama)[^"']*["']/i,
+    label: 'contracts',
+  },
+  {
     directory: resolve(scriptDirectory, '../packages/domain/src'),
     forbidden:
       /(?:from|import\s*\()["'][^"']*(?:angular|fastify|github|sqlite|openai|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,
@@ -16,6 +22,18 @@ const rules = [
     forbidden:
       /(?:from|import\s*\()["'][^"']*(?:angular|fastify|sqlite|openai|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,
     label: 'github',
+  },
+  {
+    directory: resolve(scriptDirectory, '../packages/persistence/src'),
+    forbidden:
+      /(?:from|import\s*\()["'][^"']*(?:angular|fastify|github|analyzer|scoring|openai|anthropic|ollama|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,
+    label: 'persistence',
+  },
+  {
+    directory: resolve(scriptDirectory, '../packages/scoring/src'),
+    forbidden:
+      /(?:from|import\s*\()["'][^"']*(?:angular|fastify|github|sqlite|openai|anthropic|ollama|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,
+    label: 'scoring',
   },
   {
     directory: resolve(scriptDirectory, '../packages/analyzer/src'),

@@ -3,6 +3,43 @@ export interface HealthResponse {
   readonly service: 'api';
 }
 
+export interface AnalysisRequest {
+  readonly repositoryUrl: string;
+  readonly ref?: string;
+}
+
+export type AnalysisJobStatus =
+  'queued' | 'running' | 'completed' | 'completed_with_limitations' | 'failed' | 'cancelled';
+
+export interface AnalysisJobResponse {
+  readonly id: string;
+  readonly status: AnalysisJobStatus;
+  readonly repository: {
+    readonly owner: string;
+    readonly name: string;
+  };
+  readonly requestedRef: string;
+  readonly commitSha: string | null;
+  readonly analyzerVersion: string;
+  readonly ruleSetVersion: string;
+  readonly createdAt: string;
+  readonly startedAt: string | null;
+  readonly completedAt: string | null;
+  readonly errorCode: string | null;
+  readonly resultAvailable: boolean;
+}
+
+export interface ApiErrorResponse {
+  readonly status: 'error';
+  readonly code: string;
+  readonly message: string;
+}
+
+export interface AnalysisCreatedResponse {
+  readonly id: string;
+  readonly status: AnalysisJobStatus;
+}
+
 export type ApiObservationStatus = 'observed' | 'not_detected' | 'unknown' | 'insufficient_data';
 
 export type ApiAnalysisSource = 'deterministic' | 'ai' | 'combined';

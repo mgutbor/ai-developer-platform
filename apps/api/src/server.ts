@@ -7,7 +7,9 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
   throw new Error('PORT must be an integer between 1 and 65535');
 }
 
-const app = buildApp();
+const app = buildApp({
+  databasePath: process.env['DATABASE_PATH'] ?? 'analysis.db',
+});
 
 try {
   await app.listen({ host, port });

@@ -29,4 +29,6 @@ Los ADRs registran decisiones con impacto transversal o difícil de revertir. No
 
 - [ADR-015 — GitHub REST ingestion y snapshotting seguro](ADR-015-github-rest-ingestion-and-secure-snapshotting.md)
 
-Cada ADR incluye `Status`, `Context`, `Decision`, `Consequences` y `Alternatives considered`. Una decisión nueva debe enlazar la anterior cuando la modifique y conservar el historial.
+## Decisiones de Phase 5
+
+- [ADR-016 — Pipeline de análisis y adapter SQLite](ADR-016-analysis-pipeline-and-sqlite.md)

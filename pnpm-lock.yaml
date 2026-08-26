@@ -35,9 +35,24 @@ importers:
 
   apps/api:
     dependencies:
+      '@ai-developer-platform/analyzer':
+        specifier: workspace:*
+        version: link:../../packages/analyzer
       '@ai-developer-platform/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@ai-developer-platform/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@ai-developer-platform/github':
+        specifier: workspace:*
+        version: link:../../packages/github
+      '@ai-developer-platform/persistence':
+        specifier: workspace:*
+        version: link:../../packages/persistence
+      '@ai-developer-platform/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       '@fastify/cors':
         specifier: 11.3.0
         version: 11.3.0
@@ -144,6 +159,47 @@ importers:
         specifier: workspace:*
         version: link:../domain
     devDependencies:
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      tsx:
+        specifier: 4.23.12
+        version: 4.23.12
+      typescript:
+        specifier: 6.0.2
+        version: 6.0.2
+
+  packages/persistence:
+    dependencies:
+      '@ai-developer-platform/domain':
+        specifier: workspace:*
+        version: link:../domain
+    devDependencies:
+      '@ai-developer-platform/analyzer':
+        specifier: workspace:*
+        version: link:../analyzer
+      '@ai-developer-platform/scoring':
+        specifier: workspace:*
+        version: link:../scoring
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      tsx:
+        specifier: 4.23.12
+        version: 4.23.12
+      typescript:
+        specifier: 6.0.2
+        version: 6.0.2
+
+  packages/scoring:
+    dependencies:
+      '@ai-developer-platform/domain':
+        specifier: workspace:*
+        version: link:../domain
+    devDependencies:
+      '@ai-developer-platform/analyzer':
+        specifier: workspace:*
+        version: link:../analyzer
       '@types/node':
         specifier: 24.13.3
         version: 24.13.3
