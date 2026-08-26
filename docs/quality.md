@@ -2,7 +2,7 @@
 
 ## Foundation implementada
 
-La calidad cubre ahora el vertical slice de Phase 5 además de la Foundation:
+La calidad cubre el vertical slice completo del MVP, desde ingestion hasta la experiencia Angular y la interpretación AI opcional:
 
 - API: test de integración de `GET /health` con `fastify.inject()`.
 - Angular: tests de creación de la aplicación y estados online/unavailable del cliente health.
@@ -36,23 +36,18 @@ La calidad cubre ahora el vertical slice de Phase 5 además de la Foundation:
 - job transitions, idempotency, timeout/error classification y cleanup;
 - persistence restart y report mapping;
 
-### SHOULD en fases siguientes
+### Revisión del MVP
 
 - API mapping tests entre domain y contracts.
-- Job lifecycle.
 - Revisión adicional de reglas y thresholds del analyzer sobre repositories reales.
-- AST/module resolution más completo solo si aporta valor probado.
-- Evidence paths, ranges y snapshot SHA.
-- GitHub live integration controlado, endpoint mapping y redacción basada en contenido antes de habilitar una API pública.
-- SQLite states, cleanup, idempotency y reinicio.
-- API endpoint contracts del report.
-- E2E y accessibility checks del flujo completo.
+- Validación live del provider AI, coste y calidad semántica.
+- E2E browser y auditoría automatizada axe si el flujo público lo justifica.
+- Load tests únicamente antes de extraer worker, PostgreSQL o colas.
 
-### LATER
+### Deferred
 
-- AI provider contracts y response validation.
-- Prompt-injection tests.
-- Load tests para worker, PostgreSQL y colas si se extraen.
+- Worker independiente, PostgreSQL, colas, Redis y realtime condicionados a métricas operativas.
+- AI provider adicional, RAG, embeddings, agentes y streaming fuera del MVP.
 - Realtime e histórico.
 
 SQLite emits an experimental Node warning under the current local Node 25 validation runtime; the project engine and CI target Node 24.
@@ -79,14 +74,14 @@ No se introducen E2E, Playwright, Docker o despliegue en esta fase.
 
 Fastify registra el arranque y las requests mediante su logger integrado. No se registran secrets, credenciales ni headers sensibles. Tracing, métricas y dashboards quedan para fases posteriores.
 
-Para Foundation, Phase 4 y Phase 5:
+Para el MVP validado:
 
 - código alineado con los límites de arquitectura;
 - contracts y tipos actualizados;
 - tests básicos pasando;
 - lint, format, typecheck y build pasando;
 - CI ejecutando los mismos comandos;
-- accesibilidad básica de la pantalla Foundation;
+- accesibilidad básica del flujo Angular;
 - CORS y error handling mínimos definidos;
-- documentación y ADR del framework actualizados;
+- documentación y ADRs de las decisiones actuales actualizados;
 - no se añade infraestructura o abstracción sin necesidad explícita.

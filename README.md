@@ -1,8 +1,8 @@
 # AI Developer Platform
 
-Plataforma para analizar repositories de GitHub y generar un Developer Health Report respaldado por evidencia determinista, análisis estático y una capa futura de IA.
+Plataforma para analizar repositories públicos de GitHub y generar un Developer Health Report respaldado por evidencia determinista, análisis estático y una capa opcional de interpretación AI.
 
-> Estado: **Phase 5 — Analysis Pipeline, SQLite & Deterministic Report completada**. La UI completa del report y la IA siguen fuera de alcance.
+> Estado: **MVP listo para release con limitaciones explícitas**. El análisis determinista es la fuente autoritativa; la interpretación AI es opcional.
 
 
 ## Objetivo
@@ -121,9 +121,16 @@ pnpm format
 - [Analyzer](docs/analyzer.md)
 - [Frontend](docs/frontend.md)
 - [Phase 7 validation](docs/phase-7-validation.md)
+- [AI architecture](docs/ai.md)
+- [AI evaluation](docs/ai-evaluation.md)
+- [Release readiness](docs/release-readiness.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 
-## Funcionalidades todavía no implementadas
+## Límites del MVP
 
-IA, autenticación, dashboard y report frontend completo pertenecen a fases posteriores. La API ya expone el vertical slice de análisis y el servidor usa `analysis.db` por defecto.
+El MVP admite únicamente repositories públicos de GitHub y utiliza límites conservadores de ingestion. El score es dimensional, determinista y no representa una medida absoluta de calidad. `unknown`, `insufficient_data` y `completed_with_limitations` deben interpretarse como límites de observación, no como puntuaciones negativas.
+
+La interpretación AI es opcional, secundaria y no modifica findings, evidence, recommendations ni scores. Requiere configuración server-side del provider; sin ella, el report determinista continúa funcionando.
+
+Quedan fuera del MVP: autenticación, repositories privados, dashboard avanzado, RAG, embeddings, agentes, streaming, workers distribuidos, colas, Redis, PostgreSQL, billing y analytics.
