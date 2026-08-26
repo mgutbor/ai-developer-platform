@@ -105,3 +105,7 @@ Playwright is deferred. The happy path is already exercised through Angular HTTP
 ## Next evidence required
 
 Before a production-scale deployment, collect real-provider AI evaluation data, frontend browser E2E evidence, structured request/error metrics, concurrency measurements and an operational backup/retention runbook. These are release hardening items, not reasons to add distributed infrastructure to the current MVP.
+
+## Post-release validation evidence (Phase 13)
+
+`docs/phase-13-product-validation.md` records a real-world benchmark against `Hello-World`, `type-fest`, `express`, `angular` and `react`. The pipeline works end-to-end, and the benchmark identified three analyzer/ingestion defects to fix before further product claims: `AN-SEC-003` false positives, root-metadata selection starvation, and GitHub canonical-redirect rejection. The `READY WITH LIMITATIONS` classification remains valid; these are quality-calibration issues, not release-process failures.

@@ -121,6 +121,7 @@ pnpm format
 - [Analyzer](docs/analyzer.md)
 - [Frontend](docs/frontend.md)
 - [Phase 7 validation](docs/phase-7-validation.md)
+- [Phase 13 product validation](docs/phase-13-product-validation.md)
 - [AI architecture](docs/ai.md)
 - [AI evaluation](docs/ai-evaluation.md)
 - [Release readiness](docs/release-readiness.md)

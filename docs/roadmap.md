@@ -129,11 +129,33 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Outcome:** recomendación `READY WITH LIMITATIONS`; arquitectura congelada para el MVP y E2E/browser audit, AI live validation y operación distribuida permanecen no validados.
 
-## Phase 11 — Operational scaling (conditional)
+## Phase 12 — v1.0.0 release execution
+
+**Status:** completada. Tag `v1.0.0` publicado en `origin`; verificación post-release realizada.
+
+## Phase 13 — Product validation and real-world evaluation
+
+**Status:** completada con un benchmark sobre repositories públicos reales (`Hello-World`, `type-fest`, `express`, `angular`, `react`).
+
+**Outcome:** el pipeline funciona end-to-end, pero la validación detectó falsos positivos en `AN-SEC-003` (expresiones `${{ secrets.* }}` y fixtures demo), starving de metadata raíz en la selección de archivos, imposibilidad de ingerir `facebook/react` por redirect canónico de GitHub, y scores que pueden malinterpretarse en snapshots truncados. Detalles en `docs/phase-13-product-validation.md`.
+
+**Recomendación para Phase 14:** recalibrar `AN-SEC-003`, priorizar metadata raíz en la selección, manejar redirects canónicos de GitHub y repetir el benchmark. No se justifica infraestructura nueva.
+
+## Phase 14 — Fixes from real-world validation (planned)
+
+**Objective:** corregir los tres defectos de mayor impacto medidos en Phase 13 antes de ampliar el producto.
+
+**Scope:** recalibración de la regla de secretos, selección priorizada de metadata raíz, manejo de redirects canónicos de GitHub y re-ejecución del benchmark.
+
+**No scope:** infraestructura distribuida, IA adicional, score global.
+
+## Phase 15 — Operational scaling (conditional)
 
 **Objective:** extraer componentes solo ante señales medibles.
 
 **Scope:** worker independiente, PostgreSQL, cola, multiinstancia o realtime únicamente si completion rate, duración, concurrencia o disponibilidad lo requieren.
+
+**Status:** sin extraer; Phase 13 no aportó evidencia que lo justifique.
 
 **Dependencies:** métricas de MVP y decisión explícita.
 

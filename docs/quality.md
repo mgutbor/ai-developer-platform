@@ -14,6 +14,7 @@ La calidad cubre el vertical slice completo del MVP, desde ingestion hasta la ex
 - Persistence: round-trip de jobs/results, restart file-backed, cleanup e idempotencia.
 - API/application: pipeline con fake ingestion, mapping, idempotencia, errores, status lifecycle y timeout.
 - Phase 7: dataset controlado, revisión de findings, validación live contra repositories públicos pequeños y auditoría de dependencias.
+- Phase 13: benchmark real contra repositories públicos (`Hello-World`, `type-fest`, `express`, `angular`, `react`) con el runner reproducible `apps/api/src/validate-real-repos.ts`; revisión de falsos positivos por regla, scoring, cobertura y rendimiento. Resultados en `docs/phase-13-product-validation.md`.
 
 - Repository: lint, format check, typecheck, tests y build.
 
