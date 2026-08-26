@@ -69,6 +69,8 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 ## Phase 6 — Angular report experience
 
+**Status:** completada con baseline de accesibilidad y tests de componentes; axe automatizado y browser E2E quedan explícitamente diferidos.
+
 **Objective:** demostrar valor al usuario mediante un flujo accesible.
 
 **Scope:** repository input, progress, report summary, dimensions, findings, evidence y recommendations.
@@ -80,6 +82,8 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 **Definition of Done:** component/integration/E2E/accessibility tests, build y revisión de UX.
 
 ## Phase 7 — MVP validation and hardening
+
+**Status:** completada como validación controlada del MVP; la ampliación de observabilidad pública y el runbook operativo quedan para hardening posterior.
 
 **Objective:** medir si el producto aporta valor y cerrar riesgos del primer release.
 

@@ -29,4 +29,4 @@ Polling runs every four seconds with `exhaustMap`, stops at terminal states, and
 
 Pages use semantic headings, labels, associated errors, status announcements, keyboard-focusable controls, visible focus styles, responsive layouts, and text interpolation. Repository paths, filenames, descriptions, and evidence hashes are treated as untrusted text; the UI does not use `innerHTML`.
 
-The current tests validate component behavior and HTTP interactions. This is an accessibility baseline, not a complete WCAG 2.2 AA audit; automated axe testing and browser-level E2E remain candidates for a later hardening phase.
+The current tests validate component behavior and HTTP interactions. Phase 7 confirmed the baseline against the live API flow; this is not a complete WCAG 2.2 AA audit. Automated axe testing and browser-level E2E remain candidates for later hardening.

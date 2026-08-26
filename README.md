@@ -119,6 +119,7 @@ pnpm format
 - [GitHub ingestion](docs/github-ingestion.md)
 - [Analyzer](docs/analyzer.md)
 - [Frontend](docs/frontend.md)
+- [Phase 7 validation](docs/phase-7-validation.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 

@@ -12,7 +12,8 @@ La calidad cubre ahora el vertical slice de Phase 5 además de la Foundation:
 - GitHub: tests sin red de referencias, REST response validation, límites, selección, decodificación, errores y reproducibilidad.
 - Scoring: determinismo, penalizaciones, cobertura insuficiente y ausencia de score global.
 - Persistence: round-trip de jobs/results, restart file-backed, cleanup e idempotencia.
-- API/application: pipeline con fake ingestion, mapping, idempotencia, errores y status lifecycle.
+- API/application: pipeline con fake ingestion, mapping, idempotencia, errores, status lifecycle y timeout.
+- Phase 7: dataset controlado, revisión de findings, validación live contra repositories públicos pequeños y auditoría de dependencias.
 
 - Repository: lint, format check, typecheck, tests y build.
 
