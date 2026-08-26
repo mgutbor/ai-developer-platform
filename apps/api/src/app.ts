@@ -51,6 +51,9 @@ function applicationFrom(
 }
 
 export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
+  const aiRequests = new Map<string, { count: number; startedAt: number }>();
+  const aiRequestLimit = 5;
+  const aiWindowMs = 60 * 60 * 1000;
   const {
     analysisApplication: suppliedApplication,
     databasePath,
@@ -113,10 +116,27 @@ export function buildApp(options: BuildAppOptions = {}): FastifyInstance {
     async (request) => mapAnalysisResult(analysisApplication.getResult(request.params.id)),
   );
 
-  app.post<{ Params: { id: string }; Reply: unknown }>('/analyses/:id/ai', async (request) => {
-    await analysisApplication.generateAIInterpretation(request.params.id);
-    return mapAIInterpretation(analysisApplication.getAIInterpretation(request.params.id));
-  });
+  app.post<{ Params: { id: string }; Reply: unknown }>(
+    '/analyses/:id/ai',
+    async (request, reply) => {
+      const now = Date.now();
+      const previous = aiRequests.get(request.params.id);
+      const current =
+        previous === undefined || now - previous.startedAt >= aiWindowMs
+          ? { count: 0, startedAt: now }
+          : previous;
+      if (current.count >= aiRequestLimit) {
+        return reply.status(429).send({
+          status: 'error',
+          code: 'AI_RATE_LIMITED',
+          message: 'AI interpretation request limit reached',
+        });
+      }
+      aiRequests.set(request.params.id, { count: current.count + 1, startedAt: current.startedAt });
+      await analysisApplication.generateAIInterpretation(request.params.id);
+      return mapAIInterpretation(analysisApplication.getAIInterpretation(request.params.id));
+    },
+  );
 
   app.get<{ Params: { id: string }; Reply: unknown }>('/analyses/:id/ai', async (request) =>
     mapAIInterpretation(analysisApplication.getAIInterpretation(request.params.id)),

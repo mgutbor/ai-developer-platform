@@ -109,7 +109,19 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Definition of Done:** unit/integration/contract/security tests, prompt-injection tests, coste/latencia medidos y nuevo ADR si se combinan scores.
 
-## Phase 9 — Operational scaling (conditional)
+## Phase 9 — AI evaluation and hardening
+
+**Status:** completada con fake-provider evaluation, regresión determinista, validación de fallos, límites del provider, rate limiting local y decisión `KEEP WITH LIMITATIONS`. Live quality/cost validation queda pendiente sin credenciales.
+
+**Objective:** medir utilidad, coste, latencia y seguridad antes de extender la capa AI.
+
+**Scope:** dataset reproducible, criterios de factualidad/traceability, failure modes, prompt injection, rate limiting y documentación measured/estimated/not validated.
+
+**Dependencies:** Phase 8.
+
+**Acceptance criteria:** el report determinista permanece idéntico; referencias inválidas se rechazan; provider failure no rompe el report; costes/latencias no se inventan; decisión de producto documentada.
+
+## Phase 10 — Operational scaling (conditional)
 
 **Objective:** extraer componentes solo ante señales medibles.
 

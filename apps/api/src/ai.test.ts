@@ -86,6 +86,62 @@ describe('optional AI interpretation', () => {
     );
   });
 
+  it('limits repeated AI generation requests without affecting the report', async () => {
+    const fixture = cleanTypeScriptFixture();
+    persistence = new SqlitePersistence();
+    const application = new AnalysisApplication({
+      persistence,
+      aiProvider: new FakeAIProvider({
+        summary: 'summary',
+        keyInsights: [],
+        priorities: [],
+        limitations: [],
+        evidenceReferences: [],
+      }),
+      analyze,
+      score: scoreAnalysis,
+      ingest: async () => ({
+        files: fixture.files,
+        limitations: [],
+        metadata: {
+          repository: { defaultBranch: 'main', sizeKb: 1 },
+          selectedFileCount: fixture.files.length,
+          totalBytes: 1,
+          treeEntriesSeen: fixture.files.length,
+          treeTruncated: false,
+        },
+        snapshot: fixture.snapshot,
+      }),
+      createId: () => 'rate-id',
+    });
+    app = buildApp({ analysisApplication: application, logger: false, persistence });
+    const created = await app.inject({
+      method: 'POST',
+      url: '/analyses',
+      payload: { repositoryUrl: 'https://github.com/fixture-owner/rate-test' },
+    });
+    const id = (created.json() as { id: string }).id;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const status = await app.inject({ method: 'GET', url: `/analyses/${id}` });
+      if ((status.json() as { resultAvailable: boolean }).resultAvailable) break;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      assert.equal(
+        (await app.inject({ method: 'POST', url: `/analyses/${id}/ai`, payload: {} })).statusCode,
+        200,
+      );
+    }
+    assert.equal(
+      (await app.inject({ method: 'POST', url: `/analyses/${id}/ai`, payload: {} })).statusCode,
+      429,
+    );
+    assert.equal(
+      (await app.inject({ method: 'GET', url: `/analyses/${id}/report` })).statusCode,
+      200,
+    );
+  });
+
   it('reports unavailable when no provider is configured', async () => {
     persistence = new SqlitePersistence();
     const application = new AnalysisApplication({

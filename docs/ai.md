@@ -34,7 +34,7 @@ AI_API_KEY=<server-side secret>
 AI_MODEL=<configured model>
 ```
 
-Las API keys permanecen únicamente en el servidor. Nunca se exponen al frontend, logs o SQLite.
+Las API keys permanecen únicamente en el servidor. Nunca se exponen al frontend, logs o SQLite. El adapter exige HTTPS y el host `api.openai.com`, y limita la respuesta a 512 KiB.
 
 ## Contexto
 
@@ -60,6 +60,8 @@ El contenido del repository se introduce únicamente dentro de una sección de d
 
 - `POST /analyses/:id/ai`: solicita/genera interpretación opcional.
 - `GET /analyses/:id/ai`: recupera el estado o `unavailable`.
+
+El endpoint de generación tiene un límite in-memory de cinco solicitudes por analysis y hora. Es suficiente para el MVP local; un despliegue multiinstancia necesitaría una política distribuida antes de producción pública.
 
 El report Angular muestra una sección separada y etiquetada como AI-assisted interpretation. Usa interpolación de texto, no `innerHTML`.
 

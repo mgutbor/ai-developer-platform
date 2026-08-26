@@ -10,7 +10,7 @@ El repository analizado es entrada no confiable y puede contener código malicio
 | Prompt injection | Alta | Alto | contenido delimitado como datos, system prompt explícito, contexto estructurado y validación estricta de referencias | implementado en Phase 8 | ampliar evaluación con más modelos |
 | Malicious repository | Alta | Alto | nunca ejecutar contenido ni scripts; leer solo blobs seleccionados y tratar el contenido como datos | implementado en Phase 3 | sandbox solo mediante ADR nuevo |
 | Secrets | Media | Alto | detectar/redactar patrones, excluir `.env` y private keys, no loggear contenido | obligatorio | secret scanning más amplio |
-| API abuse | Media | Alto | validación, rate limiting por IP, payload limits, idempotency | obligatorio antes de exponer públicamente | identidad y cuotas por usuario |
+| API abuse | Media | Alto | validación, límites de payload, idempotency y rate limit in-memory del endpoint AI | parcial para MVP local; endurecer antes de exposición pública | identidad, cuotas y rate limit distribuido |
 | GitHub rate limits | Alta | Medio | límite de requests por cliente, retry máximo de una vez y categoría `rate_limited` sin exponer cuerpos | implementado en Phase 3 | app authentication si procede |
 | Denial of service | Media | Alto | límites de archivos, bytes, tree, requests, respuestas JSON y timeout de request/ingestión | implementado en Phase 3 | worker aislado y cuotas |
 | Huge repositories | Alta | Medio/Alto | tree cap, file cap, byte cap y report limitado | obligatorio | procesamiento por shards |
@@ -43,6 +43,7 @@ La plataforma solo debe leer y parsear bytes dentro de límites definidos. No de
 - No registrar URLs con credenciales ni stack traces al cliente.
 - La IA recibe únicamente un `AIContext` limitado con metadata, findings y evidence minimizada; no recibe blobs completos ni secretos.
 - Las respuestas AI se validan contra IDs del report antes de persistirse; no pueden introducir paths, rangos, findings ni scores nuevos.
+- El provider OpenAI restringe host/protocolo y tamaño de respuesta; el endpoint AI aplica límite in-memory por analysis.
 
 ## API y abuso
 

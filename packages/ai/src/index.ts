@@ -371,6 +371,7 @@ export interface OpenAIProviderOptions {
   readonly model: string;
   readonly timeoutMs?: number;
   readonly fetchImpl?: typeof fetch;
+  readonly maxResponseBytes?: number;
 }
 
 export class OpenAIProvider implements AIProvider {
@@ -380,9 +381,14 @@ export class OpenAIProvider implements AIProvider {
   constructor(options: OpenAIProviderOptions) {
     if (options.apiKey.trim() === '' || options.model.trim() === '')
       throw new TypeError('OpenAI API key and model are required');
+    const apiUrl = options.apiUrl ?? 'https://api.openai.com/v1/chat/completions';
+    const parsedUrl = new URL(apiUrl);
+    if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== 'api.openai.com')
+      throw new TypeError('OpenAI API URL must use the api.openai.com HTTPS host');
     this.options = {
       apiUrl: 'https://api.openai.com/v1/chat/completions',
       timeoutMs: 20_000,
+      maxResponseBytes: 512 * 1024,
       ...options,
     };
   }
@@ -409,10 +415,19 @@ export class OpenAIProvider implements AIProvider {
       if (response.status === 429)
         throw new AIProviderError('rate_limited', 'AI provider rate limit reached');
       if (!response.ok) throw new AIProviderError('unavailable', 'AI provider request failed');
-      const body = (await response.json()) as {
+      const responseText = await response.text();
+      const responseBytes = new TextEncoder().encode(responseText).byteLength;
+      const maxResponseBytes = this.options.maxResponseBytes ?? 512 * 1024;
+      if (responseBytes > maxResponseBytes)
+        throw new AIProviderError(
+          'malformed',
+          'AI provider response exceeded the configured limit',
+        );
+      const body = JSON.parse(responseText) as {
         choices?: readonly { message?: { content?: unknown } }[];
       };
-      const content = body.choices?.[0]?.message?.content;
+      const firstChoice = body.choices?.[0];
+      const content = firstChoice?.message?.content;
       if (typeof content !== 'string')
         throw new AIProviderError('malformed', 'AI provider returned no structured content');
       let parsed: unknown;
