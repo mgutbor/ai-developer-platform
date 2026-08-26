@@ -38,7 +38,7 @@ La plataforma solo debe leer y parsear bytes dentro de límites definidos. No de
 ## Secrets y logs
 
 - No persistir tokens ni API keys en SQLite.
-- La ingesta excluye nombres de credentials, private keys, `.env`, `.npmrc` y `.netrc`; la redacción basada en contenido se mantiene como requisito previo a evidence/contexto del analyzer.
+- La ingesta excluye nombres de credentials, private keys, `.env`, `.npmrc` y `.netrc`. El analyzer puede detectar patrones de contenido en archivos recibidos y conserva únicamente hashes en la evidence; no persiste secretos completos.
 - No incluir contenido completo del repository en logs, errores ni analytics.
 - No registrar URLs con credenciales ni stack traces al cliente.
 - Si se habilita IA, no transferir secretos detectados ni archivos completos por defecto.

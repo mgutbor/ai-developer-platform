@@ -50,4 +50,4 @@ Other entity IDs are opaque strings supplied by the creation boundary. This avoi
 
 ## Deliberately deferred
 
-`AnalysisJob`, ingestion, persistence, analyzer rules, score calculation, API mapping code, and AI assessment are not implemented in this phase. Their future adapters must consume these records rather than add infrastructure concerns to the domain package.
+`AnalysisJob`, persistence, score calculation, API mapping code, report UI and AI assessment remain deferred. Phase 3 ingestion and Phase 4 analyzer rules consume these records without adding infrastructure concerns to the domain package. Future adapters must preserve the same evidence and snapshot invariants.

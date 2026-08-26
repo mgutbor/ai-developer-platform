@@ -1,8 +1,8 @@
 # Arquitectura
 
-## Estado tras Phase 3
+## Estado tras Phase 4
 
-La Foundation, el modelo de dominio y el package de ingestión GitHub están implementados. El analyzer, la persistencia, los jobs y los endpoints de report siguen planificados.
+La Foundation, el modelo de dominio, la ingestión GitHub y el analyzer determinista están implementados. La persistencia, los jobs y los endpoints de report siguen planificados.
 
 ### Implementado
 
@@ -17,6 +17,7 @@ apps/api/              # Fastify 5 API
     +--> packages/domain/     # significado e invariantes
 
 packages/github/              # REST + snapshotting acotado, sin handlers
+packages/analyzer/            # análisis determinista puro, sin infraestructura
 ```
 
 - `apps/web`: pantalla Foundation, routing preparado, environment configuration y cliente mínimo de health.
@@ -24,6 +25,7 @@ packages/github/              # REST + snapshotting acotado, sin handlers
 - `packages/contracts`: contratos serializables de API (`HealthResponse` y el shape futuro de `AnalysisResultResponse`). No importa entidades del dominio.
 - `packages/domain`: tipos, value sets y factories validadas para snapshots, facts, metrics, evidence, findings, recommendations, dimension scores y resultados.
 - `packages/github`: validación de referencias públicas, cliente REST nativo con host allowlist, selección acotada, decodificación UTF-8, errores clasificados y `IngestionResult` en memoria. No genera findings.
+- `packages/analyzer`: clasificación, extracción determinista, métricas, reglas, evidence, findings y recommendations sobre snapshots limitados. No depende de GitHub, filesystem, runtime o IA.
 - Root: pnpm workspaces, TypeScript strict, ESLint, Prettier, tests y GitHub Actions.
 
 ### Planificado
@@ -32,12 +34,12 @@ packages/github/              # REST + snapshotting acotado, sin handlers
 apps/api
     |
     +--> application/report mapping
-    +--> analyzer rules
     +--> SQLite adapter
+    +--> report mapping
     +--> ingestion HTTP endpoint
 ```
 
-Los módulos `analyzer` y `report` se crearán cuando cada uno tenga una responsabilidad y un consumidor real. `packages/github` ya implementa el adapter y la ingestión; Fastify todavía no lo compone en un endpoint.
+`packages/analyzer` ya implementa el análisis puro y tiene tests propios; `packages/report` todavía no existe porque no tiene un consumidor separado. Fastify todavía no compone ingestion y analyzer en un endpoint.
 
 ## Arquitectura objetivo refinada
 
@@ -79,6 +81,7 @@ Reglas vigentes:
 - `packages/domain` no depende de Angular, HTTP, Fastify, GitHub, SQLite, filesystem, browser APIs ni IA.
 - `packages/contracts` no depende de `packages/domain`; representa la frontera serializable.
 - `apps/web` puede depender de `packages/contracts`, pero no de `domain`, `github`, `analyzer`, `report` o SQLite.
+- `packages/analyzer` puede depender únicamente del dominio; consume datos de ingestión mediante tipos estructurales y no conoce GitHub.
 - `apps/api` compone transporte, contratos, aplicación y adapters; no expone entidades internas directamente.
 - Los adapters dependerán de abstracciones del dominio, no al revés.
 
@@ -94,6 +97,7 @@ packages/
   contracts/           # contratos externos serializables
   domain/              # modelo e invariantes de negocio
   github/              # adapter REST e ingestión acotada
+  analyzer/            # analyzer determinista puro
 
 docs/
 ```
@@ -132,6 +136,19 @@ Fastify se compone mediante `buildApp`, separado del proceso de escucha, lo que 
 
 `packages/contracts` contiene `HealthResponse` y tipos serializables del futuro report. Estos tipos no sustituyen la validación de `packages/domain`: el mapping de API deberá convertir explícitamente entidades válidas a DTOs cuando existan endpoints de report.
 
-## Future flow
+## Current deterministic flow
 
-`packages/github` implementa la ingesta REST acotada, pero no existe todavía un endpoint HTTP ni un mapping de API. Las reglas deterministas, SQLite, `AnalysisJob`, el report HTTP y la IA pertenecen a fases posteriores.
+```text
+GitHub REST
+    |
+    v
+IngestionResult
+    |
+    v
+packages/analyzer
+    |
+    v
+AnalysisResult
+```
+
+La ingesta y el analyzer todavía se ejecutan como librerías en memoria: no existe endpoint HTTP, job lifecycle ni mapping de report. SQLite, scoring, el report HTTP y la IA pertenecen a fases posteriores.

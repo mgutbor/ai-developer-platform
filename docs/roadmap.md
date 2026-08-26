@@ -40,6 +40,8 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 ## Phase 4 — TypeScript/JavaScript deterministic analyzer
 
+**Status:** completada.
+
 **Objective:** producir facts, metrics y findings útiles sin IA.
 
 **Scope:** imports y estructura, tests, docs, dependencies, lint/format/typecheck, CI/CD, detección de Angular/React/Node.js y reglas de maintainability simples.
@@ -48,9 +50,11 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Acceptance criteria:** fixtures Tier 1 generan resultados estables y evidence verificable; otros lenguajes se marcan como limitados; no se ejecutan scripts del repository.
 
-**Definition of Done:** unit/regression tests, performance baseline, reglas documentadas y ADR-011 alineado.
+**Definition of Done:** `packages/analyzer` puro, tests unitarios/regression, performance sanity, boundary check, reglas documentadas y ADR-011 alineado. PASS.
 
 ## Phase 5 — Deterministic report and SQLite job lifecycle
+
+**Status:** siguiente fase recomendada.
 
 **Objective:** convertir el analyzer en un flujo consultable completo.
 

@@ -11,6 +11,9 @@
       "path": "./packages/github"
     },
     {
+      "path": "./packages/analyzer"
+    },
+    {
       "path": "./apps/api"
     }
   ],

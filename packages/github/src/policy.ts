@@ -119,6 +119,9 @@ export function isSelectableFile(
   if (policy.metadataFileNames.some((name) => name.toLowerCase() === baseName.toLowerCase())) {
     return true;
   }
+  if (/^\.github\/workflows\/[^/]+\.(?:ya?ml)$/i.test(path)) {
+    return true;
+  }
   if (/^(?:README|CHANGELOG)(?:\.|$)/i.test(baseName)) {
     return true;
   }

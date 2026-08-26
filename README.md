@@ -2,7 +2,7 @@
 
 Plataforma para analizar repositories de GitHub y generar un Developer Health Report respaldado por evidencia determinista, análisis estático y una capa futura de IA.
 
-> Estado: **Phase 3 — GitHub REST Ingestion & Secure Repository Snapshotting completada**. El analyzer, la persistencia y el vertical slice de análisis todavía no están implementados.
+> Estado: **Phase 4 — Deterministic TypeScript/JavaScript Analyzer completada**. La persistencia, el scoring y el vertical slice HTTP todavía no están implementados.
 
 ## Objetivo
 
@@ -29,13 +29,14 @@ Las versiones de Angular y sus peer dependencies se mantienen alineadas. Node `v
 
 ## Foundation implementada
 
-- Monorepo ejecutable con `apps/web`, `apps/api`, `packages/contracts`, `packages/domain` y `packages/github`.
+- Monorepo ejecutable con `apps/web`, `apps/api`, `packages/contracts`, `packages/domain`, `packages/github` y `packages/analyzer`.
 - Pantalla Angular mínima de Foundation.
 - Endpoint `GET /health`.
 - Comunicación Angular → API con estados loading, online y unavailable.
 - Contratos API explícitos para health y report, sin exponer entidades internas.
 - Dominio puro con factories validadas para snapshots, facts, metrics, evidence, findings, recommendations y resultados.
 - Ingestión GitHub REST acotada para repositories públicos, con resolución de commit, selección segura de archivos y límites explícitos.
+- Analyzer determinista TypeScript/JavaScript con facts, metrics, evidence, findings y recommendations reproducibles.
 - TypeScript estricto, ESLint, Prettier y scripts raíz.
 - Tests unitarios del dominio, además de tests de API y Angular.
 - Workflow de GitHub Actions para install, architecture check, lint, format, typecheck, test y build.
@@ -50,11 +51,12 @@ packages/
   contracts/           # contratos públicos compartidos
   domain/              # modelo e invariantes de negocio
   github/              # adapter REST e ingestión segura acotada
+  analyzer/            # análisis determinista puro y basado en evidencia
 
 docs/                  # producto, arquitectura, seguridad, roadmap y ADRs
 ```
 
-Los packages `domain` y `github` ya están implementados. `github` concentra la validación de referencias, el adapter REST y la ingestión acotada; no contiene handlers Fastify ni lógica de analyzer. `ingestion`, `analyzer` y `report` se crearán cuando tengan una responsabilidad real.
+Los packages `domain`, `github` y `analyzer` ya están implementados. `github` concentra la validación de referencias, el adapter REST y la ingestión acotada; `analyzer` consume esa salida de forma estructural y no depende del adapter. Ninguno contiene handlers Fastify ni persistencia.
 
 ## Requisitos
 
@@ -108,9 +110,10 @@ pnpm format
 - [Modelo de análisis](docs/analysis-model.md)
 - [Modelo de dominio](docs/domain-model.md)
 - [GitHub ingestion](docs/github-ingestion.md)
+- [Analyzer](docs/analyzer.md)
 - [Roadmap](docs/roadmap.md)
 - [ADRs](docs/adr/)
 
 ## Funcionalidades todavía no implementadas
 
-El analyzer, SQLite, `AnalysisJob` real, cálculo de scoring, IA, autenticación, dashboard y endpoint HTTP de ingestión pertenecen a fases posteriores. `packages/github` produce snapshots y archivos textuales acotados, pero todavía no genera findings ni ejecuta código de repositories analizados.
+SQLite, `AnalysisJob` real, cálculo de scoring, IA, autenticación, dashboard y endpoints HTTP de análisis pertenecen a fases posteriores. `packages/github` produce snapshots y archivos textuales acotados; `packages/analyzer` produce resultados deterministas en memoria, pero todavía no existe persistencia ni composición API.

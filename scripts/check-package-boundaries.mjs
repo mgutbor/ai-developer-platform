@@ -17,6 +17,12 @@ const rules = [
       /(?:from|import\s*\()["'][^"']*(?:angular|fastify|sqlite|openai|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,
     label: 'github',
   },
+  {
+    directory: resolve(scriptDirectory, '../packages/analyzer/src'),
+    forbidden:
+      /(?:from|import\s*\()["'][^"']*(?:angular|fastify|github|sqlite|openai|anthropic|ollama|node:(?:fs|path|http|https|net|tls|child_process|vm)|browser)[^"']*["']/i,
+    label: 'analyzer',
+  },
 ];
 
 async function findTypeScriptFiles(directory) {

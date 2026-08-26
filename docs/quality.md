@@ -9,6 +9,7 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Contracts: compilación TypeScript de DTOs de frontera.
 - Domain: tests unitarios de factories, invariantes, trazabilidad, incertidumbre e inmutabilidad.
 - GitHub: tests sin red de referencias, REST response validation, límites, selección, decodificación, errores y reproducibilidad.
+- Analyzer: tests de clasificación, manifests/config, frameworks, tooling, CI, métricas, reglas, evidence, recomendaciones, input malformado, seguridad, determinismo y baseline de performance.
 - Repository: lint, format check, typecheck, tests y build.
 
 ## Testing strategy
@@ -20,15 +21,16 @@ La Foundation verifica infraestructura básica, no funcionalidades de producto:
 - Angular HTTP success/error states.
 - TypeScript strict compilation.
 - Domain invariants and relationship integrity.
-- Domain/GitHub dependency boundary check.
-- Workspace build de contracts, domain, github, API y web.
+- Domain/GitHub/analyzer dependency boundary check.
+- Workspace build de contracts, domain, github, analyzer, API y web.
 - ESLint y Prettier.
 
 ### SHOULD en fases siguientes
 
 - API mapping tests entre domain y contracts.
 - Job lifecycle.
-- Analyzer fixtures TypeScript/JavaScript.
+- Revisión adicional de reglas y thresholds del analyzer sobre repositories reales.
+- AST/module resolution más completo solo si aporta valor probado.
 - Evidence paths, ranges y snapshot SHA.
 - GitHub live integration controlado, endpoint mapping y redacción basada en contenido antes de habilitar una API pública.
 - SQLite states, cleanup, idempotency y reinicio.
@@ -67,7 +69,7 @@ Fastify registra el arranque y las requests mediante su logger integrado. No se 
 
 ## Global Definition of Done
 
-Para Foundation:
+Para Foundation y Phase 4:
 
 - código alineado con los límites de arquitectura;
 - contracts y tipos actualizados;

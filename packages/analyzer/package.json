@@ -1,0 +1,26 @@
+{
+  "name": "@ai-developer-platform/analyzer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@ai-developer-platform/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "tsx": "4.23.12",
+    "typescript": "6.0.2"
+  }
+}

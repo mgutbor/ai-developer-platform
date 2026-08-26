@@ -2,7 +2,7 @@
 
 ## Foundation actual
 
-Phase 3 añade `packages/github` al monorepo pnpm. Angular y Fastify siguen siendo la web y API de Foundation; GitHub ingestion está implementado como librería desacoplada, mientras analyzer, SQLite, `AnalysisJob`, endpoint HTTP e IA siguen planificados.
+Phase 4 añade `packages/analyzer` al monorepo pnpm. Angular y Fastify siguen siendo la web y API de Foundation; GitHub ingestion y el analyzer están implementados como librerías desacopladas, mientras SQLite, `AnalysisJob`, endpoints HTTP de análisis e IA siguen planificados.
 
 ## Requisitos
 
@@ -53,11 +53,12 @@ apps/api/             # Fastify; endpoint health y composición inicial
 packages/contracts/   # contratos externos compartidos
 packages/domain/      # modelo e invariantes sin infraestructura
 packages/github/      # adapter REST e ingestión acotada
+packages/analyzer/    # análisis determinista puro
 ```
 
-La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos. `pnpm check:architecture` verifica que `domain` no importe infraestructura y que `github` no importe UI, Fastify, persistencia ni IA.
+La web no importa entidades internas del backend. La API no expone directamente modelos internos. `packages/contracts` contiene únicamente contratos públicos. `pnpm check:architecture` verifica que `domain` no importe infraestructura, que `github` no importe UI, Fastify, persistencia ni IA, y que `analyzer` no importe GitHub, runtime, filesystem, transporte o IA.
 
-`domain` y `github` tienen responsabilidades implementadas. `github` no contiene handlers ni analyzer; el endpoint HTTP, `analyzer` y `report` se crearán cuando tengan un consumidor real. No se crean carpetas vacías para anticipar funcionalidades.
+`domain`, `github` y `analyzer` tienen responsabilidades implementadas. `github` no contiene handlers ni reglas de analyzer; `analyzer` consume datos estructurales de ingestion y no accede al filesystem. El endpoint HTTP, `report` y persistencia se crearán cuando tengan un consumidor real.
 
 ## Configuración
 
@@ -81,6 +82,7 @@ La API valida `PORT`, usa `HOST` configurable y limita CORS a origins locales ex
 | Prettier | Formato común | Check reproducible en CI | Formato manual, descartado | Documentación prose excluida |
 | `concurrently` | Arranque local web/API | Un único `pnpm dev` | Dos terminales, menos DX | Solo herramienta de desarrollo |
 | `@ai-developer-platform/github` | Resolución e ingestión REST acotada | Responsabilidad real de Phase 3 | SDK de GitHub, descartado | Adapter propio; límites y validación cubiertos por tests |
+| `@ai-developer-platform/analyzer` | Facts, metrics y findings deterministas | Responsabilidad real de Phase 4 | AST framework y parser completo, diferidos | Heurísticas acotadas; sin infraestructura ni ejecución |
 
 ## Testing scope
 
@@ -92,7 +94,8 @@ La Foundation cubre:
 - contratos TypeScript mediante compilación;
 - invariantes de dominio mediante tests unitarios;
 - URL/ref validation, REST response validation, selección, decodificación, límites y reproducibilidad de GitHub mediante tests sin red;
-- límites de dependencias de `domain` y `github` mediante `pnpm check:architecture`;
+- límites de dependencias de `domain`, `github` y `analyzer` mediante `pnpm check:architecture`;
+- analyzer fixtures in-memory, golden assertions, malformed input, security, determinism y performance sanity;
 - lint, format, typecheck y build.
 
-E2E, accessibility completa, endpoint HTTP de ingestión, integración live de GitHub y analyzer fixtures pertenecen a fases posteriores; los tests del adapter usan transporte inyectado y no dependen de red.
+E2E, accessibility completa, endpoint HTTP de ingestión/análisis, SQLite y report frontend pertenecen a fases posteriores; los tests de GitHub y analyzer no dependen de red ni filesystem externo.

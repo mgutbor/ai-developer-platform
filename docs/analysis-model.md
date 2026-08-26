@@ -130,6 +130,8 @@ Toda observación, métrica y finding tiene provenance con source, method y snap
 
 `unknown`, `not_detected` e `insufficient_data` son estados distintos. Los valores desconocidos se expresan con `null` y estado explícito. Nunca se representa desconocido como `false` ni insuficiencia como score `0`.
 
-## Alcance no implementado
+## Phase 4 implementada
 
-Phase 3 implementa la ingestión GitHub fuera del dominio: produce un `RepositorySnapshot` y archivos textuales acotados para consumo futuro. Este modelo todavía no implementa reglas de analyzer, cálculo de scores, persistencia SQLite, lifecycle de `AnalysisJob`, endpoints de report ni IA.
+Phase 3 produce un `RepositorySnapshot` y archivos textuales acotados. Phase 4 consume esa forma estructural mediante `packages/analyzer` y genera `AnalysisResult` determinista en memoria con facts, metrics, evidence, findings y recommendations. El analyzer no depende del adapter GitHub ni genera scores.
+
+El modelo todavía no implementa persistencia SQLite, lifecycle de `AnalysisJob`, endpoints de report, score global ni IA.
