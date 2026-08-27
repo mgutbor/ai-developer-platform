@@ -170,3 +170,43 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 **Acceptance criteria:** la extracción mantiene contracts y dominio, tiene rollback y mejora una métrica operativa concreta.
 
 **Definition of Done:** load tests, migration plan, observabilidad, security review y ADR de la extracción.
+
+## Phase 16 — Real-world evaluation (expanded)
+
+**Status:** completada. `docs/phase-16-real-world-evaluation.md`.
+
+## Phase 17 — Developer evaluation
+
+**Status:** completada. `docs/phase-17-developer-evaluation.md`.
+
+## Phase 18 — Final product validation
+
+**Status:** completada. `docs/phase-18-final-product-validation.md`.
+
+## Phase 19 — Authenticated benchmark readiness
+
+**Status:** completada. `docs/phase-19-authenticated-benchmark.md`.
+
+## Phase 20 — Authenticated benchmark execution
+
+**Status:** completada con limitaciones. Benchmark autenticado 15×3; `docs/phase-20-authenticated-benchmark.md` y `docs/phase-20.1-benchmark-failure-analysis.md`. Se confirmó que repositorios con árboles muy grandes superan `maxJsonResponseBytes=4 MiB`.
+
+## Phase 21 — Large repository ingestion
+
+**Status:** completada con limitación documentada. Traversal segmentado de árboles GitHub por SHA de tree con terminación temprana que preserva la semántica de selección; `docs/phase-21-large-repository-ingestion.md`. Se corrigió además un artefacto `dist` desactualizado.
+
+## Phase 22 — Ground-truth validation
+
+**Status:** cerrada con `KEEP WITH LIMITATIONS`. Dataset congelado de 8 repositorios, 25 findings clasificados (7 TP / 0 FP / 2 uncertain / 16 not-evaluable); muestra insuficiente para precisión/recall defendibles. `docs/phase-22-final-results.md`.
+
+## Phase 23 — E2E + product validation
+
+**Status:** cerrada con `PASS WITH LIMITATIONS`. Validación E2E real contra repositorios públicos; se corrigió el wiring de `GITHUB_TOKEN`/`GH_TOKEN` en el servidor de producción con tests de regresión. `docs/phase-23-e2e-product-validation.md`.
+
+## Phase 24 — UX + documentation + portfolio polish
+
+**Status:** cerrada con `PASS`. Mensajería clara de estados/limitaciones/cobertura, README, docs de arquitectura y portfolio. `docs/phase-24-ux-documentation-portfolio.md`.
+
+## Phase 25 — Release v1.0 (final MVP)
+
+**Status:** completada. Release v1.0.0 con tag `v1.0.0` apuntando al commit final del MVP; `docs/release-readiness.md` y `docs/release-notes-v1.0.0.md`. Fin del MVP.
