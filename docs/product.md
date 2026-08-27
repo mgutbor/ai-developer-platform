@@ -159,3 +159,15 @@ Los findings absence-based (p. ej. "no se detectaron tests") se generan sobre el
 > **Matiz de cuota (validado experimentalmente):** con `maxFileCount=50`, la ingestión de un repositorio pequeño-medio como `sindresorhus/type-fest` necesitó más de las 60 requests/hora de la cuota anónima y terminó en `GITHUB_RATE_LIMITED` sin reporte. El modo sin token es fiable para repositorios diminutos/pequeños (p. ej. `Hello-World`: 5 requests; `camelcase`: 13 requests). Para repositorios que requieren más requests, la cuota anónima de GitHub es una **limitación operativa** y el modo autenticado con `GITHUB_TOKEN` (server-side, ~5.000 requests/hora) permite completar la ingestión.
 
 > Para la evidencia consolidada del experimento anónimo (incluida la deduplicación de SQLite observada en el entorno de prueba), ver **`docs/anonymous-github-validation.md`**.
+
+### Auditoría de producto y dirección MVP 2.0
+
+La **auditoría de producto post-v1.0.0** (`docs/product-audit-mvp-2.md`, Phase 28) concluye que el valor de producto actual es bajo-moderado para un developer: el "analyzer general" compite con herramientas que ya hace mejor cada tarea individual (ESLint, TypeScript, SonarCloud, Dependabot, CodeQL, gitleaks, CI, IDE) y la ingestión acotada limita la utilidad en repositorios medianos/grandes.
+
+La dirección propuesta para MVP 2.0 es **estrechar el producto a un único job**: *snapshot de riesgo técnico zero-config de un repositorio público desconocido antes de adoptarlo, usarlo como dependencia o contribuir*. Tres apuestas lo habilitan:
+
+1. **Evidencia verificable** — excerpts de contenido seguros (con redacción de secretos) para findings `verified`.
+2. **Análisis por archivos clave + señales del repositorio** — presencia sobre amplitud, viable dentro de la cuota anónima.
+3. **Reporte de due-diligence ordenado por riesgo** — el reporte como ayuda a la decisión, no solo como inventario.
+
+Veredicto: **continuar, pero estrechando el producto**, condicionado a que la validación de la Phase 29 demuestre al menos un "aha" accionable por análisis. No se añadirán features sobre la base actual sin esa validación.
