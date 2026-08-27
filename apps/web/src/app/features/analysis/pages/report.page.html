@@ -22,10 +22,33 @@
       </p>
     </header>
 
+    <section
+      class="panel coverage-panel coverage-{{ currentReport.coverage }}"
+      aria-labelledby="coverage-title"
+    >
+      <h2 id="coverage-title">
+        @switch (currentReport.coverage) {
+          @case ('complete') {
+            Analysis completed
+          }
+          @case ('partial') {
+            Analysis completed with limitations
+          }
+          @case ('insufficient') {
+            Analysis based on limited information
+          }
+          @default {
+            Coverage unknown
+          }
+        }
+      </h2>
+      <p>{{ coverageExplanation(currentReport.coverage) }}</p>
+    </section>
+
     <section class="panel score-panel" aria-labelledby="score-title">
       <h2 id="score-title">Deterministic assessment</h2>
       <p><strong>Confidence:</strong> {{ currentReport.confidence }}</p>
-      <p><strong>Coverage:</strong> {{ currentReport.coverage }}</p>
+      <p class="metadata">Coverage: {{ currentReport.coverage }}</p>
       <div class="score-grid">
         @for (score of currentReport.dimensionScores; track score.dimension) {
           <article class="score-card">
@@ -88,9 +111,16 @@
     @if (currentReport.limitations.length > 0) {
       <section class="panel limitations" aria-labelledby="limitations-title">
         <h2 id="limitations-title">Limitations</h2>
+        <p>This analysis has the following limitations:</p>
         <ul>
           @for (limitation of currentReport.limitations; track limitation) {
-            <li>{{ limitation }}</li>
+            @let explained = limitationExplanation(limitation);
+            <li>
+              {{ explained.message }}
+              @if (explained.code !== explained.message) {
+                <span class="metadata"> ({{ explained.code }})</span>
+              }
+            </li>
           }
         </ul>
       </section>
@@ -131,7 +161,9 @@
                         </span>
                       }
                       @if (evidence.excerptHash) {
-                        <span class="metadata"> — evidence hash {{ evidence.excerptHash }}</span>
+                        <span class="metadata"
+                          >— evidence reference {{ evidence.excerptHash }}</span
+                        >
                       }
                     </li>
                   }

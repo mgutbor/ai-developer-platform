@@ -4,11 +4,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import type {
   AiInterpretationResponse,
   AnalysisResultResponse,
+  ApiCoverage,
   ApiEvidence,
   ApiFinding,
   ApiRecommendation,
 } from '@ai-developer-platform/contracts';
 import { AnalysisService } from '../../../core/api/analysis.service';
+import { coverageMessage, limitationMessage } from '../analysis-messages';
 
 @Component({
   imports: [RouterLink],
@@ -83,5 +85,13 @@ export class ReportPage {
     return report.recommendations.filter((recommendation) =>
       finding.recommendationIds.includes(recommendation.id),
     );
+  }
+
+  protected coverageExplanation(coverage: ApiCoverage | null | undefined): string {
+    return coverageMessage(coverage);
+  }
+
+  protected limitationExplanation(limitation: string): { message: string; code: string } {
+    return limitationMessage(limitation);
   }
 }

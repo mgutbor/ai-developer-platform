@@ -65,7 +65,9 @@ La web no importa entidades internas del backend. La API no expone directamente 
 
 ## Configuración
 
-La API acepta `HOST`, `PORT`, `DATABASE_PATH` y una configuración local fija de CORS para la Foundation. `DATABASE_PATH` permite usar un fichero SQLite persistente; los tests usan `:memory:`. No hay secrets reales ni URLs de producción configuradas.
+La API acepta `HOST`, `PORT`, `DATABASE_PATH` y una configuración local fija de CORS para la Foundation. `DATABASE_PATH` permite usar un fichero SQLite persistente; los tests usan `:memory:`.
+
+La ingestión de GitHub usa credenciales server-side únicamente, resueltas como `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN` y pasadas al `GitHubRestClient` por el servidor de producción (`apps/api/src/app.ts`, verificado en Phase 23). Sin token, la API pública de GitHub limita a ~60 requests/hora y los análisis de repositorios no triviales fallarán con un error de rate limit. El token nunca se imprime, persiste ni devuelve al frontend; los tests de wiring usan un stub fetch offline.
 
 
 ## Security baseline

@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, EMPTY, exhaustMap, interval, startWith } from 'rxjs';
 import type { AnalysisJobResponse, AnalysisJobStatus } from '@ai-developer-platform/contracts';
 import { AnalysisService } from '../../../core/api/analysis.service';
+import { failureMessage } from '../analysis-messages';
 
 const terminalStatuses: readonly AnalysisJobStatus[] = [
   'completed',
@@ -86,5 +87,9 @@ export class ProgressPage {
       default:
         return 'Loading analysis status…';
     }
+  }
+
+  protected failureExplanation(errorCode: string | null | undefined): string {
+    return failureMessage(errorCode);
   }
 }

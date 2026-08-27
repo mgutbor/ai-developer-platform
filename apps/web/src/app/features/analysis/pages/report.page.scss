@@ -84,6 +84,24 @@
 .limitations {
   border-left: 0.35rem solid #a16207;
 }
+.coverage-panel {
+  border-left: 0.35rem solid #005c8a;
+}
+.coverage-panel h2 {
+  margin-top: 0;
+}
+.coverage-panel p {
+  margin: 0.5rem 0 0;
+}
+.coverage-complete {
+  border-left-color: #137333;
+}
+.coverage-partial {
+  border-left-color: #a16207;
+}
+.coverage-insufficient {
+  border-left-color: #9b1c1c;
+}
 .ai-panel {
   border-left: 0.35rem solid #6d28d9;
 }

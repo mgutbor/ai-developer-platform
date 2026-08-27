@@ -1,8 +1,8 @@
 # Arquitectura
 
-## Estado tras Phase 5
+## Estado actual del MVP (validado)
 
-La Foundation, el modelo de dominio, la ingestión GitHub, el analyzer, el scorer determinista, la persistencia SQLite y el vertical slice HTTP están implementados. La UI completa del report, el hardening público y la IA siguen planificados.
+El MVP completo está implementado y validado end-to-end (Phase 23): la UI Angular, la API Fastify, el runner in-process, la ingestión GitHub acotada (con traversal segmentado de árboles grandes, Phase 21), el analyzer determinista, el scorer dimensional, la persistencia SQLite, el mapping a contratos y la interpretación AI opcional. El flujo de usuario real fue validado contra repositorios públicos con la credencial GitHub server-side (Phase 23 corrigió el wiring de `GITHUB_TOKEN`/`GH_TOKEN` en el servidor de producción).
 
 ```text
 Angular web
@@ -14,7 +14,7 @@ Fastify API
     +--> application service
     |       |
     |       +--> in-process AnalysisJob runner
-    |       +--> GitHub REST ingestion
+    |       +--> GitHub REST ingestion (bounded, segmented traversal)
     |       +--> deterministic analyzer
     |       +--> deterministic dimension scorer
     |       +--> SQLite persistence
@@ -22,6 +22,8 @@ Fastify API
     |
     +--> report contract mappings
 ```
+
+> **CURRENT MVP vs FUTURE:** todo lo descrito en este documento corresponde al MVP implementado, salvo la sección [Deferred](#deferred), que lista explícitamente lo que NO está implementado y pertenece a fases futuras. No documentar funcionalidad hipotética como implementada.
 
 ## Runtime components
 
@@ -140,11 +142,15 @@ Reglas vigentes:
 
 SQLite guarda metadata del job y un payload de resultado validado. No se guardan blobs completos ni contenidos de repository. `:memory:` se usa en tests; el servidor usa `DATABASE_PATH` o `analysis.db`. La limpieza se expone como operación idempotente, sin scheduler externo.
 
-## Deferred
+## Deferred (FUTURE / V2)
+
+No está implementado en el MVP:
 
 - Public API rate limiting and broader hardening.
-- Automated axe audit and browser E2E hardening.
+- Automated axe audit and browser E2E (Playwright) hardening.
 - Cleanup scheduler.
 - AI chat, RAG, embeddings, agents, streaming and multi-provider orchestration.
 - Global score.
+- Authentication, private repositories and OAuth.
 - Dedicated worker, queue, PostgreSQL, realtime and multi-instance deployment.
+- Dashboard avanzado, billing y analytics.

@@ -28,6 +28,18 @@
   color: #9b1c1c;
   font-weight: 600;
 }
+.error-panel {
+  margin-top: 0.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e3b7b7;
+  border-radius: 0.5rem;
+  background: #fdf4f4;
+}
+.metadata {
+  margin: 0.35rem 0 0;
+  color: #475569;
+  font-size: 0.85rem;
+}
 button,
 .button-link {
   display: inline-block;

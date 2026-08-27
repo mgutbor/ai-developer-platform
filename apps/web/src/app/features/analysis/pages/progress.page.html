@@ -23,7 +23,12 @@
         </p>
       }
       @if (currentJob.status === 'failed') {
-        <p class="error">We could not complete this analysis. Please try again.</p>
+        <div class="error-panel" role="alert">
+          <p class="error">{{ failureExplanation(currentJob.errorCode) }}</p>
+          @if (currentJob.errorCode) {
+            <p class="metadata">Reference: {{ currentJob.errorCode }}</p>
+          }
+        </div>
       }
       @if (currentJob.status === 'cancelled') {
         <p>This analysis was cancelled before a report was available.</p>
