@@ -109,3 +109,14 @@ Before a production-scale deployment, collect real-provider AI evaluation data, 
 ## Post-release validation evidence (Phase 13)
 
 `docs/phase-13-product-validation.md` records a real-world benchmark against `Hello-World`, `type-fest`, `express`, `angular` and `react`. The pipeline works end-to-end, and the benchmark identified three analyzer/ingestion defects to fix before further product claims: `AN-SEC-003` false positives, root-metadata selection starvation, and GitHub canonical-redirect rejection. The `READY WITH LIMITATIONS` classification remains valid; these are quality-calibration issues, not release-process failures.
+
+## Phase 14 — accuracy and ingestion fixes
+
+`docs/phase-14-validation.md` records the before/after benchmark for the same repositories. The fixes shipped in Phase 14:
+
+- `AN-SEC-003` no longer flags GitHub Actions secret expressions and downgrades demo/example/test content to low severity;
+- file selection prioritizes root metadata within the same ingestion limits;
+- safe canonical GitHub redirects are followed, so `facebook/react` is analyzable under its canonical identity;
+- dimensional scores declare partial snapshot coverage explicitly.
+
+Remaining limitations (unchanged): no browser E2E, no full WCAG audit, real AI provider not semantically validated, and no production-scale load evidence.

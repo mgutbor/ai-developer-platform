@@ -141,13 +141,21 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Recomendación para Phase 14:** recalibrar `AN-SEC-003`, priorizar metadata raíz en la selección, manejar redirects canónicos de GitHub y repetir el benchmark. No se justifica infraestructura nueva.
 
-## Phase 14 — Fixes from real-world validation (planned)
+## Phase 14 — Analyzer accuracy and ingestion reliability
 
-**Objective:** corregir los tres defectos de mayor impacto medidos en Phase 13 antes de ampliar el producto.
+**Status:** completada.
 
-**Scope:** recalibración de la regla de secretos, selección priorizada de metadata raíz, manejo de redirects canónicos de GitHub y re-ejecución del benchmark.
+**Objective:** corregir los tres defectos de mayor impacto medidos en Phase 13 y demostrar regresión.
 
-**No scope:** infraestructura distribuida, IA adicional, score global.
+**Implementado:**
+
+- `AN-SEC-003` recalibrada por tiers (`committed` high, `possible` medium, `placeholder` low, `demo` low); las expresiones de GitHub Actions (`${{ secrets.* }}`, `${{ github.token }}`, `${{ env.* }}`, `${{ vars.* }}`) ya no generan findings.
+- Selección de archivos priorizada y determinista (metadata raíz → CI/tooling → fuente → tests → resto) con los mismos límites de ingestion.
+- Redirects canónicos de GitHub seguidos de forma segura (HTTPS + allowlist + límite de hops + revalidación); `facebook/react` ya se puede analizar bajo su identidad canónica `react/react`.
+- Scores dimensionales declaran explícitamente cuando el snapshot es parcial.
+- Regresiones específicas para secretos, selección, redirects, coverage y detección Angular.
+
+**Evidencia:** benchmark antes/después en `docs/phase-14-validation.md`. No se introdujo infraestructura nueva.
 
 ## Phase 15 — Operational scaling (conditional)
 

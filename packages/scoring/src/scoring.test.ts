@@ -33,3 +33,15 @@ test('keeps dimensions nullable when deterministic signals are insufficient', ()
   assert.equal(dependencies.score, null);
   assert.equal(dependencies.coverage, 'insufficient');
 });
+
+test('keeps scores honest when the snapshot coverage is partial', () => {
+  const result = scoreAnalysis(analyze(malformedAndPartialFixture()));
+  const architecture = result.dimensionScores.find((score) => score.dimension === 'architecture');
+
+  assert.ok(architecture);
+  assert.equal(architecture.coverage, 'partial');
+  assert.equal(
+    architecture.limitations.some((limitation) => limitation.includes('partial')),
+    true,
+  );
+});

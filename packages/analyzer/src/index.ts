@@ -15,6 +15,7 @@ export {
   javascriptFixture,
   malformedAndPartialFixture,
   poorTypeScriptFixture,
+  securityCalibrationFixture,
   securityFixture,
 } from './fixtures.js';
 export type {

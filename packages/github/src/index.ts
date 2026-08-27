@@ -9,9 +9,12 @@ export { parseRepositoryReference, validateRef } from './reference.js';
 export {
   DEFAULT_FILE_SELECTION_POLICY,
   DEFAULT_INGESTION_LIMITS,
+  DEFAULT_SELECTION_TIER_CAPS,
   isSelectableFile,
   normalizeSelectedPath,
+  selectionPriority,
 } from './policy.js';
+export type { FileSelectionPriority } from './policy.js';
 export type {
   FileSelectionPolicy,
   GitHubBlobResponse,

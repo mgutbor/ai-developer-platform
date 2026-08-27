@@ -110,7 +110,10 @@ interface Signals {
   readonly deepestSourcePath: ClassifiedFile | undefined;
   readonly maxSourceLines: number;
   readonly securitySignals: readonly ClassifiedFile[];
-  readonly potentialSecretFiles: readonly ClassifiedFile[];
+  readonly potentialSecretFiles: readonly {
+    readonly file: ClassifiedFile;
+    readonly signal: SecretSignal;
+  }[];
   readonly frameworkSignals: readonly string[];
   readonly testFrameworks: readonly string[];
   readonly tooling: readonly string[];
@@ -125,6 +128,7 @@ interface FindingSpec {
   readonly ruleId: string;
   readonly dimension: AnalysisDimension;
   readonly severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  readonly confidence?: 'low' | 'medium' | 'high' | undefined;
   readonly title: string;
   readonly description: string;
   readonly impact: string;
@@ -365,10 +369,52 @@ function hasModule(files: ReadonlySet<string>, path: string): boolean {
   return candidates.some((candidate) => files.has(candidate));
 }
 
-function isSensitiveContent(content: string): boolean {
-  return /(?:gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(?:api[_-]?key|secret|token)\s*[:=]\s*["'][^"']{12,}["'])/i.test(
-    content,
-  );
+type SecretSignalKind = 'committed' | 'possible' | 'placeholder' | 'demo';
+
+interface SecretSignal {
+  readonly confidence: 'high' | 'medium' | 'low';
+  readonly kind: SecretSignalKind;
+  readonly severity: 'high' | 'medium' | 'low';
+}
+
+const HIGH_CONFIDENCE_SECRET_PATTERN =
+  /(?:gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----)/i;
+const GENERIC_SECRET_PATTERN =
+  /(?:api[_-]?key|secret|token|password|access[_-]?key)\s*[:=]\s*["']([^"']{12,})["']/i;
+const PLACEHOLDER_VALUE_PATTERN =
+  /\b(?:changeme|replaceme|your[-_][a-z]+|example|sample|placeholder|xxxxx+|todo|<[^>]+>)\b/i;
+const DEMO_FILE_PATH_PATTERN =
+  /(?:^|\/)(?:examples?|fixtures?|demos?|samples?|test|tests|__tests__|spec)(?:\/|$)|(?:\.(?:test|spec)\.[cm]?(?:ts|tsx|js|jsx))$/i;
+
+/**
+ * GitHub Actions secret expressions (`${{ secrets.X }}`, `${{ github.token }}`,
+ * `${{ env.X }}`, `${{ vars.X }}`) reference platform-managed secrets and are
+ * not committed credentials. They are removed before pattern matching so they
+ * never trigger AN-SEC-003.
+ */
+function stripGitHubExpressions(content: string): string {
+  return content.replace(/\$\{\{[^}]*\}\}/g, '');
+}
+
+function detectSecretSignal(file: ClassifiedFile): SecretSignal | undefined {
+  const content = stripGitHubExpressions(file.content);
+  const committed = HIGH_CONFIDENCE_SECRET_PATTERN.test(content);
+  const genericMatch = GENERIC_SECRET_PATTERN.exec(content);
+  const value = genericMatch?.[1] ?? '';
+  const placeholder = genericMatch !== null && PLACEHOLDER_VALUE_PATTERN.test(value);
+  if (!committed && genericMatch === null) {
+    return undefined;
+  }
+  if (DEMO_FILE_PATH_PATTERN.test(file.path)) {
+    return Object.freeze({ confidence: 'low', kind: 'demo', severity: 'low' });
+  }
+  if (committed) {
+    return Object.freeze({ confidence: 'high', kind: 'committed', severity: 'high' });
+  }
+  if (placeholder) {
+    return Object.freeze({ confidence: 'low', kind: 'placeholder', severity: 'low' });
+  }
+  return Object.freeze({ confidence: 'medium', kind: 'possible', severity: 'medium' });
 }
 
 function countMatches(content: string, pattern: RegExp): number {
@@ -489,7 +535,12 @@ function extractSignals(input: AnalyzerInput, maxImportCount: number): Signals {
   const securitySignals = files.filter(
     (file) => isPotentialSecretPath(file.path) || /^\.env(?:\.|$)/i.test(basename(file.path)),
   );
-  const potentialSecretFiles = files.filter((file) => isSensitiveContent(file.content));
+  const potentialSecretFiles = files
+    .map((file) => ({ file, signal: detectSecretSignal(file) }))
+    .filter(
+      (candidate): candidate is { file: ClassifiedFile; signal: SecretSignal } =>
+        candidate.signal !== undefined,
+    );
   const limitations = [
     ...(input.limitations ?? []),
     ...(validFiles.length !== input.files.length ? ['invalid_input_files_excluded'] : []),
@@ -1248,20 +1299,30 @@ function buildFindingSpecs(
   }
   const testCount = metricByName.get('test_file_count');
   if (testCount?.value === 0) {
+    const testToolingFact = factByKey.get('test_tooling');
+    const hasTestTooling = testToolingFact?.status === 'observed';
     specs.push({
-      description:
-        'No test files matching the supported TypeScript/JavaScript test conventions were detected.',
+      description: hasTestTooling
+        ? `Test files matching the supported conventions were not included in the bounded snapshot, but test tooling (${(testToolingFact!.value as readonly string[]).join(', ')}) was detected.`
+        : 'No test files matching the supported TypeScript/JavaScript test conventions were detected.',
       dimension: 'testing',
-      impact: 'Important behavior may lack visible automated regression coverage.',
+      impact: hasTestTooling
+        ? 'Test files may exist but were not observed in the bounded snapshot.'
+        : 'Important behavior may lack visible automated regression coverage.',
       key: 'missing-tests',
-      priority: 'medium',
-      recommendationDescription:
-        'Add focused automated tests for critical behavior and run them in the project workflow.',
-      recommendationTitle: 'Add automated tests for critical behavior',
+      priority: 'low',
+      recommendationDescription: hasTestTooling
+        ? 'The bounded snapshot did not include test files; this may be a limitation of the ingestion limits.'
+        : 'Add focused automated tests for critical behavior and run them in the project workflow.',
+      recommendationTitle: hasTestTooling
+        ? 'Consider increasing ingestion limits to include test files'
+        : 'Add automated tests for critical behavior',
       ruleId: 'AN-TEST-001',
-      severity: 'medium',
+      severity: hasTestTooling ? 'low' : 'medium',
       sourceId: testCount.id,
-      title: 'Test files were not detected',
+      title: hasTestTooling
+        ? 'Test files were not included in the bounded snapshot'
+        : 'Test files were not detected',
     });
   }
   const testTooling = factByKey.get('test_tooling');
@@ -1302,21 +1363,26 @@ function buildFindingSpecs(
   const manifest = factByKey.get('package_json_present');
   const lockfile = factByKey.get('lockfile_present');
   if (manifest?.status === 'observed' && lockfile?.status === 'not_detected') {
-    specs.push({
-      description: 'A package manifest is present, but no supported lockfile was detected.',
-      dimension: 'dependencies',
-      impact: 'Dependency resolution may vary between environments and is harder to reproduce.',
-      key: 'missing-lockfile',
-      priority: 'medium',
-      recommendationDescription:
-        'Add and commit the lockfile matching the repository package manager.',
-      recommendationTitle: 'Commit a dependency lockfile',
-      ruleId: ANALYZER_RULE_IDS.dependencies,
-      severity: 'medium',
-      sourceId: lockfile.id,
-      sourcePath: signals.packageJson?.path,
-      title: 'Package manifest has no detected lockfile',
-    });
+    const lockfileExcludedBySize = signals.limitations.some((limitation) =>
+      /^file_too_large:.*(?:lock|pnpm-lock|package-lock|yarn\.lock|bun\.lock)/i.test(limitation),
+    );
+    if (!lockfileExcludedBySize) {
+      specs.push({
+        description: 'A package manifest is present, but no supported lockfile was detected.',
+        dimension: 'dependencies',
+        impact: 'Dependency resolution may vary between environments and is harder to reproduce.',
+        key: 'missing-lockfile',
+        priority: 'medium',
+        recommendationDescription:
+          'Add and commit the lockfile matching the repository package manager.',
+        recommendationTitle: 'Commit a dependency lockfile',
+        ruleId: ANALYZER_RULE_IDS.dependencies,
+        severity: 'medium',
+        sourceId: lockfile.id,
+        sourcePath: signals.packageJson?.path,
+        title: 'Package manifest has no detected lockfile',
+      });
+    }
   }
   const strict = factByKey.get('typescript_strict');
   if (signals.typescriptFiles.length > 0 && strict?.status !== 'observed') {
@@ -1423,6 +1489,7 @@ function buildFindingSpecs(
       return Object.freeze(specs);
     }
     specs.push({
+      confidence: 'medium',
       description: `The relative import ${reference.path} from ${reference.sourcePath} could not be matched using the bounded static resolution policy.`,
       dimension: 'architecture',
       impact:
@@ -1481,24 +1548,73 @@ function buildFindingSpecs(
       title: 'A potentially sensitive filename was detected',
     });
   }
-  const potentialSecretFile = signals.potentialSecretFiles[0];
-  if (potentialSecretFile !== undefined) {
-    const file = potentialSecretFile;
-    specs.push({
+  const SECRET_KIND_TEXT: Readonly<
+    Record<
+      SecretSignalKind,
+      {
+        readonly description: string;
+        readonly impact: string;
+        readonly recommendationDescription: string;
+        readonly recommendationTitle: string;
+        readonly title: string;
+      }
+    >
+  > = Object.freeze({
+    committed: {
       description:
-        'A content pattern resembling a credential was detected; the analyzer stores only a hash as evidence.',
-      dimension: 'security',
+        'A high-confidence credential pattern was detected; the analyzer stores only a hash as evidence.',
       impact: 'A committed credential could allow unauthorized access if it is valid.',
-      key: `potential-secret-${stableHash(file.path)}`,
-      priority: 'high',
       recommendationDescription:
         'Verify and rotate the suspected credential, remove it from version control, and use a managed secret mechanism.',
       recommendationTitle: 'Investigate and rotate the suspected credential',
+      title: 'A potential committed secret was detected',
+    },
+    possible: {
+      description:
+        'A content pattern resembling a credential was detected; the analyzer stores only a hash as evidence.',
+      impact: 'A secret-like value may be a committed credential and should be verified.',
+      recommendationDescription:
+        'Verify whether the value is a real credential; if it is, rotate it and remove it from version control.',
+      recommendationTitle: 'Verify whether the detected value is a real credential',
+      title: 'A possible secret-like value was detected',
+    },
+    placeholder: {
+      description:
+        'A secret-like value that looks like a placeholder was detected; the analyzer stores only a hash as evidence.',
+      impact:
+        'Placeholder credentials are low risk but can be copied into real deployments by mistake.',
+      recommendationDescription:
+        'Replace obvious placeholder values with explicit configuration or documentation that explains what is expected.',
+      recommendationTitle: 'Replace placeholder credentials with explicit configuration',
+      title: 'A placeholder secret-like value was detected',
+    },
+    demo: {
+      description:
+        'A secret-like pattern was detected in demo, example, or test content; the analyzer stores only a hash as evidence.',
+      impact: 'Demo credentials are low risk but can be copied into real deployments by mistake.',
+      recommendationDescription:
+        'Replace hard-coded demo credentials with placeholder references or clearly documented example values.',
+      recommendationTitle: 'Replace demo credentials with placeholder references',
+      title: 'Secret-like demo or test content was detected',
+    },
+  });
+  for (const { file, signal } of signals.potentialSecretFiles.slice(0, 5)) {
+    const text = SECRET_KIND_TEXT[signal.kind];
+    specs.push({
+      confidence: signal.confidence,
+      description: text.description,
+      dimension: 'security',
+      impact: text.impact,
+      key: `potential-secret-${stableHash(file.path)}`,
+      priority:
+        signal.severity === 'high' ? 'high' : signal.severity === 'medium' ? 'medium' : 'low',
+      recommendationDescription: text.recommendationDescription,
+      recommendationTitle: text.recommendationTitle,
       ruleId: 'AN-SEC-003',
-      severity: 'high',
+      severity: signal.severity,
       sourceId: factByKey.get('total_file_count')?.id ?? factId('total_file_count'),
       sourcePath: file.path,
-      title: 'A potential committed secret was detected',
+      title: text.title,
     });
   }
   return Object.freeze(specs);
@@ -1553,7 +1669,7 @@ function createFindingBundle(
     });
     const finding = createFinding({
       category: spec.dimension,
-      confidence: 'high',
+      confidence: spec.confidence ?? 'high',
       description: spec.description,
       evidenceIds: [evidenceItem.id],
       id: findingKey,

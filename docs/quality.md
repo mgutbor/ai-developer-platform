@@ -15,6 +15,7 @@ La calidad cubre el vertical slice completo del MVP, desde ingestion hasta la ex
 - API/application: pipeline con fake ingestion, mapping, idempotencia, errores, status lifecycle y timeout.
 - Phase 7: dataset controlado, revisión de findings, validación live contra repositories públicos pequeños y auditoría de dependencias.
 - Phase 13: benchmark real contra repositories públicos (`Hello-World`, `type-fest`, `express`, `angular`, `react`) con el runner reproducible `apps/api/src/validate-real-repos.ts`; revisión de falsos positivos por regla, scoring, cobertura y rendimiento. Resultados en `docs/phase-13-product-validation.md`.
+- Phase 14: regresiones específicas para `AN-SEC-003` (expresiones GitHub Actions, tiers committed/possible/placeholder/demo), selección priorizada de metadata raíz con límites, redirects canónicos/seguros y transparencia de coverage en scoring. Benchmark antes/después en `docs/phase-14-validation.md`.
 
 - Repository: lint, format check, typecheck, tests y build.
 

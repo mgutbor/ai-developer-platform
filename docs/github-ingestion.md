@@ -38,18 +38,48 @@ The snapshot is created through the Phase 2 domain factory. Its identity is deri
 
 ## Transport and security
 
-`GitHubRestClient` uses the platform `fetch` API and only constructs requests against `https://api.github.com`. It sends the GitHub JSON media type and API version, disables redirects, applies request and response-size limits, accepts an optional token without logging it, and classifies failures without exposing response bodies.
+`GitHubRestClient` uses the platform `fetch` API and only constructs requests against `https://api.github.com`. It sends the GitHub JSON media type and API version, applies request and response-size limits, accepts an optional token without logging it, and classifies failures without exposing response bodies.
+
+### Redirect policy
+
+GitHub returns canonical redirects (for example `facebook/react` redirects to `/repositories/{id}` and is canonicalized to `react/react`). The client follows redirects **only** when every hop satisfies all of the following:
+
+- the target is `https:`;
+- the target host is in the explicit allowlist (`api.github.com` by default);
+- the target has no port;
+- the number of followed redirects does not exceed `maxRedirects` (default 3);
+- the redirect carries a valid `location` header.
+
+Redirects to external hosts, plain HTTP, or ports are rejected with `security_rejected`. `fetch` is called with `redirect: 'manual'` so the client, not the runtime, decides whether a redirect is safe. When a canonical redirect is followed, the repository identity returned by GitHub is authoritative (so renamed repositories are analyzed under their canonical `owner/name`); when no redirect occurred, the response must match the requested identity exactly.
 
 The package does not clone repositories, download archives, follow symlinks, fetch submodules, execute repository content, install dependencies, or access the local filesystem. Repository paths remain data and are validated as normalized relative paths.
 
-## Selection policy and initial MVP limits
+## File selection strategy
+
+Selected entries are prioritized deterministically so the bounded file budget is spent on the most informative files first. The limits are never removed; the strategy only decides which files are fetched within them.
+
+| Priority | Files |
+| ---: | --- |
+| 1 | Root repository metadata: `package.json`, lockfiles, `README*`, `tsconfig*`, `angular.json`, `vite.config.*`, `next.config.*` |
+| 2 | CI/tooling metadata: `.github/workflows/*`, root `eslint`/`prettier`/`vitest`/`jest`/`playwright` config, `biome.json` |
+| 3 | Source files (TypeScript/JavaScript) |
+| 4 | Test files |
+| 5 | Documentation, examples, fixtures, and other selectable files |
+
+Within the same priority, files are ordered by path, so selection is stable across runs. This prevents directories such as `.github/`, `.devcontainer/` or `examples/` from consuming the file budget before `package.json`, `README`, `tsconfig.json` and tests are considered.
+
+Per-tier caps prevent a single tier from dominating: at most 8 root-metadata files, 2 CI/tooling files, 8 test files, and 2 documentation/example files are kept; source files (priority 3) are unbounded. The global `maxTreeEntries` cap still bounds the final candidate list. This keeps CI-heavy repositories (for example `angular/angular`, whose tree contains dozens of `.github/workflows`) from starving source files.
+
+Lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lock`) are selectable root metadata so that `lockfile_present` reflects the repository instead of the selection policy. Binary `bun.lockb` remains excluded.
+
+## Initial MVP limits
 
 | Limit | Initial value |
 | --- | ---: |
 | Selected files | 50 |
 | File size | 256 KiB |
 | Total file bytes | 2 MiB |
-| Tree entries considered | 5,000 |
+| Tree entries considered (after priority + tier caps) | 5,000 |
 | API requests per client | 125 |
 | Request timeout | 10 seconds |
 | Ingestion timeout | 60 seconds |

@@ -29,7 +29,7 @@ La plataforma solo debe leer y parsear bytes dentro de límites definidos. No de
 - Solo repositories públicos.
 - GitHub REST como único origen externo.
 - Validar owner/name, branch y commit SHA.
-- Rechazar esquemas distintos de HTTP(S), hosts no permitidos y redirecciones fuera de GitHub.
+- Rechazar esquemas distintos de HTTP(S), hosts no permitidos y redirecciones fuera de GitHub. Los redirects canónicos de GitHub se siguen únicamente cuando el destino es HTTPS, pertenece al allowlist (`api.github.com`), no tiene puerto y respeta el límite de hops; el resto se rechaza como `security_rejected`.
 - Fijar el análisis a un commit.
 - Obtener tree y blobs textuales dentro de límites.
 - Excluir binarios, archivos generados, `node_modules`, secretos y contenidos fuera del alcance.
@@ -39,6 +39,7 @@ La plataforma solo debe leer y parsear bytes dentro de límites definidos. No de
 
 - No persistir tokens ni API keys en SQLite.
 - La ingesta excluye nombres de credentials, private keys, `.env`, `.npmrc` y `.netrc`. El analyzer puede detectar patrones de contenido en archivos recibidos y conserva únicamente hashes en la evidence; no persiste secretos completos.
+- `AN-SEC-003` está calibrado por tiers: las expresiones de GitHub Actions (`${{ secrets.* }}`, `${{ github.token }}`, `${{ env.* }}`, `${{ vars.* }}`) no generan findings; contenido demo/ejemplo/test se degrada a severidad baja; solo patrones de alta confianza alcanzan severidad alta. Nunca se almacena el valor completo.
 - No incluir contenido completo del repository en logs, errores ni analytics.
 - No registrar URLs con credenciales ni stack traces al cliente.
 - La IA recibe únicamente un `AIContext` limitado con metadata, findings y evidence minimizada; no recibe blobs completos ni secretos.

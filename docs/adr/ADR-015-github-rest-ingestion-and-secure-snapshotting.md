@@ -1,6 +1,6 @@
 # ADR-015 — GitHub REST ingestion and secure snapshotting
 
-- **Status:** Accepted for Phase 3
+- **Status:** Accepted for Phase 3; amended in Phase 14
 - **Date:** 2026-08-26
 
 ## Context
@@ -14,7 +14,17 @@ Implement `@ai-developer-platform/github` as a framework-independent GitHub REST
 - Accept only public HTTPS `github.com` repository references.
 - Resolve the requested ref through GitHub REST and anchor the snapshot to the returned full commit SHA.
 - Retrieve metadata, the recursive tree, and selected blobs only through known `api.github.com` endpoints.
-- Disable redirects, apply request/body/ingestion limits, classify rate limits and failures, and avoid response-body logging.
+- Apply request/body/ingestion limits, classify rate limits and failures, and avoid response-body logging.
+
+## Phase 14 amendment (2026-08-27)
+
+Real-world validation (Phase 13) showed that disabling redirects entirely prevented analyzing valid public repositories that GitHub serves under canonical URLs (`facebook/react` redirects to `/repositories/{id}` and is canonicalized to `react/react`).
+
+**Decision:** follow redirects only when every hop is HTTPS, targets a host in an explicit allowlist (`api.github.com` by default), has no port, carries a valid `location` header, and stays within `maxRedirects` (default 3). `fetch` runs with `redirect: 'manual'` so the client decides each hop. After a safe canonical redirect, the repository identity returned by GitHub is authoritative and used for downstream requests; without a redirect, the response must match the requested identity exactly. Redirects to external hosts, HTTP, or ports are rejected as `security_rejected`.
+
+**Decision:** file selection is now prioritized deterministically within the same ingestion limits — root repository metadata (package.json, lockfiles, README, tsconfig, angular.json, vite/next config) first, then CI/tooling config, then source files, then tests, then documentation/examples/other. This prevents `.github/`, `.devcontainer/` or `examples/` from consuming the file budget before `package.json`, `README` and tests are considered.
+
+**Consequences:** renamed public repositories are analyzable under their canonical identity; the SSRF surface remains unchanged (host allowlist, HTTPS, hop limit); bounded snapshots are more informative without increasing limits.
 - Select only bounded TypeScript/JavaScript/JSON source and relevant metadata files. Exclude dependency/generated/binary/credential paths.
 - Validate repository-relative paths, reject symlinks and submodules, decode only valid bounded base64 UTF-8 blobs, and never execute repository content.
 - Return an in-memory `IngestionResult`; do not expose an HTTP endpoint or add persistence in this phase.

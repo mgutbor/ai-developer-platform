@@ -150,6 +150,17 @@ export function securityFixture(): AnalyzerInput {
   );
 }
 
+export function securityCalibrationFixture(
+  files: readonly (readonly [string, string])[],
+  limitations: readonly string[] = [],
+): AnalyzerInput {
+  const repositorySnapshot = snapshot(
+    'security-calibration',
+    '7777777777777777777777777777777777777777',
+  );
+  return input(repositorySnapshot, files, limitations);
+}
+
 export function malformedAndPartialFixture(): AnalyzerInput {
   const repositorySnapshot = snapshot(
     'partial-project',

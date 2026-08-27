@@ -20,6 +20,8 @@ export interface GitHubRestClientOptions {
   readonly fetch?: FetchFunction;
   readonly limits?: Partial<IngestionLimits>;
   readonly maxRateLimitRetries?: number;
+  readonly maxRedirects?: number;
+  readonly allowedRedirectHosts?: readonly string[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -284,6 +286,8 @@ export class GitHubRestClient implements GitHubClient {
   private readonly token: string | undefined;
   private readonly limits: IngestionLimits;
   private readonly maxRateLimitRetries: number;
+  private readonly maxRedirects: number;
+  private readonly allowedRedirectHosts: readonly string[];
   private requestCount = 0;
 
   constructor(options: GitHubRestClientOptions = {}) {
@@ -311,6 +315,27 @@ export class GitHubRestClient implements GitHubClient {
       );
     }
     this.maxRateLimitRetries = maxRateLimitRetries;
+    const maxRedirects = options.maxRedirects ?? 3;
+    if (!Number.isInteger(maxRedirects) || maxRedirects < 0) {
+      throw new GitHubIngestionError(
+        'ingestion_limit_reached',
+        'maxRedirects must be a non-negative integer',
+      );
+    }
+    this.maxRedirects = maxRedirects;
+    const allowedRedirectHosts = options.allowedRedirectHosts ?? [API_HOST];
+    if (
+      allowedRedirectHosts.length === 0 ||
+      allowedRedirectHosts.some((host) => typeof host !== 'string' || host.trim().length === 0)
+    ) {
+      throw new GitHubIngestionError(
+        'ingestion_limit_reached',
+        'allowedRedirectHosts must contain at least one hostname',
+      );
+    }
+    this.allowedRedirectHosts = Object.freeze(
+      [...allowedRedirectHosts].map((host) => host.toLowerCase()),
+    );
   }
 
   get requestsMade(): number {
@@ -322,17 +347,21 @@ export class GitHubRestClient implements GitHubClient {
     repository: string,
     options: { readonly signal?: AbortSignal } = {},
   ): Promise<GitHubRepository> {
-    const payload = await this.request(
+    const { payload, redirected } = await this.request(
       `/repos/${encodePathPart(owner)}/${encodePathPart(repository)}`,
       'repository',
       options.signal,
     );
     const result = validateRepository(payload);
+    // GitHub canonical redirects (for renamed repositories) can change the
+    // owner alias. When a safe canonical redirect was followed, the returned
+    // identity is authoritative; otherwise the response must match the request.
     if (
-      result.owner.toLowerCase() !== owner.toLowerCase() ||
-      result.name.toLowerCase() !== repository.toLowerCase() ||
-      result.htmlUrl.toLowerCase() !==
-        `https://github.com/${owner.toLowerCase()}/${repository.toLowerCase()}`
+      !redirected &&
+      (result.owner.toLowerCase() !== owner.toLowerCase() ||
+        result.name.toLowerCase() !== repository.toLowerCase() ||
+        result.htmlUrl.toLowerCase() !==
+          `https://github.com/${owner.toLowerCase()}/${repository.toLowerCase()}`)
     ) {
       throw new GitHubIngestionError(
         'invalid_response',
@@ -354,7 +383,7 @@ export class GitHubRestClient implements GitHubClient {
     ref: string,
     options: { readonly signal?: AbortSignal } = {},
   ): Promise<string> {
-    const payload = await this.request(
+    const { payload } = await this.request(
       `/repos/${encodePathPart(owner)}/${encodePathPart(repository)}/commits/${encodePathPart(ref)}`,
       'ref',
       options.signal,
@@ -368,7 +397,7 @@ export class GitHubRestClient implements GitHubClient {
     commitSha: string,
     options: { readonly signal?: AbortSignal } = {},
   ): Promise<GitHubTreeResponse> {
-    const payload = await this.request(
+    const { payload } = await this.request(
       `/repos/${encodePathPart(owner)}/${encodePathPart(repository)}/git/trees/${encodePathPart(commitSha)}?recursive=1`,
       'tree',
       options.signal,
@@ -382,7 +411,7 @@ export class GitHubRestClient implements GitHubClient {
     blobSha: string,
     options: { readonly signal?: AbortSignal } = {},
   ): Promise<GitHubBlobResponse> {
-    const payload = await this.request(
+    const { payload } = await this.request(
       `/repos/${encodePathPart(owner)}/${encodePathPart(repository)}/git/blobs/${encodePathPart(blobSha)}`,
       'blob',
       options.signal,
@@ -394,13 +423,19 @@ export class GitHubRestClient implements GitHubClient {
     path: string,
     operation: 'repository' | 'ref' | 'tree' | 'blob',
     externalSignal?: AbortSignal,
-  ): Promise<unknown> {
-    const url = new URL(path, API_ORIGIN);
-    if (url.protocol !== 'https:' || url.hostname !== API_HOST || url.port !== '') {
+  ): Promise<{ readonly payload: unknown; readonly redirected: boolean }> {
+    let currentUrl = new URL(path, API_ORIGIN);
+    if (
+      currentUrl.protocol !== 'https:' ||
+      currentUrl.hostname !== API_HOST ||
+      currentUrl.port !== ''
+    ) {
       throw new GitHubIngestionError('security_rejected', 'GitHub API target is not allowed');
     }
 
     let attempt = 0;
+    let redirectCount = 0;
+    let redirected = false;
     while (true) {
       if (externalSignal?.aborted) {
         throw new GitHubIngestionError('request_timeout', 'GitHub API request timed out');
@@ -418,13 +453,13 @@ export class GitHubRestClient implements GitHubClient {
       const timeoutId = setTimeout(() => controller.abort(), this.limits.requestTimeoutMs);
       let response: Response;
       try {
-        response = await this.fetchFunction(url, {
+        response = await this.fetchFunction(currentUrl, {
           headers: {
             Accept: 'application/vnd.github+json',
             ...(this.token === undefined ? {} : { Authorization: `Bearer ${this.token}` }),
             'X-GitHub-Api-Version': API_VERSION,
           },
-          redirect: 'error',
+          redirect: 'manual',
           signal: controller.signal,
         });
       } catch (error) {
@@ -454,7 +489,50 @@ export class GitHubRestClient implements GitHubClient {
       const payload = parseJson(body);
 
       if (response.ok) {
-        return payload;
+        return { payload, redirected };
+      }
+
+      if (response.status >= 300 && response.status < 400) {
+        if (redirectCount >= this.maxRedirects) {
+          throw new GitHubIngestionError(
+            'security_rejected',
+            'GitHub API redirect limit exceeded',
+            { statusCode: response.status },
+          );
+        }
+        const location = response.headers.get('location');
+        if (location === null || location.length === 0) {
+          throw new GitHubIngestionError(
+            'security_rejected',
+            'GitHub API redirect is missing a location header',
+            { statusCode: response.status },
+          );
+        }
+        let nextUrl: URL;
+        try {
+          nextUrl = new URL(location, currentUrl);
+        } catch {
+          throw new GitHubIngestionError(
+            'security_rejected',
+            'GitHub API redirect target is invalid',
+            { statusCode: response.status },
+          );
+        }
+        if (
+          nextUrl.protocol !== 'https:' ||
+          !this.allowedRedirectHosts.includes(nextUrl.hostname.toLowerCase()) ||
+          nextUrl.port !== ''
+        ) {
+          throw new GitHubIngestionError(
+            'security_rejected',
+            'GitHub API redirect target is not allowed',
+            { statusCode: response.status },
+          );
+        }
+        currentUrl = nextUrl;
+        redirectCount += 1;
+        redirected = true;
+        continue;
       }
 
       const classified = classifyHttpError(response.status, operation, response.headers, payload);

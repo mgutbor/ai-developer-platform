@@ -12,10 +12,105 @@ export const DEFAULT_INGESTION_LIMITS: IngestionLimits = Object.freeze({
   maxJsonResponseBytes: 4 * 1024 * 1024,
 });
 
+export type FileSelectionPriority = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * Maximum number of files kept per priority tier before the global
+ * `maxTreeEntries` cap is applied. The caps guarantee that CI-heavy or
+ * example-heavy repositories cannot consume the whole selection budget,
+ * leaving room for source and test files. Priority 3 (source) is unbounded.
+ */
+export const DEFAULT_SELECTION_TIER_CAPS: Readonly<Record<FileSelectionPriority, number>> =
+  Object.freeze({
+    1: 8,
+    2: 2,
+    3: Number.POSITIVE_INFINITY,
+    4: 8,
+    5: 2,
+  });
+
+function basename(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1);
+}
+
+function isTestFilePath(path: string): boolean {
+  const lower = path.toLowerCase();
+  const name = basename(lower);
+  return (
+    /(?:^|\/)(?:test|tests|__tests__)(?:\/|$)/.test(lower) ||
+    /\.(?:spec|test)\.[cm]?(?:ts|tsx|js|jsx)$/.test(name)
+  );
+}
+
+/**
+ * Deterministic selection priority for bounded snapshots.
+ *
+ * 1 — root repository metadata (package.json, lockfiles, README, tsconfig,
+ *     angular.json, vite/next config)
+ * 2 — CI and tooling metadata (.github/workflows, eslint/prettier/jest/vitest
+ *     config at the root)
+ * 3 — source files
+ * 4 — test files
+ * 5 — documentation, examples, and any other selectable file
+ *
+ * Within the same priority, files are ordered by path so the selection is
+ * stable across runs. The ingestion limits are never removed; this only
+ * decides which bounded set of files is fetched first.
+ */
+export function selectionPriority(path: string): FileSelectionPriority {
+  const segments = path.split('/');
+  const baseName = segments.at(-1) ?? '';
+  const lowerName = baseName.toLowerCase();
+  const atRoot = segments.length === 1;
+
+  if (
+    atRoot &&
+    (lowerName === 'package.json' ||
+      /^(?:pnpm-lock\.yaml|package-lock\.json|yarn\.lock|bun\.lock(?:b)?)$/i.test(lowerName) ||
+      /^readme(?:\.|$)/i.test(lowerName) ||
+      /^tsconfig(?:\.|$)/i.test(lowerName) ||
+      lowerName === 'angular.json' ||
+      /^vite\.config\./i.test(lowerName) ||
+      /^next\.config\./i.test(lowerName))
+  ) {
+    return 1;
+  }
+
+  if (
+    /^\.github\/workflows\/[^/]+\.(?:ya?ml)$/i.test(path) ||
+    (atRoot &&
+      (/^\.eslintrc/i.test(lowerName) ||
+        /^eslint\.config\./i.test(lowerName) ||
+        /^\.prettierrc/i.test(lowerName) ||
+        lowerName === '.prettierignore' ||
+        /^vitest\.config\./i.test(lowerName) ||
+        /^jest\.config\./i.test(lowerName) ||
+        /^playwright\.config\./i.test(lowerName) ||
+        lowerName === 'biome.json'))
+  ) {
+    return 2;
+  }
+
+  if (isTestFilePath(path)) {
+    return 4;
+  }
+  if (/(?:^|\/)(?:examples?|fixtures?|demos?|samples?|docs?|documentation)(?:\/|$)/i.test(path)) {
+    return 5;
+  }
+  if (/\.(?:[cm]?[jt]sx?)$/i.test(baseName)) {
+    return 3;
+  }
+  return 5;
+}
+
 export const DEFAULT_FILE_SELECTION_POLICY: FileSelectionPolicy = Object.freeze({
   allowedExtensions: Object.freeze(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json']),
   metadataFileNames: Object.freeze([
     'package.json',
+    'pnpm-lock.yaml',
+    'package-lock.json',
+    'yarn.lock',
+    'bun.lock',
     'angular.json',
     'README',
     'CHANGELOG',

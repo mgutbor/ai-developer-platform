@@ -85,9 +85,27 @@ The initial rule set is intentionally small and conservative:
 - `AN-CQ-005`: TypeScript ignore directives detected.
 - `AN-ARCH-002`: relative import not matched by bounded static resolution.
 - `AN-ARCH-001`: source path deeper than six segments.
-- `AN-SEC-002` / `AN-SEC-003`: potentially sensitive filename or credential-like content.
+- `AN-SEC-002`: potentially sensitive filename.
+- `AN-SEC-003`: credential-like content, calibrated by severity tier (below).
 
 Every finding has a deterministic rule ID/version, conservative severity, a source reference, evidence, and one reciprocal recommendation. Absence of accessibility or security tooling is exposed as a fact; it is not automatically converted into a vulnerability finding.
+
+## AN-SEC-003 calibration
+
+AN-SEC-003 is calibrated for precision over recall: a false alarm at high severity can destroy trust in the whole report, so the rule is deliberately conservative.
+
+GitHub Actions secret expressions are never flagged. `${{ secrets.X }}`, `${{ github.token }}`, `${{ env.X }}` and `${{ vars.X }}` reference platform-managed secrets and are removed before pattern matching, so `token: '${{ secrets.GITHUB_TOKEN }}'` in a workflow does not produce a finding.
+
+Detected values are classified into explicit tiers:
+
+| Tier | Kind | Severity | Confidence | Example |
+| --- | --- | --- | --- | --- |
+| High-confidence credential | `committed` | high | high | `ghp_…`, `AKIA…`, `-----BEGIN … PRIVATE KEY-----` |
+| Generic secret-like value | `possible` | medium | medium | `apiKey: 'some-plausible-value-…'` |
+| Obvious placeholder | `placeholder` | low | low | `secret: 'your-api-key-here-…'`, `changeme`, `<…>` |
+| Demo/example/test content | `demo` | low | low | any pattern under `examples/`, `fixtures/`, `test/`, `spec/` |
+
+Files under demo, example, fixture, sample, test, `__tests__` or spec paths are downgraded to `low` severity — they are reported as demo/test content, not as committed credentials. This is conservative: it does not exclude test files from security analysis entirely, and the evidence mechanism still stores only a hash, never the secret itself. Up to five AN-SEC-003 findings are emitted (deterministic, ordered by path).
 
 ## Thresholds and limits
 
@@ -111,9 +129,9 @@ For the same snapshot, input files, `analyzerVersion`, `ruleSetVersion` and opti
 
 ## Fixtures and tests
 
-The fixtures in `src/fixtures.ts` are small immutable in-memory data sets covering clean TypeScript, poor TypeScript, JavaScript/React, Angular signals, partial/malformed input and security signals. They are data only and are never executed or sent over the network.
+The fixtures in `src/fixtures.ts` are small immutable in-memory data sets covering clean TypeScript, poor TypeScript, JavaScript/React, Angular signals, partial/malformed input, security signals, and AN-SEC-003 calibration cases (GitHub expressions, committed/possible/placeholder/demo tiers). They are data only and are never executed or sent over the network.
 
-Analyzer tests cover classification, manifests, lockfiles, frameworks, tooling, CI, metrics, findings, recommendations, evidence relationships, malformed input, unsafe input paths, secret redaction, import extraction, limits, determinism and a bounded performance sanity check.
+Analyzer tests cover classification, manifests, lockfiles, frameworks, tooling, CI, metrics, findings, recommendations, evidence relationships, malformed input, unsafe input paths, secret redaction, AN-SEC-003 tier calibration, GitHub Actions expression exclusion, import extraction, limits, determinism and a bounded performance sanity check.
 
 ## Deferred work
 

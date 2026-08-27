@@ -10,6 +10,7 @@ import {
   javascriptFixture,
   malformedAndPartialFixture,
   poorTypeScriptFixture,
+  securityCalibrationFixture,
   securityFixture,
 } from './index.js';
 import type { AnalyzerFile } from './types.js';
@@ -127,6 +128,123 @@ test('represents malformed and partial input explicitly without crashing', () =>
   assert.equal(factByKey(result, 'package_json_present').status, 'not_detected');
   assert.equal(factByKey(result, 'dependency_count').status, 'insufficient_data');
   assert.equal(resultByName(result.metrics, 'test_source_ratio').status, 'observed');
+});
+
+test('ignores GitHub Actions secret expressions as AN-SEC-003 signals', () => {
+  const result = analyze(
+    securityCalibrationFixture([
+      [
+        '.github/workflows/ci.yml',
+        "jobs:\n  build:\n    env:\n      TOKEN: '${{ secrets.GITHUB_TOKEN }}'\n",
+      ],
+      [
+        'src/config.ts',
+        "export const token = '${{ github.token }}';\nexport const key = '${{ env.API_KEY }}';\nexport const vars = '${{ vars.DEPLOY_KEY }}';\n",
+      ],
+    ]),
+  );
+  assert.equal(
+    result.findings.some((finding) => finding.ruleId === 'AN-SEC-003'),
+    false,
+  );
+});
+
+test('classifies secret-like patterns by severity tier and file context', () => {
+  const result = analyze(
+    securityCalibrationFixture([
+      ['src/real.ts', "export const token = 'ghp_123456789012345678901234567890';\n"],
+      ['src/possible.ts', "export const apiKey = 'some-plausible-value-1234567890';\n"],
+      ['src/placeholder.ts', "export const secret = 'your-api-key-here-1234567890';\n"],
+      ['examples/auth/index.js', "const token = 'shhhh, very secret';\n"],
+    ]),
+  );
+  const evidencePathByFindingId = new Map(
+    result.findings
+      .filter((finding) => finding.ruleId === 'AN-SEC-003')
+      .map((finding) => {
+        const evidence = result.evidence.find((item) => finding.evidenceIds.includes(item.id));
+        return [finding.id, evidence?.location?.path];
+      }),
+  );
+  const severityByPath = (path: string): string | undefined => {
+    const finding = result.findings.find(
+      (candidate) =>
+        candidate.ruleId === 'AN-SEC-003' && evidencePathByFindingId.get(candidate.id) === path,
+    );
+    return finding?.severity;
+  };
+  const confidenceByPath = (path: string): string | undefined => {
+    const finding = result.findings.find(
+      (candidate) =>
+        candidate.ruleId === 'AN-SEC-003' && evidencePathByFindingId.get(candidate.id) === path,
+    );
+    return finding?.confidence;
+  };
+  assert.equal(severityByPath('src/real.ts'), 'high');
+  assert.equal(confidenceByPath('src/real.ts'), 'high');
+  assert.equal(severityByPath('src/possible.ts'), 'medium');
+  assert.equal(confidenceByPath('src/possible.ts'), 'medium');
+  assert.equal(severityByPath('src/placeholder.ts'), 'low');
+  assert.equal(confidenceByPath('src/placeholder.ts'), 'low');
+  assert.equal(severityByPath('examples/auth/index.js'), 'low');
+  assert.equal(confidenceByPath('examples/auth/index.js'), 'low');
+  for (const evidence of result.evidence) {
+    assert.ok(!JSON.stringify(evidence).includes('ghp_123456789012345678901234567890'));
+  }
+});
+
+test('downgrades AN-TEST-001 to low when test tooling is detected but test files are excluded from the snapshot', () => {
+  const result = analyze(
+    securityCalibrationFixture([
+      ['package.json', `${JSON.stringify({ devDependencies: { jest: '^29.0.0' } })}\n`],
+      ['src/index.ts', 'export const value = 1;\n'],
+    ]),
+  );
+  const testFinding = result.findings.find((finding) => finding.ruleId === 'AN-TEST-001');
+  assert.ok(testFinding, 'AN-TEST-001 should fire');
+  assert.equal(testFinding.severity, 'low');
+  assert.ok(
+    testFinding.title.includes('bounded snapshot'),
+    `expected bounded snapshot title, got: ${testFinding.title}`,
+  );
+});
+
+test('does not fire AN-DEP-001 when the lockfile exists but exceeds the byte limit', () => {
+  const result = analyze(
+    securityCalibrationFixture(
+      [
+        ['package.json', `${JSON.stringify({ name: 'test' })}\n`],
+        ['pnpm-lock.yaml', 'lockfile: "9.0"\n'.repeat(200)],
+        ['src/index.ts', 'export const value = 1;\n'],
+      ],
+      ['file_too_large:pnpm-lock.yaml'],
+    ),
+  );
+  const lockfileFinding = result.findings.find((finding) => finding.ruleId === 'AN-DEP-001');
+  assert.equal(
+    lockfileFinding,
+    undefined,
+    'AN-DEP-001 should not fire when lockfile is excluded by size',
+  );
+});
+
+test('AN-ARCH-002 reports medium confidence for heuristic resolution', () => {
+  const result = analyze(poorTypeScriptFixture());
+  const archFinding = result.findings.find((finding) => finding.ruleId === 'AN-ARCH-002');
+  if (archFinding) {
+    assert.equal(archFinding.confidence, 'medium');
+  }
+});
+
+test('detects Angular from root metadata even when the snapshot is bounded', () => {
+  const result = analyze(
+    securityCalibrationFixture([
+      ['angular.json', '{}\n'],
+      ['package.json', `${JSON.stringify({ dependencies: { '@angular/core': '^22.0.0' } })}\n`],
+      ['src/main.ts', 'export const value = 1;\n'],
+    ]),
+  );
+  assert.deepEqual(factByKey(result, 'framework_detected').value, ['angular', 'node.js']);
 });
 
 test('does not persist sensitive source content in evidence', () => {

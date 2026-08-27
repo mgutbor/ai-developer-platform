@@ -4,8 +4,11 @@ import { parseRepositoryReference } from './reference.js';
 import {
   DEFAULT_FILE_SELECTION_POLICY,
   DEFAULT_INGESTION_LIMITS,
+  DEFAULT_SELECTION_TIER_CAPS,
   isSelectableFile,
   normalizeSelectedPath,
+  selectionPriority,
+  type FileSelectionPriority,
 } from './policy.js';
 import type {
   FileSelectionPolicy,
@@ -105,15 +108,11 @@ function selectEntries(
   policy: FileSelectionPolicy,
   limitations: string[],
 ): GitHubTreeEntry[] {
-  const boundedEntries = entries.slice(0, limits.maxTreeEntries);
-  if (entries.length > limits.maxTreeEntries) {
-    addLimitation(limitations, 'tree_entry_limit_reached');
-  }
-  const selected: GitHubTreeEntry[] = [];
-  for (const entry of boundedEntries) {
+  const selectable: GitHubTreeEntry[] = [];
+  for (const entry of entries) {
     try {
       if (isSelectableFile(entry, policy)) {
-        selected.push(entry);
+        selectable.push(entry);
       }
     } catch (error) {
       if (error instanceof GitHubIngestionError && error.category === 'security_rejected') {
@@ -123,7 +122,28 @@ function selectEntries(
       throw error;
     }
   }
-  return selected;
+  selectable.sort(
+    (left, right) =>
+      selectionPriority(left.path) - selectionPriority(right.path) ||
+      left.path.localeCompare(right.path),
+  );
+  // Per-tier caps keep CI-heavy or example-heavy repositories from consuming
+  // the whole bounded budget before source and test files are considered.
+  const capped: GitHubTreeEntry[] = [];
+  const tierCounts = new Map<FileSelectionPriority, number>();
+  for (const entry of selectable) {
+    const tier = selectionPriority(entry.path);
+    const used = tierCounts.get(tier) ?? 0;
+    if (used >= DEFAULT_SELECTION_TIER_CAPS[tier]) {
+      continue;
+    }
+    tierCounts.set(tier, used + 1);
+    capped.push(entry);
+  }
+  if (capped.length > limits.maxTreeEntries) {
+    addLimitation(limitations, 'tree_entry_limit_reached');
+  }
+  return capped.slice(0, limits.maxTreeEntries);
 }
 
 async function withIngestionTimeout<T>(
@@ -179,17 +199,17 @@ async function ingestRepositoryInternal(
       'Only public GitHub repositories are supported',
     );
   }
+  // After a safe canonical redirect the returned identity is authoritative
+  // (e.g. facebook/react is canonicalized to react/react).
+  const owner = repository.owner;
+  const name = repository.name;
   const ref = reference.ref ?? repository.defaultBranch;
-  const commitSha = await request(() =>
-    client.resolveRef(reference.owner, reference.repository, ref, { signal }),
-  );
-  const tree = await request(() =>
-    client.getTree(reference.owner, reference.repository, commitSha, { signal }),
-  );
+  const commitSha = await request(() => client.resolveRef(owner, name, ref, { signal }));
+  const tree = await request(() => client.getTree(owner, name, commitSha, { signal }));
   const snapshot = createRepositorySnapshot({
-    owner: reference.owner,
-    name: reference.repository,
-    repositoryUrl: reference.canonicalUrl,
+    owner,
+    name,
+    repositoryUrl: repository.htmlUrl,
     ref,
     commitSha,
   });
@@ -218,9 +238,7 @@ async function ingestRepositoryInternal(
 
     let blob: GitHubBlobResponse;
     try {
-      blob = await request(() =>
-        client.getBlob(reference.owner, reference.repository, entry.sha, { signal }),
-      );
+      blob = await request(() => client.getBlob(owner, name, entry.sha, { signal }));
     } catch (error) {
       if (error instanceof GitHubIngestionError && error.category === 'file_unavailable') {
         addLimitation(limitations, `file_unavailable:${path}`);

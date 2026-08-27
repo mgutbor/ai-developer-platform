@@ -26,6 +26,8 @@ The scorer only uses deterministic findings already backed by evidence. It does 
 
 The scorer produces dimension scores for Architecture, Maintainability, Testing, Documentation, Dependencies, and Code Quality when at least one relevant deterministic signal is observed. Dimensions without sufficient signals have `score: null` and `coverage: insufficient`. A partial analyzer result produces partial dimension coverage.
 
+Coverage is part of the score contract, not decoration: when the snapshot coverage is not `complete`, every scored dimension carries an explicit limitation stating that the score does not represent a complete repository evaluation. A high score on a partial snapshot therefore never implies full-repository quality, and the frontend presents the score together with the coverage limitation.
+
 Accessibility and Security remain represented by analyzer facts/findings but are not forced into a score until their deterministic signal coverage is strong enough.
 
 ## No global score

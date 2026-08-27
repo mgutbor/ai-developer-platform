@@ -159,7 +159,7 @@ describe('GitHubRestClient', () => {
 
     assert.equal(requests.length, 3);
     assert.equal(new URL(requests[0]!.url).hostname, 'api.github.com');
-    assert.equal(requests[0]!.redirect, 'error');
+    assert.equal(requests[0]!.redirect, 'manual');
     assert.equal(requests[0]!.headers.get('accept'), 'application/vnd.github+json');
     assert.equal(requests[0]!.headers.get('x-github-api-version'), '2022-11-28');
     assert.equal(requests[0]!.headers.get('authorization'), 'Bearer secret-token');
@@ -291,6 +291,90 @@ describe('GitHubRestClient', () => {
       GitHubIngestionError,
     );
   });
+
+  it('follows only safe canonical GitHub redirects', async () => {
+    let calls = 0;
+    const client = new GitHubRestClient({
+      fetch: async (input) => {
+        calls += 1;
+        const request = new Request(input);
+        if (calls === 1 && request.url.endsWith('/repos/facebook/react')) {
+          return new Response(null, {
+            status: 301,
+            headers: { location: 'https://api.github.com/repositories/10270250' },
+          });
+        }
+        return jsonResponse({
+          owner: { login: 'facebook' },
+          name: 'react',
+          html_url: 'https://github.com/facebook/react',
+          default_branch: 'main',
+          private: false,
+          size: 100,
+        });
+      },
+    });
+
+    const result = await client.getRepository('facebook', 'react');
+    assert.equal(result.name, 'react');
+    assert.equal(calls, 2);
+    assert.equal(client.requestsMade, 2);
+  });
+
+  it('rejects external-host and non-HTTPS redirect targets', async () => {
+    for (const location of [
+      'https://evil.example/repositories/1',
+      'http://api.github.com/repositories/1',
+      'https://api.github.com:8443/repositories/1',
+    ]) {
+      const client = new GitHubRestClient({
+        fetch: async () => new Response(null, { status: 301, headers: { location } }),
+      });
+      await assert.rejects(
+        () => client.getRepository('facebook', 'react'),
+        (error: unknown) => {
+          assert.equal(
+            error instanceof GitHubIngestionError && error.category,
+            'security_rejected',
+          );
+          return true;
+        },
+      );
+    }
+  });
+
+  it('limits redirect chains and rejects redirects without a location header', async () => {
+    let calls = 0;
+    const chainClient = new GitHubRestClient({
+      maxRedirects: 1,
+      fetch: async () => {
+        calls += 1;
+        return new Response(null, {
+          status: 301,
+          headers: { location: `https://api.github.com/redirect/${calls}` },
+        });
+      },
+    });
+    await assert.rejects(
+      () => chainClient.getRepository('facebook', 'react'),
+      (error: unknown) => {
+        assert.equal(error instanceof GitHubIngestionError && error.category, 'security_rejected');
+        return true;
+      },
+    );
+    assert.equal(calls, 2);
+
+    const missingLocationClient = new GitHubRestClient({
+      fetch: async () => new Response(null, { status: 301 }),
+    });
+    await assert.rejects(
+      () => missingLocationClient.getRepository('facebook', 'react'),
+      (error: unknown) => {
+        assert.equal(error instanceof GitHubIngestionError && error.category, 'security_rejected');
+        return true;
+      },
+    );
+  });
 });
 
 describe('file policy and content decoding', () => {
@@ -397,10 +481,134 @@ describe('bounded repository ingestion', () => {
     assert.equal(result.snapshot.id, `snapshot:octocat/hello-world@${commitSha}`);
     assert.deepEqual(
       result.files.map((file) => file.path),
-      ['src/app.ts', 'README.md'],
+      ['README.md', 'src/app.ts'],
     );
     assert.ok(result.files.every((file) => file.snapshotId === result.snapshot.id));
     assert.equal(result.metadata.treeTruncated, false);
+  });
+
+  it('prioritizes root metadata and source over CI, examples, and docs when the file limit is small', async () => {
+    const client = new FixtureClient();
+    client.tree = {
+      sha: commitSha,
+      truncated: false,
+      entries: [
+        { path: '.github/workflows/ci.yml', mode: '100644', type: 'blob', sha: 'ci', size: 5 },
+        { path: 'examples/demo.ts', mode: '100644', type: 'blob', sha: 'demo', size: 5 },
+        { path: 'package.json', mode: '100644', type: 'blob', sha: 'manifest', size: 5 },
+        { path: 'README.md', mode: '100644', type: 'blob', sha: 'readme', size: 5 },
+        { path: 'tsconfig.json', mode: '100644', type: 'blob', sha: 'tsconfig', size: 5 },
+        { path: 'src/app.ts', mode: '100644', type: 'blob', sha: 'app', size: 5 },
+        { path: 'src/app.test.ts', mode: '100644', type: 'blob', sha: 'apptest', size: 5 },
+        { path: 'docs/architecture.md', mode: '100644', type: 'blob', sha: 'docs', size: 5 },
+        {
+          path: '.devcontainer/devcontainer.json',
+          mode: '100644',
+          type: 'blob',
+          sha: 'devcontainer',
+          size: 5,
+        },
+      ],
+    };
+    const blobContents: readonly (readonly [string, string])[] = [
+      ['ci', 'jobs:\n'],
+      ['demo', 'demo();\n'],
+      ['manifest', '{}\n'],
+      ['readme', '# hi\n'],
+      ['tsconfig', '{}\n'],
+      ['app', 'app();\n'],
+      ['apptest', 'test();\n'],
+      ['docs', '# docs\n'],
+      ['devcontainer', '{}\n'],
+    ];
+    for (const [sha, content] of blobContents) {
+      client.blobs.set(sha, {
+        sha,
+        size: content.length,
+        encoding: 'base64',
+        content: base64(content),
+      });
+    }
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 5 },
+    });
+    const paths = result.files.map((file) => file.path);
+    assert.ok(paths.includes('package.json'));
+    assert.ok(paths.includes('README.md'));
+    assert.ok(paths.includes('tsconfig.json'));
+    assert.ok(paths.includes('.github/workflows/ci.yml'));
+    assert.ok(paths.includes('src/app.ts'));
+    assert.equal(paths.includes('examples/demo.ts'), false);
+    assert.equal(paths.includes('src/app.test.ts'), false);
+    assert.equal(paths.includes('docs/architecture.md'), false);
+    const index = (path: string): number => {
+      const position = paths.indexOf(path);
+      assert.ok(position >= 0, `expected ${path} in ${paths.join(', ')}`);
+      return position;
+    };
+    assert.ok(index('package.json') < index('.github/workflows/ci.yml'));
+    assert.ok(index('.github/workflows/ci.yml') < index('src/app.ts'));
+    assert.ok(result.limitations.includes('file_count_limit_reached'));
+
+    const second = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 5 },
+    });
+    assert.deepEqual(
+      second.files.map((file) => file.path),
+      paths,
+    );
+  });
+
+  it('keeps source files in the selection even when CI workflows dominate the tree', async () => {
+    const client = new FixtureClient();
+    const entries: { path: string; mode: string; type: 'blob'; sha: string; size: number }[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      entries.push({
+        path: `.github/workflows/wf-${index}.yml`,
+        mode: '100644',
+        type: 'blob',
+        sha: `wf${index}`,
+        size: 5,
+      });
+    }
+    entries.push(
+      { path: 'package.json', mode: '100644', type: 'blob', sha: 'pkg', size: 5 },
+      { path: 'angular.json', mode: '100644', type: 'blob', sha: 'ng', size: 5 },
+      { path: 'tsconfig.json', mode: '100644', type: 'blob', sha: 'tsc', size: 5 },
+      { path: 'src/app.component.ts', mode: '100644', type: 'blob', sha: 'app', size: 5 },
+      { path: 'src/main.ts', mode: '100644', type: 'blob', sha: 'main', size: 5 },
+    );
+    client.tree = { sha: commitSha, truncated: false, entries };
+    const contents: (readonly [string, string])[] = [
+      ['pkg', '{}\n'],
+      ['ng', '{}\n'],
+      ['tsc', '{}\n'],
+      ['app', 'component();\n'],
+      ['main', 'main();\n'],
+    ];
+    for (let index = 0; index < 12; index += 1) {
+      contents.push([`wf${index}`, 'jobs:\n']);
+    }
+    for (const [sha, content] of contents) {
+      client.blobs.set(sha, {
+        sha,
+        size: content.length,
+        encoding: 'base64',
+        content: base64(content),
+      });
+    }
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 8 },
+    });
+    const paths = result.files.map((file) => file.path);
+    assert.ok(paths.includes('package.json'));
+    assert.ok(paths.includes('angular.json'));
+    assert.ok(paths.includes('tsconfig.json'));
+    assert.ok(paths.includes('src/app.component.ts'));
+    assert.ok(paths.includes('src/main.ts'));
+    assert.equal(paths.filter((path) => path.startsWith('.github/workflows/')).length, 2);
   });
 
   it('preserves explicit limitations for truncated trees, large files, binary data, and limits', async () => {

@@ -70,12 +70,18 @@ function scoreForFindings(result: AnalysisResult, dimension: AnalysisDimension):
     (total, finding) => total + SEVERITY_PENALTIES[finding.severity],
     0,
   );
-  const limitations =
-    relevant.length === 0
+  const limitations = [
+    ...(result.coverage !== 'complete'
+      ? [
+          'Snapshot coverage is partial; this score does not represent a complete repository evaluation.',
+        ]
+      : []),
+    ...(relevant.length === 0
       ? [
           'Score is based on available deterministic signals; absence of findings is not proof of quality.',
         ]
-      : ['Score reflects only deterministic findings in this result.'];
+      : ['Score reflects only deterministic findings in this result.']),
+  ];
   const score = clamp(10 - penalty);
   const confidence: ConfidenceBand = relevant.some((finding) => finding.confidence === 'low')
     ? 'low'
