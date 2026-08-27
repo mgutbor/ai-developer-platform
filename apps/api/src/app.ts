@@ -20,6 +20,12 @@ export interface BuildAppOptions extends FastifyServerOptions {
   readonly persistence?: PersistenceStore;
   readonly analysisApplication?: AnalysisApplication;
   readonly databasePath?: string;
+  /**
+   * Injectable fetch for tests. When omitted, the global fetch is used and
+   * the GitHub client authenticates with the server-side credential resolved
+   * from GITHUB_TOKEN ?? GH_TOKEN (never logged or persisted).
+   */
+  readonly githubFetch?: typeof fetch;
 }
 
 function isAnalysisRequest(value: unknown): value is AnalysisRequest {
@@ -40,7 +46,11 @@ function applicationFrom(
   if (options.analysisApplication !== undefined) {
     return options.analysisApplication;
   }
-  const client = new GitHubRestClient();
+  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
+  const client = new GitHubRestClient({
+    ...(options.githubFetch === undefined ? {} : { fetch: options.githubFetch }),
+    ...(token === undefined || token.trim().length === 0 ? {} : { token: token.trim() }),
+  });
   return new AnalysisApplication({
     analyze,
     ingest: (repositoryUrl, ref) =>
