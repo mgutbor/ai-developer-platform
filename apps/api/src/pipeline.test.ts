@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 import type { FastifyInstance } from 'fastify';
-import { cleanTypeScriptFixture } from '@ai-developer-platform/analyzer';
+import { cleanTypeScriptFixture, poorTypeScriptFixture } from '@ai-developer-platform/analyzer';
 import type { AnalysisRequest } from '@ai-developer-platform/contracts';
 import { SqlitePersistence } from '@ai-developer-platform/persistence';
 import { analyze } from '@ai-developer-platform/analyzer';
@@ -130,6 +130,56 @@ describe('analysis pipeline API', () => {
     assert.equal(duplicate.statusCode, 200);
     assert.equal(duplicate.json().id, createdBody.id);
   });
+
+  it('exposes evidence-aware verification guidance through the report API', async () => {
+    const fixture = poorTypeScriptFixture();
+    persistence = new SqlitePersistence();
+    const application = new AnalysisApplication({
+      analyze,
+      createId: () => 'verification-id',
+      ingest: async () => ({
+        files: fixture.files,
+        limitations: [],
+        metadata: {
+          repository: { defaultBranch: 'main', sizeKb: 1 },
+          selectedFileCount: fixture.files.length,
+          totalBytes: fixture.files.reduce((total, file) => total + file.size, 0),
+          treeEntriesSeen: fixture.files.length,
+          treeTruncated: false,
+        },
+        snapshot: fixture.snapshot,
+      }),
+      now: () => '2026-08-26T10:00:00.000Z',
+      persistence,
+      score: scoreAnalysis,
+    });
+    app = buildApp({ analysisApplication: application, logger: false, persistence });
+
+    const created = await app.inject({
+      method: 'POST',
+      payload: { repositoryUrl: 'https://github.com/fixture-owner/poor-typescript' },
+      url: '/analyses',
+    });
+    const id = (created.json() as { id: string }).id;
+    await waitForCompletion(app, id);
+    const report = await app.inject({ method: 'GET', url: `/analyses/${id}/report` });
+    assert.equal(report.statusCode, 200);
+    const body = report.json() as {
+      findings: readonly { ruleId: string; evidenceStatus?: string }[];
+      recommendations: readonly { verification?: string }[];
+    };
+    assert.ok(body.findings.length > 0);
+    assert.equal(body.recommendations.length, body.findings.length);
+    for (const recommendation of body.recommendations) {
+      assert.ok(
+        recommendation.verification !== undefined && recommendation.verification.trim().length > 0,
+        'every recommendation exposes verification through the report API',
+      );
+    }
+    // The API surface consumed by the frontend must carry evidence status too.
+    assert.ok(body.findings.every((finding) => finding.evidenceStatus !== undefined));
+  });
+
   it('marks GitHub failures and runner timeouts as failed jobs', async () => {
     persistence = new SqlitePersistence();
     const application = new AnalysisApplication({

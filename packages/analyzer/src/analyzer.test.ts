@@ -299,6 +299,61 @@ test('propagates the inspected scope from ingestion to the result', () => {
   });
 });
 
+test('every finding recommendation exposes deterministic verification guidance', () => {
+  const result = analyze(poorTypeScriptFixture());
+  assert.ok(result.recommendations.length > 0);
+  for (const recommendation of result.recommendations) {
+    assert.ok(
+      recommendation.verification !== undefined && recommendation.verification.trim().length > 0,
+      `recommendation ${recommendation.id} exposes verification guidance`,
+    );
+    const finding = result.findings.find((candidate) =>
+      candidate.recommendationIds.includes(recommendation.id),
+    );
+    assert.ok(finding !== undefined, `recommendation ${recommendation.id} links to a finding`);
+    // The verification must not imply certainty the evidence does not support.
+    assert.ok(
+      !/is absent|does not exist|no tests exist/i.test(recommendation.verification),
+      `recommendation ${recommendation.id} avoids definitive absence claims`,
+    );
+  }
+});
+
+test('verification guidance is evidence-aware across statuses', () => {
+  const result = analyze(poorTypeScriptFixture());
+  const statusByRule = new Map(
+    result.findings.map((finding) => [finding.ruleId, finding.evidenceStatus]),
+  );
+  const verificationByRule = new Map<string, string>();
+  for (const finding of result.findings) {
+    const recommendation = result.recommendations.find((candidate) =>
+      candidate.findingIds.includes(finding.id),
+    );
+    if (recommendation !== undefined && finding.ruleId !== null) {
+      verificationByRule.set(finding.ruleId, recommendation.verification ?? '');
+    }
+  }
+
+  // absence_based: the action stays scoped to the inspected snapshot.
+  assert.equal(statusByRule.get('AN-TEST-001'), 'absence_based');
+  assert.match(verificationByRule.get('AN-TEST-001') ?? '', /re-run the analysis/i);
+  assert.doesNotMatch(
+    verificationByRule.get('AN-TEST-001') ?? '',
+    /no tests exist|your project has no tests/i,
+  );
+
+  // not_inspected: lack of information must not be presented as absence.
+  assert.equal(statusByRule.get('AN-CQ-002'), 'not_inspected');
+  assert.match(verificationByRule.get('AN-CQ-002') ?? '', /unverified|within the snapshot/i);
+
+  // not_verified: must not be presented as confirmed evidence.
+  assert.equal(statusByRule.get('AN-ARCH-002'), 'not_verified');
+  assert.match(
+    verificationByRule.get('AN-ARCH-002') ?? '',
+    /not proof of a defect|could not confirm/i,
+  );
+});
+
 test('is deterministic for identical snapshot and analyzer versions', () => {
   const input = cleanTypeScriptFixture();
   const first = analyze(input);

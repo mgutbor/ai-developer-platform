@@ -10,7 +10,12 @@ import type {
   ApiRecommendation,
 } from '@ai-developer-platform/contracts';
 import { AnalysisService } from '../../../core/api/analysis.service';
-import { coverageMessage, evidenceStatusLabel, limitationMessage } from '../analysis-messages';
+import {
+  coverageMessage,
+  evidenceStatusLabel,
+  limitationMessage,
+  severityExplanation,
+} from '../analysis-messages';
 
 @Component({
   imports: [RouterLink],
@@ -100,6 +105,10 @@ export class ReportPage {
     explanation: string;
   } {
     return evidenceStatusLabel(status);
+  }
+
+  protected severityExplanation(severity: string | null | undefined): string {
+    return severityExplanation(severity);
   }
 
   protected scopeDescription(report: AnalysisResultResponse): string | null {

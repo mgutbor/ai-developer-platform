@@ -51,6 +51,34 @@ export function coverageMessage(coverage: string | null | undefined): string {
   }
 }
 
+/**
+ * Explain what a finding severity means in this product: a deterministic
+ * estimate of impact within the inspected snapshot, not an absolute business
+ * risk rating.
+ */
+export function severityExplanation(severity: string | null | undefined): string {
+  switch (severity) {
+    case 'critical':
+    case 'high':
+      return (
+        'High-priority within the inspected snapshot — address before other findings when the ' +
+        'evidence is verified. Severity is a deterministic estimate, not an absolute business risk.'
+      );
+    case 'medium':
+      return (
+        'Medium-priority within the inspected snapshot — worth addressing, but first check the ' +
+        'evidence status to see how certain the finding is.'
+      );
+    case 'low':
+      return (
+        'Lower-priority within the inspected snapshot — consider addressing after higher-priority ' +
+        'items and check the evidence status before acting.'
+      );
+    default:
+      return 'Severity is a deterministic estimate of impact within the inspected snapshot.';
+  }
+}
+
 /** Map a finding evidence status to a short, honest user-facing label. */
 export function evidenceStatusLabel(status: string | null | undefined): {
   readonly label: string;

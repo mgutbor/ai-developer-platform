@@ -401,6 +401,21 @@ describe('Finding and Recommendation', () => {
       () => createRecommendation({ ...recommendation, findingIds: [] }),
       'recommendation without findings',
     );
+
+    // Verification guidance is optional (backward compatibility) and validated when set.
+    assert.equal(recommendation.verification, undefined);
+    const withVerification = createRecommendation({
+      ...recommendation,
+      verification: 'Re-run the analysis to confirm the test configuration is detected.',
+    });
+    assert.equal(
+      withVerification.verification,
+      'Re-run the analysis to confirm the test configuration is detected.',
+    );
+    assertDomainError(
+      () => createRecommendation({ ...recommendation, verification: '   ' }),
+      'verification',
+    );
   });
 });
 

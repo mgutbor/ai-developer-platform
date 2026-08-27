@@ -141,6 +141,9 @@
                 <strong>{{ finding.severity }}</strong> · {{ finding.category }} ·
                 {{ finding.confidence }} confidence
               </p>
+              <p class="metadata" [attr.aria-label]="severityExplanation(finding.severity)">
+                Severity: deterministic estimate within the inspected snapshot
+              </p>
               <h3>{{ finding.title }}</h3>
               <p>{{ finding.description }}</p>
               <p><strong>Impact:</strong> {{ finding.impact }}</p>
@@ -184,6 +187,11 @@
                   ) {
                     <li>
                       <strong>{{ recommendation.title }}</strong> — {{ recommendation.description }}
+                      @if (recommendation.verification) {
+                        <p class="metadata">
+                          <strong>How to verify:</strong> {{ recommendation.verification }}
+                        </p>
+                      }
                     </li>
                   }
                 </ul>

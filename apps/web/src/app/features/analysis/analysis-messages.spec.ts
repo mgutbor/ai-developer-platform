@@ -4,6 +4,7 @@ import {
   evidenceStatusLabel,
   failureMessage,
   limitationMessage,
+  severityExplanation,
 } from './analysis-messages';
 
 describe('analysis-messages', () => {
@@ -52,6 +53,27 @@ describe('analysis-messages', () => {
 
     it('handles unknown coverage', () => {
       expect(coverageMessage(null)).toContain('not known');
+    });
+  });
+
+  describe('severityExplanation', () => {
+    it('frames high severity as a deterministic in-snapshot estimate, not absolute risk', () => {
+      const explanation = severityExplanation('high');
+      expect(explanation).toContain('deterministic estimate');
+      expect(explanation).toContain('not an absolute business risk');
+    });
+
+    it('tells the developer to check evidence before acting on medium findings', () => {
+      expect(severityExplanation('medium')).toContain('evidence status');
+    });
+
+    it('frames low severity as lower priority within the inspected snapshot', () => {
+      expect(severityExplanation('low')).toContain('inspected snapshot');
+    });
+
+    it('falls back for unknown or missing severity', () => {
+      expect(severityExplanation(null)).toContain('deterministic estimate');
+      expect(severityExplanation('nope')).toContain('deterministic estimate');
     });
   });
 

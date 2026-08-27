@@ -155,6 +155,12 @@ export interface Recommendation {
   readonly priority: RecommendationPriority;
   readonly findingIds: readonly string[];
   readonly source: AnalysisSource;
+  /**
+   * Deterministic, evidence-aware guidance on how the developer can verify that
+   * the recommended action was completed. Optional to preserve compatibility
+   * with previously persisted results; the analyzer always sets it explicitly.
+   */
+  readonly verification?: string;
 }
 
 export interface DimensionScore {

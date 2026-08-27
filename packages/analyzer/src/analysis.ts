@@ -138,6 +138,12 @@ interface FindingSpec {
   readonly line?: number | undefined;
   readonly recommendationTitle: string;
   readonly recommendationDescription: string;
+  /**
+   * Deterministic, evidence-aware guidance on how the developer can verify the
+   * recommended action. Must respect the finding's evidenceStatus: absence-based
+   * and not-inspected findings must not imply a definitive repository claim.
+   */
+  readonly recommendationVerification: string;
   readonly priority: 'low' | 'medium' | 'high';
   /**
    * Semantic nature of the finding's evidence. Defaults to `verified` when a
@@ -1297,6 +1303,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Add a concise README covering purpose, setup, development commands, and limitations.',
       recommendationTitle: 'Add a repository README',
+      recommendationVerification:
+        'Add the README to the repository and re-run the analysis; this finding should no longer appear.',
       ruleId: 'AN-DOC-001',
       severity: 'low',
       sourceId: readme.id,
@@ -1323,6 +1331,9 @@ function buildFindingSpecs(
       recommendationTitle: hasTestTooling
         ? 'Consider increasing ingestion limits to include test files'
         : 'Add automated tests for critical behavior',
+      recommendationVerification: hasTestTooling
+        ? 'Test files may exist outside the bounded snapshot; verify the repository directly or re-run the analysis with a larger snapshot budget.'
+        : 'Add test files and re-run the analysis to confirm they are detected within the inspected snapshot.',
       ruleId: 'AN-TEST-001',
       severity: hasTestTooling ? 'low' : 'medium',
       sourceId: testCount.id,
@@ -1343,6 +1354,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Document and configure a test tool appropriate for the project, without assuming a specific framework.',
       recommendationTitle: 'Document a testing entry point',
+      recommendationVerification:
+        'Configure the test framework and re-run the analysis; the tooling should then be detected within the inspected snapshot.',
       ruleId: 'AN-TEST-002',
       severity: 'low',
       sourceId: testTooling.id,
@@ -1361,6 +1374,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Introduce a deterministic lint configuration and document how it is run in CI.',
       recommendationTitle: 'Add deterministic linting',
+      recommendationVerification:
+        'Add the lint configuration and re-run the analysis; the lint tooling should then be detected.',
       ruleId: ANALYZER_RULE_IDS.tooling,
       severity: 'low',
       sourceId: lintTooling.id,
@@ -1383,6 +1398,8 @@ function buildFindingSpecs(
         recommendationDescription:
           'Add and commit the lockfile matching the repository package manager.',
         recommendationTitle: 'Commit a dependency lockfile',
+        recommendationVerification:
+          'Commit the lockfile and re-run the analysis. If the lockfile exceeds the snapshot size limits it may still not be detected.',
         ruleId: ANALYZER_RULE_IDS.dependencies,
         severity: 'medium',
         sourceId: lockfile.id,
@@ -1404,6 +1421,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Document or enable the TypeScript compiler checks that the project intentionally relies on.',
       recommendationTitle: 'Make TypeScript checks explicit',
+      recommendationVerification:
+        'Add or inspect the TypeScript configuration within the snapshot and re-run the analysis; until then the strictness state remains unverified.',
       ruleId: 'AN-CQ-002',
       severity: 'low',
       sourceId: strict?.id ?? factId('typescript_config_present'),
@@ -1422,6 +1441,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Review whether strict mode can be enabled incrementally and document any deliberate exceptions.',
       recommendationTitle: 'Review disabled TypeScript strictness',
+      recommendationVerification:
+        'Adjust the TypeScript configuration and re-run the analysis; the reported strict-mode state should match the updated configuration.',
       ruleId: 'AN-CQ-003',
       severity: 'low',
       sourceId: strict.id,
@@ -1451,6 +1472,8 @@ function buildFindingSpecs(
         recommendationDescription:
           'Review the module boundaries and split the file only where that improves cohesive ownership.',
         recommendationTitle: 'Review the oversized source module',
+        recommendationVerification:
+          'Review the reported file and, if split, re-run the analysis to confirm it is within the size heuristic.',
         ruleId: 'AN-MAINT-001',
         severity: 'medium',
         sourceId: sourceMetric?.id ?? factId('source_file_count'),
@@ -1470,6 +1493,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Review TODO/FIXME markers and turn actionable items into tracked work or remove stale markers.',
       recommendationTitle: 'Review accumulated TODO and FIXME markers',
+      recommendationVerification:
+        'Remove or track the reported markers and re-run the analysis; the marker count should drop below the threshold.',
       ruleId: 'AN-CQ-004',
       severity: 'low',
       sourceId: todoFact?.id ?? factId('todo_fixme_count'),
@@ -1487,6 +1512,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Review each ignore directive and replace it with a narrower type-safe explanation where possible.',
       recommendationTitle: 'Review TypeScript ignore directives',
+      recommendationVerification:
+        'Replace or justify the reported directives and re-run the analysis; the ignore-directive count should drop to the intended level.',
       ruleId: 'AN-CQ-005',
       severity: 'low',
       sourceId: factByKey.get('typescript_file_count')?.id ?? factId('typescript_file_count'),
@@ -1511,6 +1538,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Verify the import path and the project resolver configuration; this analyzer does not execute module resolution.',
       recommendationTitle: 'Verify the unresolved relative import',
+      recommendationVerification:
+        'Inspect the reported import path in the repository. If the module exists, the analyzer could not confirm it under its bounded static resolution policy; this finding is not proof of a defect.',
       ruleId: IMPORT_RULE_ID,
       severity: 'medium',
       sourceId: factByKey.get('import_count')?.id ?? factId('import_count'),
@@ -1533,6 +1562,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Review the directory boundary only if the depth reflects unclear ownership or repeated traversal.',
       recommendationTitle: 'Review deeply nested source paths',
+      recommendationVerification:
+        'Review the reported path and, if restructured, re-run the analysis to confirm the nesting depth is reduced.',
       ruleId: ANALYZER_RULE_IDS.architecture,
       severity: 'low',
       sourceId: factByKey.get('source_file_count')?.id ?? factId('source_file_count'),
@@ -1553,6 +1584,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Remove sensitive material from version control, rotate any exposed credential, and add an appropriate ignore or secret-management policy.',
       recommendationTitle: 'Review the potentially sensitive file',
+      recommendationVerification:
+        'Remove the file from version control and re-run the analysis; it should no longer be present in the inspected snapshot.',
       ruleId: SECURITY_RULE_ID,
       severity: 'high',
       sourceId: factByKey.get('security_tooling')?.id ?? factId('total_file_count'),
@@ -1568,6 +1601,7 @@ function buildFindingSpecs(
         readonly impact: string;
         readonly recommendationDescription: string;
         readonly recommendationTitle: string;
+        readonly recommendationVerification: string;
         readonly title: string;
       }
     >
@@ -1579,6 +1613,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Verify and rotate the suspected credential, remove it from version control, and use a managed secret mechanism.',
       recommendationTitle: 'Investigate and rotate the suspected credential',
+      recommendationVerification:
+        'After rotating and removing the credential, re-run the analysis; the committed-secret pattern should no longer be detected.',
       title: 'A potential committed secret was detected',
     },
     possible: {
@@ -1588,6 +1624,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Verify whether the value is a real credential; if it is, rotate it and remove it from version control.',
       recommendationTitle: 'Verify whether the detected value is a real credential',
+      recommendationVerification:
+        'Confirm whether the value is a real credential; after removing or rotating it, re-run the analysis to confirm the pattern is no longer detected.',
       title: 'A possible secret-like value was detected',
     },
     placeholder: {
@@ -1598,6 +1636,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Replace obvious placeholder values with explicit configuration or documentation that explains what is expected.',
       recommendationTitle: 'Replace placeholder credentials with explicit configuration',
+      recommendationVerification:
+        'Replace the placeholder and re-run the analysis; the placeholder pattern should no longer be detected.',
       title: 'A placeholder secret-like value was detected',
     },
     demo: {
@@ -1607,6 +1647,8 @@ function buildFindingSpecs(
       recommendationDescription:
         'Replace hard-coded demo credentials with placeholder references or clearly documented example values.',
       recommendationTitle: 'Replace demo credentials with placeholder references',
+      recommendationVerification:
+        'Replace the demo credential and re-run the analysis; the pattern should no longer be detected in the inspected snapshot.',
       title: 'Secret-like demo or test content was detected',
     },
   });
@@ -1622,6 +1664,7 @@ function buildFindingSpecs(
         signal.severity === 'high' ? 'high' : signal.severity === 'medium' ? 'medium' : 'low',
       recommendationDescription: text.recommendationDescription,
       recommendationTitle: text.recommendationTitle,
+      recommendationVerification: text.recommendationVerification,
       ruleId: 'AN-SEC-003',
       severity: signal.severity,
       sourceId: factByKey.get('total_file_count')?.id ?? factId('total_file_count'),
@@ -1678,6 +1721,7 @@ function createFindingBundle(
       priority: spec.priority,
       source: 'deterministic',
       title: spec.recommendationTitle,
+      verification: spec.recommendationVerification,
     });
     const finding = createFinding({
       category: spec.dimension,

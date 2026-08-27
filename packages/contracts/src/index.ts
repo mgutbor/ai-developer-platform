@@ -168,6 +168,8 @@ export interface ApiRecommendation {
   readonly priority: ApiRecommendationPriority;
   readonly findingIds: readonly string[];
   readonly source: ApiAnalysisSource;
+  /** Deterministic guidance on how the developer can verify the recommended action. */
+  readonly verification?: string;
 }
 
 export interface ApiDimensionScore {

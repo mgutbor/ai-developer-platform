@@ -99,6 +99,7 @@ export interface CreateRecommendationInput {
   readonly priority: RecommendationPriority;
   readonly findingIds: readonly string[];
   readonly source: AnalysisSource;
+  readonly verification?: string;
 }
 
 export interface CreateDimensionScoreInput {
@@ -575,8 +576,20 @@ export function createRecommendation(input: CreateRecommendationInput): Recommen
   const priority = enumValue(input.priority, RECOMMENDATION_PRIORITIES, 'recommendation.priority');
   const findingIds = uniqueIds(input.findingIds, 'recommendation.findingIds', false);
   const source = enumValue(input.source, ANALYSIS_SOURCES, 'recommendation.source');
+  const verification =
+    input.verification === undefined
+      ? undefined
+      : requiredText(input.verification, 'recommendation.verification');
 
-  return immutable({ description, findingIds, id, priority, source, title });
+  return immutable({
+    description,
+    findingIds,
+    id,
+    priority,
+    source,
+    title,
+    ...(verification === undefined ? {} : { verification }),
+  });
 }
 
 export function createDimensionScore(input: CreateDimensionScoreInput): DimensionScore {
