@@ -99,3 +99,63 @@ El reporte contiene:
 - **AI as an analysis layer:** la IA aporta interpretación donde exista valor semántico.
 - **Provider agnostic:** ningún proveedor forma parte del dominio.
 - **Actionable over exhaustive:** se prioriza lo que ayuda a decidir qué mejorar primero.
+
+## Evidencia de producto — prueba E2E anónima (MVP v1.0.0)
+
+> Esta sección es **evidencia de producto**, no una feature ni una fase nueva. Documenta una prueba real ejecutada contra la release **v1.0.0** publicada, con el producto sin modificar.
+
+### Prueba ejecutada
+
+- **Repositorio:** https://github.com/octocat/Hello-World
+- **Fecha:** 27 de agosto de 2026 (post-release v1.0.0)
+- **Credenciales:** ninguna — la prueba se ejecutó **sin `GITHUB_TOKEN` ni `GH_TOKEN`**, forzando acceso anónimo a la GitHub API.
+- **Flujo completo validado (funcionó de principio a fin):**
+
+  ```text
+  URL → AnalysisJob → GitHub anonymous API → ingestion → analyzer → scoring → persistence → report
+  ```
+
+- **Duración:** el análisis se completó en **~3 segundos** (sin rate limit, cuota anónima disponible).
+
+### Resultado real del análisis
+
+- Commit analizado: `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d` (el mismo SHA congelado del dataset de Phase 22.1).
+- **Coverage:** `insufficient` · **Confidence:** `low`
+- Snapshot: **1 archivo ingerido de ~4** existentes en el repositorio (limitación de ingestion acotada).
+- **3 findings** (todos absence-based):
+  - `AN-TEST-001` · medium · *Test files were not detected*
+  - `AN-TEST-002` · low · *Test tooling was not detected*
+  - `AN-TOOL-001` · low · *Lint configuration was not detected*
+- **3 recommendations** trazadas a sus findings.
+- **Dimension scores** (sin global score — decisión explícita del MVP):
+
+  | Dimensión | Score | Confianza | Cobertura |
+  |---|---|---|---|
+  | architecture | 10 | high | partial |
+  | maintainability | 10 | high | partial |
+  | testing | 8.5 | high | partial |
+  | documentation | 10 | high | partial |
+  | dependencies | null | low | insufficient |
+  | code_quality | 9.5 | high | partial |
+
+### Interpretación correcta de los findings absence-based
+
+Los findings absence-based (p. ej. "no se detectaron tests") se generan sobre el **snapshot acotado** disponible y **NO son evidencia exhaustiva** de que una característica no exista en el repositorio. En esta prueba solo se ingirió 1 de ~4 archivos, por lo que la ausencia detectada debe interpretarse a la luz de la cobertura (`insufficient`, confidence `low`) y nunca como una afirmación definitiva sobre el repositorio completo.
+
+### Limitación de la GitHub anonymous API
+
+- GitHub limita el acceso anónimo a **~60 requests/hour por IP**.
+- Si la cuota de la IP está agotada, el producto responde de forma **controlada y honesta**:
+  - el job pasa a `failed` con `errorCode: GITHUB_RATE_LIMITED`;
+  - el estado queda persistido en SQLite;
+  - no hay bloqueos, stack traces ni fugas de credenciales;
+  - el report no está disponible (`RESULT_NOT_AVAILABLE`) hasta que el análisis pueda completarse.
+- Un desarrollador con una IP con cuota disponible puede analizar repositorios públicos **sin token**; esta limitación es de GitHub, no un defecto del producto.
+
+### Respuesta a la pregunta de producto
+
+**Sí, con matices.** Un desarrollador puede tomar una URL pública de GitHub, introducirla en ai-developer-platform y obtener un informe útil en segundos **cuando el análisis cabe dentro de la cuota anónima disponible**. El producto comunica honestamente la cobertura del snapshot y las limitaciones del análisis, y trata el acceso anónimo agotado como un estado controlado y comprensible.
+
+> **Matiz de cuota (validado experimentalmente):** con `maxFileCount=50`, la ingestión de un repositorio pequeño-medio como `sindresorhus/type-fest` necesitó más de las 60 requests/hora de la cuota anónima y terminó en `GITHUB_RATE_LIMITED` sin reporte. El modo sin token es fiable para repositorios diminutos/pequeños (p. ej. `Hello-World`: 5 requests; `camelcase`: 13 requests). Para repositorios que requieren más requests, la cuota anónima de GitHub es una **limitación operativa** y el modo autenticado con `GITHUB_TOKEN` (server-side, ~5.000 requests/hora) permite completar la ingestión.
+
+> Para la evidencia consolidada del experimento anónimo (incluida la deduplicación de SQLite observada en el entorno de prueba), ver **`docs/anonymous-github-validation.md`**.
