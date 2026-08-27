@@ -130,6 +130,6 @@ Toda observación, métrica y finding tiene provenance con source, method y snap
 
 `unknown`, `not_detected` e `insufficient_data` son estados distintos. Los valores desconocidos se expresan con `null` y estado explícito. Nunca se representa desconocido como `false` ni insuficiencia como score `0`.
 
-## Phase 5 scoring and persistence
+## Scoring y persistence de la Phase 5
 
-Phase 5 adds a separate pure scorer that calculates nullable deterministic dimension scores from validated findings and observed signals. The global score remains intentionally absent. The API persists the validated result through SQLite without repository blobs; serialization is performed by explicit API mappings.
+La Phase 5 añade un scorer puro separado que calcula scores dimensionales deterministas anulables a partir de findings validados y señales observadas. El global score permanece intencionadamente ausente. La API persiste el resultado validado mediante SQLite sin blobs del repositorio; la serialización se realiza mediante mapeos explícitos de la API.

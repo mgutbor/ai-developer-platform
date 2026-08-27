@@ -1,16 +1,16 @@
-# GitHub ingestion package
+# Paquete de ingestión de GitHub
 
-`@ai-developer-platform/github` provides bounded, secure GitHub REST access for public repository snapshots.
+`@ai-developer-platform/github` proporciona acceso acotado y seguro a la GitHub REST API para snapshots de repositorios públicos.
 
-The package contains:
+El paquete contiene:
 
-- canonical public GitHub URL/ref validation;
-- an injectable `GitHubClient` port;
-- a native `fetch` REST adapter;
-- bounded tree/blob ingestion;
-- safe path and text decoding policies;
-- classified ingestion errors.
+- validación canónica de URL/ref de repositorios públicos de GitHub;
+- un port inyectable `GitHubClient`;
+- un adapter REST nativo basado en `fetch`;
+- ingestión acotada de tree/blob;
+- políticas seguras de decodificación de paths y texto;
+- errores de ingestión clasificados.
 
-It depends only on the Phase 2 domain package. It does not contain analyzer rules, findings, scoring, SQLite, Fastify handlers, Angular code, AI integration, repository execution, cloning, archive extraction, or local filesystem access.
+Depende únicamente del paquete de dominio de la Fase 2. No contiene reglas del analyzer, findings, scoring, SQLite, handlers de Fastify, código Angular, integración con AI, ejecución del repositorio, clonado, extracción de archivos ni acceso al sistema de archivos local.
 
-See [`docs/github-ingestion.md`](../../docs/github-ingestion.md) for the limits and security policy.
+Ver [`docs/github-ingestion.md`](../../docs/github-ingestion.md) para los límites y la política de seguridad.

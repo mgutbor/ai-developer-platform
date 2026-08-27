@@ -1,10 +1,10 @@
-# Phase 20 — Authenticated Benchmark, Snapshot Coverage & Ground-Truth Evaluation
+# Phase 20 — Benchmark autenticado, cobertura del snapshot y evaluación ground-truth
 
-## 1. Executive summary
+## 1. Resumen ejecutivo
 
-Phase 20.2 attempted the complete corrected dataset of 15 public repositories at `maxFileCount` 10, 50, and 100. The runner was authenticated using `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN`, passed the token explicitly to `GitHubRestClient`, and never printed or persisted its value.
+La Phase 20.2 intentó ejecutar el dataset corregido completo de 15 repositorios públicos con `maxFileCount` 10, 50 y 100. El runner usó autenticación mediante `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN`, pasó el token explícitamente a `GitHubRestClient` y nunca imprimió ni persistió su valor.
 
-The full 45-scenario run was started, but exceeded the 600-second execution window before producing a complete artifact. The artifact was overwritten by a targeted diagnostic rerun of the three repositories involved in Phase 20.1, so no complete 45-scenario result is claimed here. The corrected `nestjs/nest` scenarios completed; `microsoft/TypeScript` and `nodejs/node` remained blocked by the documented 4 MiB recursive-tree response limit.
+Se inició la ejecución completa de 45 escenarios, pero superó la ventana de ejecución de 600 segundos antes de producir un artefacto completo. El artefacto fue sobrescrito por una re-ejecución diagnóstica dirigida de los tres repositorios implicados en la Phase 20.1, por lo que aquí no se reivindica ningún resultado completo de 45 escenarios. Los escenarios corregidos de `nestjs/nest` se completaron; `microsoft/TypeScript` y `nodejs/node` siguieron bloqueados por el límite documentado de respuesta de árbol recursivo de 4 MiB.
 
 ```text
 PHASE 20 = NOT COMPLETED
@@ -13,20 +13,20 @@ RECALL = NOT VALIDATED
 DECISION = FOLLOW-UP INGESTION DESIGN
 ```
 
-The evidence shows that two of 15 repositories (13.3%) are systematically excluded before file selection because their valid recursive tree responses exceed 4 MiB. That is significant enough to require a future ingestion-design phase, but this phase does not implement it.
+La evidencia muestra que dos de los 15 repositorios (13,3 %) quedan sistemáticamente excluidos antes de la selección de archivos porque sus respuestas válidas de árbol recursivo superan los 4 MiB. Eso es suficientemente significativo como para requerir una fase futura de diseño de ingestión, pero esta fase no la implementa.
 
-## 2. Authentication status
+## 2. Estado de la autenticación
 
 - `GITHUB_TOKEN_PRESENT=true`;
 - `GH_TOKEN_PRESENT=false`;
-- authenticated GitHub API access succeeded;
-- token resolution was exactly `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN`;
-- token was explicitly passed as `new GitHubRestClient({ token })`;
-- no token value was printed, persisted, committed, or included in artifacts.
+- el acceso autenticado a la GitHub API funcionó;
+- la resolución del token fue exactamente `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN`;
+- el token se pasó explícitamente como `new GitHubRestClient({ token })`;
+- ningún valor de token fue impreso, persistido, commiteado o incluido en artefactos.
 
-## 3. Final dataset
+## 3. Dataset final
 
-The corrected dataset contains 15 repositories:
+El dataset corregido contiene 15 repositorios:
 
 1. `octocat/Hello-World`
 2. `sindresorhus/type-fest`
@@ -44,85 +44,83 @@ The corrected dataset contains 15 repositories:
 14. `remix-run/react-router`
 15. `pnpm/pnpm`
 
-No repository was substituted after the correction. `nestjs/nest` is the verified canonical repository for the former stale `nestjs/nestjs` entry.
+Ningún repositorio fue sustituido después de la corrección. `nestjs/nest` es el repositorio canónico verificado que sustituye a la entrada obsoleta `nestjs/nestjs`.
 
-## 4. Methodology
+## 4. Metodología
 
-Each repository was intended to run at all three limits: 10, 50, and 100 files. The same existing ingestion, analyzer, and scoring pipeline was used. The runner resolved the first successful commit and reused that SHA for subsequent scenarios where possible.
+Cada repositorio debía ejecutarse con los tres límites: 10, 50 y 100 archivos. Se utilizó el mismo pipeline existente de ingestion, analyzer y scoring. El runner resolvió el primer commit exitoso y reutilizó ese SHA para escenarios posteriores cuando fue posible.
 
-The benchmark does not clone repositories or execute repository code. It uses GitHub REST repository, commit, recursive-tree, and blob endpoints, then runs only the local deterministic analyzer and scorer over the downloaded snapshot.
+El benchmark no clona repositorios ni ejecuta código del repositorio. Usa los endpoints REST de GitHub de repositorio, commit, árbol recursivo y blob, y luego ejecuta solo el analyzer y el scorer deterministas locales sobre el snapshot descargado.
 
-The temporary machine-readable artifact path is `/tmp/phase20-benchmark.json`. It is not committed. It contains sanitized errors and finding summaries, not credentials or secret values.
+La ruta del artefacto temporal legible por máquina es `/tmp/phase20-benchmark.json`. No está commiteado. Contiene errores saneados y resúmenes de findings, no credenciales ni valores de secretos.
 
-## 5. Complete-run status
-
-The complete corrected 15 × 3 command was attempted:
+## 5. Estado de la ejecución completa
 
 ```bash
 pnpm --filter @ai-developer-platform/api exec tsx src/validate-real-repos.ts
 ```
 
-It timed out after 600 seconds. The temporary artifact was subsequently overwritten by the targeted rerun of `microsoft/TypeScript`, `nodejs/node`, and `nestjs/nest`; therefore the complete 45-scenario artifact is unavailable and its results are not claimed.
+Agotó el tiempo tras 600 segundos. El artefacto temporal fue posteriormente sobrescrito por la re-ejecución dirigida de `microsoft/TypeScript`, `nodejs/node` y `nestjs/nest`; por tanto, el artefacto completo de 45 escenarios no está disponible y sus resultados no se reivindican.
 
-This is why Phase 20 remains `NOT COMPLETED`, despite all technically runnable targeted scenarios completing.
+Esta es la razón por la que la Phase 20 sigue en `NOT COMPLETED`, a pesar de que todos los escenarios dirigidos técnicamente ejecutables se completaron.
 
-## 6. 15 × 3 result matrix
+## 6. Matriz de resultados 15 × 3
 
-The following matrix distinguishes directly observed targeted rerun results from scenarios not claimable after the full-run timeout. `NOT RECOVERED` is not a fabricated success or failure.
+La siguiente matriz distingue los resultados observados directamente de la re-ejecución dirigida de los escenarios no reivindicables tras el timeout de la ejecución completa. `NOT RECOVERED` no es un éxito ni un fallo fabricado.
 
-| Repository | 10 | 50 | 100 |
+| Repositorio | 10 | 50 | 100 |
 |---|---|---|---|
-| `octocat/Hello-World` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `sindresorhus/type-fest` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `expressjs/express` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `angular/angular` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `facebook/react` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
+| `octocat/Hello-World` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `sindresorhus/type-fest` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `expressjs/express` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `angular/angular` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `facebook/react` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
 | `microsoft/TypeScript` | `INGESTION_LIMITATION` | `INGESTION_LIMITATION` | `INGESTION_LIMITATION` |
 | `nodejs/node` | `INGESTION_LIMITATION` | `INGESTION_LIMITATION` | `INGESTION_LIMITATION` |
-| `vitejs/vite` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `nestjs/nest` | completed, 10 files, 3 findings | completed, 50 files, 3 findings | completed, 100 files, 4 findings |
-| `vuejs/core` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `preactjs/preact` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `juliangarnier/anime` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `lodash/lodash` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `remix-run/react-router` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
-| `pnpm/pnpm` | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here | prior Phase 20 result; not re-counted here |
+| `vitejs/vite` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `nestjs/nest` | completado, 10 archivos, 3 findings | completado, 50 archivos, 3 findings | completado, 100 archivos, 4 findings |
+| `vuejs/core` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `preactjs/preact` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `juliangarnier/anime` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `lodash/lodash` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `remix-run/react-router` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
+| `pnpm/pnpm` | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí | resultado previo de Phase 20; no recontado aquí |
 
-Historical Phase 20 measurements are explicitly not relabeled as new Phase 20.2 measurements. The only fresh targeted rerun results are the three corrected entries above.
+Las mediciones históricas de la Phase 20 no se reetiquetan explícitamente como mediciones nuevas de la Phase 20.2. Los únicos resultados frescos de la re-ejecución dirigida son las tres entradas corregidas anteriores.
 
-## 7. Fresh targeted rerun metrics
+## 7. Métricas frescas de la re-ejecución dirigida
 
-The targeted rerun produced nine scenarios: three successful `nestjs/nest` scenarios and six large-tree failures.
+La re-ejecución dirigida produjo nueve escenarios: tres escenarios exitosos de `nestjs/nest` y seis fallos por árbol grande.
 
-| maxFileCount | Completed | Failed | Files processed | Bytes processed | Findings | Requests | Total latency |
+| maxFileCount | Completados | Fallidos | Archivos procesados | Bytes procesados | Findings | Requests | Latencia total |
 |---:|---:|---:|---:|---:|---:|---:|---:|
 | 10 | 1 | 2 | 10 | 23,924 | 3 | 13 | 4,778.55 ms |
 | 50 | 1 | 2 | 50 | 43,370 | 3 | 53 | 18,873.65 ms |
 | 100 | 1 | 2 | 100 | 59,550 | 4 | 103 | 35,545.74 ms |
 
-The six failures each reported sanitized error `invalid_response`, with three requests consumed per failed scenario. They are classified as `INGESTION_LIMITATION` based on the independently verified 200 JSON responses exceeding the client’s 4 MiB response limit.
+Los seis fallos reportaron cada uno el error saneado `invalid_response`, con tres requests consumidos por escenario fallido. Se clasifican como `INGESTION_LIMITATION` basándose en las respuestas JSON 200 verificadas de forma independiente que superan el límite de respuesta de 4 MiB del cliente.
 
-## 8. maxJsonResponseBytes analysis
+## 8. Análisis de maxJsonResponseBytes
 
-Direct authenticated checks established:
+Comprobaciones autenticadas directas establecieron:
 
-- `microsoft/TypeScript`: recursive tree HTTP 200, JSON, approximately 18,010,247 bytes, 51,434 entries, `truncated=true`;
-- `nodejs/node`: recursive tree HTTP 200, JSON, approximately 17,399,260 bytes, 56,033 entries, `truncated=false`;
-- both repository and commit endpoints resolve successfully;
-- direct blob retrieval succeeds for both repositories;
-- the local client’s configured `maxJsonResponseBytes=4 MiB` rejects the tree before file selection.
+- `microsoft/TypeScript`: árbol recursivo HTTP 200, JSON, aproximadamente 18,010,247 bytes, 51,434 entradas, `truncated=true`;
+- `nodejs/node`: árbol recursivo HTTP 200, JSON, aproximadamente 17,399,260 bytes, 56,033 entradas, `truncated=false`;
+- los endpoints de repositorio y commit se resuelven correctamente;
+- la recuperación directa de blobs funciona para ambos repositorios;
+- el `maxJsonResponseBytes=4 MiB` configurado del cliente local rechaza el árbol antes de la selección de archivos.
 
-Thus, 2 of 15 dataset repositories (13.3%) are affected, and all three snapshot scenarios for each are affected. This is not an analyzer defect and no limit was changed in this phase.
+Por tanto, 2 de los 15 repositorios del dataset (13,3 %) se ven afectados, y los tres escenarios de snapshot de cada uno se ven afectados. Esto no es un defecto del analyzer y no se cambió ningún límite en esta fase.
 
-## 9. Coverage and findings impact
+## 9. Impacto en cobertura y findings
 
-The fresh targeted rerun confirms that increasing `maxFileCount` can add findings for `nestjs/nest` (3 → 3 → 4), but it does not provide a fresh aggregate comparison for all 15 repositories because the complete artifact was not recoverable after timeout.
+La re-ejecución dirigida fresca confirma que aumentar `maxFileCount` puede añadir findings para `nestjs/nest` (3 → 3 → 4), pero no proporciona una comparación agregada fresca para los 15 repositorios porque el artefacto completo no pudo recuperarse tras el timeout.
 
-The earlier Phase 20 artifact showed additional findings and materially higher bytes/latency at 50 and 100, but those historical numbers are not presented as fresh Phase 20.2 measurements here. No conclusion about global finding deltas is claimed from the incomplete rerun.
+El artefacto anterior de la Phase 20 mostraba findings adicionales y bytes/latencia materialmente mayores a 50 y 100, pero esos números históricos no se presentan aquí como mediciones frescas de la Phase 20.2. No se reivindica ninguna conclusión sobre deltas globales de findings a partir de la re-ejecución incompleta.
 
 ## 10. Ground truth
 
-No human ground truth was attempted in this phase. Therefore:
+En esta fase no se intentó ningún ground truth humano. Por tanto:
 
 ```text
 PRECISION = NOT VALIDATED
@@ -131,47 +129,47 @@ FALSE POSITIVES = NOT VALIDATED
 FALSE NEGATIVES = NOT VALIDATED
 ```
 
-No false negatives are asserted from findings absent at a lower file limit. Absence findings remain snapshot-scoped and are not treated as repository-wide absence.
+No se afirman falsos negativos a partir de findings ausentes en un límite de archivos menor. Los findings de ausencia siguen acotados al snapshot y no se tratan como ausencia en todo el repositorio.
 
-## 11. Decision
+## 11. Decisión
 
 ```text
 FOLLOW-UP INGESTION DESIGN
 ```
 
-Evidence supporting this decision:
+Evidencia que respalda esta decisión:
 
-- 2/15 repositories are systematically excluded by the current recursive-tree response cap;
-- the affected repositories are large and relevant to the intended ecosystem diversity;
-- the failure occurs before file selection, so increasing `maxFileCount` cannot recover their signals;
-- the response is valid GitHub JSON, so this is a bounded-ingestion design limitation rather than malformed external data;
-- the limitation affects all three scenarios for each affected repository.
+- 2/15 repositorios quedan sistemáticamente excluidos por el límite actual de respuesta de árbol recursivo;
+- los repositorios afectados son grandes y relevantes para la diversidad de ecosistema prevista;
+- el fallo ocurre antes de la selección de archivos, por lo que aumentar `maxFileCount` no puede recuperar sus señales;
+- la respuesta es JSON válido de GitHub, por lo que se trata de una limitación de diseño de ingestion acotada, no de datos externos malformados;
+- la limitación afecta a los tres escenarios de cada repositorio afectado.
 
-No redesign is implemented here. A future phase should investigate bounded tree acquisition/pagination or an equivalent design while preserving SSRF, request, byte, timeout, and security invariants.
+Aquí no se implementa ningún rediseño. Una fase futura debería investigar la adquisición/paginación acotada de árboles o un diseño equivalente preservando los invariantes de SSRF, requests, bytes, timeout y seguridad.
 
-## 12. Remaining limitations
+## 12. Limitaciones restantes
 
-- the complete 45-scenario fresh artifact was not recovered after the 600-second timeout;
-- no fresh aggregate 15-repository deltas can be claimed in this phase;
-- two repositories remain affected by the 4 MiB tree-response limit;
-- no human review or live AI validation;
-- precision, recall, false-positive, and false-negative metrics unavailable;
-- network-dependent timings are not production SLOs;
-- local Node `25.3.0` is outside the declared Node 24 range;
-- wire bytes are unavailable; recorded bytes are processed file bytes;
-- no production ingestion limits were changed.
+- el artefacto fresco completo de 45 escenarios no se recuperó tras el timeout de 600 segundos;
+- no se pueden reivindicar deltas agregados frescos de los 15 repositorios en esta fase;
+- dos repositorios siguen afectados por el límite de respuesta de árbol de 4 MiB;
+- sin revisión humana ni validación de AI en vivo;
+- métricas de precision, recall, falsos positivos y falsos negativos no disponibles;
+- los tiempos dependientes de la red no son SLO de producción;
+- el Node local `25.3.0` está fuera del rango declarado de Node 24;
+- los bytes de cable no están disponibles; los bytes registrados son bytes de archivos procesados;
+- no se cambiaron límites de ingestion de producción.
 
-## 13. Conclusion
+## 13. Conclusión
 
 ```text
 PHASE 20 = NOT COMPLETED
 ```
 
-Phase 20 cannot be declared complete because the complete corrected 45-scenario execution did not finish and the resulting artifact was not recoverable. The evidence is sufficient to classify the remaining large-repository failures as legitimate `INGESTION_LIMITATION` cases and to justify a dedicated future ingestion-design phase.
+La Phase 20 no puede declararse completada porque la ejecución completa corregida de 45 escenarios no terminó y el artefacto resultante no pudo recuperarse. La evidencia es suficiente para clasificar los fallos restantes de repositorios grandes como casos legítimos de `INGESTION_LIMITATION` y para justificar una fase futura dedicada al diseño de ingestión.
 
-## Quality and repository state
+## Calidad y estado del repositorio
 
-Quality gates for the current working tree:
+Quality gates para el árbol de trabajo actual:
 
 - `pnpm install --frozen-lockfile`: PASS
 - `pnpm check:architecture`: PASS
@@ -183,11 +181,11 @@ Quality gates for the current working tree:
 - `pnpm audit --audit-level=high`: PASS
 - `git diff --check`: PASS
 
-Files:
+Archivos:
 
-- modified: `apps/api/src/validate-real-repos.ts`;
-- modified: `docs/phase-20-authenticated-benchmark.md`;
-- created earlier and preserved: `docs/phase-20.1-benchmark-failure-analysis.md`;
-- temporary artifact: `/tmp/phase20-benchmark.json`, not committed.
+- modificado: `apps/api/src/validate-real-repos.ts`;
+- modificado: `docs/phase-20-authenticated-benchmark.md`;
+- creado antes y preservado: `docs/phase-20.1-benchmark-failure-analysis.md`;
+- artefacto temporal: `/tmp/phase20-benchmark.json`, no commiteado.
 
-No commit, tag, push, or notification was sent. `~/.knowledge.md` was not used for notification because the full run did not complete and no success notification is warranted.
+No se envió ningún commit, tag, push ni notificación. `~/.knowledge.md` no se usó para notificaciones porque la ejecución completa no terminó y no procede ninguna notificación de éxito.

@@ -230,50 +230,50 @@ portfolio que todavía no es un producto especialmente útil**. La ingeniería e
 valor de producto entregado. No es un defecto del trabajo técnico; es una decisión de dirección de
 producto pendiente.
 
-## 14. PRODUCT VERDICT
+## 14. VEREDICTO DE PRODUCTO
 
-### What it is
+### Qué es
 Un servicio que produce un Developer Health Report determinista y reproducible de un repositorio
 público de GitHub (dimension scores, findings, recomendaciones, coverage) a partir de una ingestion
 acotada vía GitHub REST, sin ejecutar el código del repositorio. Es una inspección superficial y
 honesta, anclada a un commit, más que un análisis profundo.
 
-### What it does well
+### Qué hace bien
 1. Inspección reproducible y anclada a commit SHA, sin clonar ni ejecutar el repo.
 2. Honestidad estructural: coverage, confidence, limitations y scores null explícitos.
 3. Estados de error controlados (rate limit, snapshot limit, 404) sin fugas ni hangs.
 4. Arquitectura limpia y testeada (dominio, contratos, paquetes, determinismo).
 5. Validación real documentada (E2E, dataset congelado, fases 22–25).
 
-### What currently limits its value
+### Qué limita actualmente su valor
 1. Findings mayormente absence-based sobre snapshots parciales (riesgo de conclusión errónea).
 2. Evidencia no verificable por el usuario (solo hash; sin excerpt ni lista de archivos inspeccionados).
 3. Coverage insuficiente en repos no diminutos (límites de ingestion/requests/cuota anónima).
 4. Scoring 10−penalidades que con `confidence: high` y `coverage: partial` produce falsa precisión.
 5. Sin priorización real ni comparación entre ejecuciones.
 
-### Biggest product strength
+### Mayor fortaleza de producto
 La honestidad de cobertura/confidence/limitations combinada con reproducibilidad por commit.
 
-### Biggest product weakness
+### Mayor debilidad de producto
 La evidencia no verificable y los findings absence-based sobre snapshots parciales — la brecha entre
 la promesa "evidence-based" y lo que el usuario puede comprobar.
 
-### Biggest risk
+### Mayor riesgo
 Que el producto se posicione como "health/quality assessment" y genere falsas conclusiones (o falsa
 confianza) porque la cobertura parcial y la semántica de ausencia no se comunican en el punto exacto
 de decisión (scores y findings), a pesar de los avisos.
 
-### Current developer value
+### Valor actual para el desarrollador
 **3/10.**
 
-### Portfolio value
+### Valor de portfolio
 **9/10.**
 
-### Would you use it?
+### ¿Lo usarías?
 **No todavía.**
 
-### Recommendation
+### Recomendación
 **ITERATE BEFORE CALLING IT PRODUCT-READY.**
 
 Motivo: v1.0.0 demuestra una ingeniería sólida y honesta, pero el valor de producto observado no

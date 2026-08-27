@@ -1,12 +1,12 @@
-# Phase 20.1 — Benchmark Failure Analysis & Runner Correctness
+# Phase 20.1 — Análisis de fallos del benchmark y corrección del runner
 
-## 1. Executive summary
+## 1. Resumen ejecutivo
 
-Phase 20.1 inspected the exact Phase 20 runner diff and independently reproduced all three failure classes without exposing credentials. The authentication wiring is correct: the runner resolves `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN` and passes the result explicitly to `new GitHubRestClient({ token })`.
+La Phase 20.1 inspeccionó el diff exacto del runner de la Phase 20 y reprodujo de forma independiente las tres clases de fallo sin exponer credenciales. El cableado de autenticación es correcto: el runner resuelve `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN` y pasa el resultado explícitamente a `new GitHubRestClient({ token })`.
 
-Two failures were caused by a legitimate GitHub large-tree response interacting with the existing configured response-size limit. `microsoft/TypeScript` and `nodejs/node` both resolve successfully and return valid JSON trees, but their recursive tree responses are approximately 18 MB and 17 MB, exceeding the client’s 4 MB `maxJsonResponseBytes` limit. The third failure was a stale dataset identifier: GitHub currently exposes `nestjs/nest`, not `nestjs/nestjs`.
+Dos fallos fueron causados por una respuesta legítima de árbol grande de GitHub que interactúa con el límite de tamaño de respuesta existente configurado. `microsoft/TypeScript` y `nodejs/node` se resuelven correctamente y devuelven árboles JSON válidos, pero sus respuestas de árbol recursivo son de aproximadamente 18 MB y 17 MB, superando el límite `maxJsonResponseBytes` de 4 MB del cliente. El tercer fallo fue un identificador obsoleto del dataset: GitHub expone actualmente `nestjs/nest`, no `nestjs/nestjs`.
 
-The minimal correction was limited to the benchmark dataset entry, changing `nestjs/nestjs` to the objectively canonical `nestjs/nest`. No analyzer, scoring, ingestion client, architecture, or AI behavior was modified.
+La corrección mínima se limitó a la entrada del dataset del benchmark, cambiando `nestjs/nestjs` por el canónico objetivo `nestjs/nest`. No se modificó ningún analyzer, scoring, cliente de ingestión, arquitectura ni comportamiento de AI.
 
 ```text
 PHASE 20 = NOT COMPLETED
@@ -15,171 +15,171 @@ PRECISION = NOT VALIDATED
 RECALL = NOT VALIDATED
 ```
 
-## 2. Phase 20 baseline
+## 2. Baseline de la Phase 20
 
-- 15 repositories attempted;
-- 45 scenarios attempted;
-- 36 completed;
-- 9 failed;
-- failures were `invalid_response` for `microsoft/TypeScript` and `nodejs/node`, and `repository_not_found` for `nestjs/nestjs`;
-- authenticated GitHub access succeeded;
-- no token value was logged, persisted, or written to artifacts.
+- 15 repositorios intentados;
+- 45 escenarios intentados;
+- 36 completados;
+- 9 fallidos;
+- los fallos fueron `invalid_response` para `microsoft/TypeScript` y `nodejs/node`, y `repository_not_found` para `nestjs/nestjs`;
+- el acceso autenticado a GitHub funcionó;
+- ningún valor de token fue registrado, persistido ni escrito en artefactos.
 
-## 3. Exact diff analysis
+## 3. Análisis exacto del diff
 
-The Phase 20 diff made these relevant changes to `apps/api/src/validate-real-repos.ts`:
+El diff de la Phase 20 hizo estos cambios relevantes en `apps/api/src/validate-real-repos.ts`:
 
-- replaced the five-entry historical dataset with a 15-entry dataset;
-- added `const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;`;
-- stopped with `BENCHMARK BLOCKED — GITHUB_TOKEN/GH_TOKEN required` when neither variable is present;
-- passed the token explicitly to `new GitHubRestClient({ token })`;
-- added `maxFileCount` scenarios 10, 50, and 100;
-- recorded sanitized status, error category, commit SHA, findings summaries, scores, counts, bytes, requests, and timings;
-- wrote only a temporary JSON artifact under `/tmp`.
+- sustituyó el dataset histórico de cinco entradas por un dataset de 15 entradas;
+- añadió `const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;`;
+- se detuvo con `BENCHMARK BLOCKED — GITHUB_TOKEN/GH_TOKEN required` cuando ninguna variable está presente;
+- pasó el token explícitamente a `new GitHubRestClient({ token })`;
+- añadió los escenarios `maxFileCount` 10, 50 y 100;
+- registró estado saneado, categoría de error, SHA del commit, resúmenes de findings, scores, conteos, bytes, requests y tiempos;
+- escribió solo un artefacto JSON temporal bajo `/tmp`.
 
-The exact authentication expressions are present in the runner:
+Las expresiones de autenticación exactas están presentes en el runner:
 
 ```ts
 const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
 const client = new GitHubRestClient({ token });
 ```
 
-There is no Authorization header logging. The artifact contains no token field and only sanitized finding/error information. The token-handling invariant therefore passed inspection.
+No hay logging del header Authorization. El artefacto no contiene ningún campo de token y solo información saneada de findings/errores. El invariante de manejo del token, por tanto, superó la inspección.
 
-One unrelated implementation detail was found: `resolvedClient` was instantiated but unused. It does not affect authentication or results, and was not changed during this diagnosis to avoid unrelated cleanup.
+Se encontró un detalle de implementación no relacionado: `resolvedClient` se instanció pero no se usó. No afecta a la autenticación ni a los resultados, y no se cambió durante este diagnóstico para evitar limpieza no relacionada.
 
-## 4. Failure matrix
+## 4. Matriz de fallos
 
-| Repository | Scenario | Failing stage | HTTP status | Endpoint | Root cause | Product defect? |
+| Repositorio | Escenario | Etapa con fallo | Estado HTTP | Endpoint | Causa raíz | ¿Defecto de producto? |
 |---|---:|---|---:|---|---|---|
-| `microsoft/TypeScript` | 10 | response validation/ingestion | 200 | recursive Git tree | valid response exceeds configured 4 MiB JSON limit | No demonstrated product defect; legitimate large-tree limitation |
-| `microsoft/TypeScript` | 50 | response validation/ingestion | 200 | recursive Git tree | same | No |
-| `microsoft/TypeScript` | 100 | response validation/ingestion | 200 | recursive Git tree | same | No |
-| `nodejs/node` | 10 | response validation/ingestion | 200 | recursive Git tree | valid response exceeds configured 4 MiB JSON limit | No demonstrated product defect; legitimate large-tree limitation |
-| `nodejs/node` | 50 | response validation/ingestion | 200 | recursive Git tree | same | No |
-| `nodejs/node` | 100 | response validation/ingestion | 200 | recursive Git tree | same | No |
-| `nestjs/nestjs` | 10 | repository resolution | 404 | `/repos/nestjs/nestjs` | stale/non-canonical repository identifier | Dataset defect, not application defect |
-| `nestjs/nestjs` | 50 | repository resolution | 404 | `/repos/nestjs/nestjs` | same | Dataset defect, not application defect |
-| `nestjs/nestjs` | 100 | repository resolution | 404 | `/repos/nestjs/nestjs` | same | Dataset defect, not application defect |
+| `microsoft/TypeScript` | 10 | validación de respuesta/ingestion | 200 | árbol Git recursivo | respuesta válida supera el límite JSON configurado de 4 MiB | No se demostró defecto de producto; limitación legítima de árbol grande |
+| `microsoft/TypeScript` | 50 | validación de respuesta/ingestion | 200 | árbol Git recursivo | igual | No |
+| `microsoft/TypeScript` | 100 | validación de respuesta/ingestion | 200 | árbol Git recursivo | igual | No |
+| `nodejs/node` | 10 | validación de respuesta/ingestion | 200 | árbol Git recursivo | respuesta válida supera el límite JSON configurado de 4 MiB | No se demostró defecto de producto; limitación legítima de árbol grande |
+| `nodejs/node` | 50 | validación de respuesta/ingestion | 200 | árbol Git recursivo | igual | No |
+| `nodejs/node` | 100 | validación de respuesta/ingestion | 200 | árbol Git recursivo | igual | No |
+| `nestjs/nestjs` | 10 | resolución de repositorio | 404 | `/repos/nestjs/nestjs` | identificador de repositorio obsoleto/no canónico | Defecto del dataset, no de la aplicación |
+| `nestjs/nestjs` | 50 | resolución de repositorio | 404 | `/repos/nestjs/nestjs` | igual | Defecto del dataset, no de la aplicación |
+| `nestjs/nestjs` | 100 | resolución de repositorio | 404 | `/repos/nestjs/nestjs` | igual | Defecto del dataset, no de la aplicación |
 
-All statuses, content types, and errors were inspected in sanitized form. No Authorization headers or credential values were printed.
+Todos los estados, tipos de contenido y errores se inspeccionaron en forma saneada. No se imprimieron headers Authorization ni valores de credenciales.
 
-## 5. Per-repository diagnosis
+## 5. Diagnóstico por repositorio
 
 ### `microsoft/TypeScript`
 
-Authenticated checks returned:
+Las comprobaciones autenticadas devolvieron:
 
-- repository endpoint: HTTP 200;
-- content type: `application/json; charset=utf-8`;
+- endpoint de repositorio: HTTP 200;
+- tipo de contenido: `application/json; charset=utf-8`;
 - owner: `microsoft`;
 - name: `TypeScript`;
-- default branch: `main`;
-- current HEAD: `e95d8e57a89f4c174604d76e683d1f14d148373d`;
-- recursive tree endpoint: HTTP 200;
-- response size observed: approximately 18,010,247 bytes;
-- tree entries: 51,434;
-- GitHub marked the tree `truncated: true`;
-- a direct blob request for a valid tree entry returned HTTP 200, JSON, base64 encoding, and valid metadata.
+- rama por defecto: `main`;
+- HEAD actual: `e95d8e57a89f4c174604d76e683d1f14d148373d`;
+- endpoint de árbol recursivo: HTTP 200;
+- tamaño de respuesta observado: aproximadamente 18,010,247 bytes;
+- entradas del árbol: 51,434;
+- GitHub marcó el árbol como `truncated: true`;
+- una solicitud directa de blob para una entrada válida del árbol devolvió HTTP 200, JSON, codificación base64 y metadatos válidos.
 
-The application rejects the tree before file selection because its configured `maxJsonResponseBytes` default is 4 MiB. This is deterministic across 10/50/100 because tree retrieval precedes the file-count scenario.
+La aplicación rechaza el árbol antes de la selección de archivos porque su `maxJsonResponseBytes` configurado por defecto es 4 MiB. Esto es determinista en 10/50/100 porque la recuperación del árbol precede al escenario de conteo de archivos.
 
 ### `nodejs/node`
 
-Authenticated checks returned:
+Las comprobaciones autenticadas devolvieron:
 
-- repository endpoint: HTTP 200;
-- content type: `application/json; charset=utf-8`;
+- endpoint de repositorio: HTTP 200;
+- tipo de contenido: `application/json; charset=utf-8`;
 - owner: `nodejs`;
 - name: `node`;
-- default branch: `main`;
-- current HEAD: `29c517f5d44a7f6497f8908a1897a165cab0d9c7`;
-- recursive tree endpoint: HTTP 200;
-- response size observed: approximately 17,399,260 bytes;
-- tree entries: 56,033;
-- GitHub marked the tree `truncated: false`;
-- a direct blob request for a valid tree entry returned HTTP 200, JSON, base64 encoding, and valid metadata.
+- rama por defecto: `main`;
+- HEAD actual: `29c517f5d44a7f6497f8908a1897a165cab0d9c7`;
+- endpoint de árbol recursivo: HTTP 200;
+- tamaño de respuesta observado: aproximadamente 17,399,260 bytes;
+- entradas del árbol: 56,033;
+- GitHub marcó el árbol como `truncated: false`;
+- una solicitud directa de blob para una entrada válida del árbol devolvió HTTP 200, JSON, codificación base64 y metadatos válidos.
 
-As with TypeScript, the existing 4 MiB response-size guard rejects the tree before selection. The response is not malformed and the failure is deterministic.
+Como con TypeScript, la protección existente de tamaño de respuesta de 4 MiB rechaza el árbol antes de la selección. La respuesta no está malformada y el fallo es determinista.
 
 ### `nestjs/nestjs`
 
-Authenticated checks returned:
+Las comprobaciones autenticadas devolvieron:
 
-- `/repos/nestjs/nestjs`: HTTP 404, JSON, sanitized message `Not Found`;
+- `/repos/nestjs/nestjs`: HTTP 404, JSON, mensaje saneado `Not Found`;
 - `/repos/nestjs/nest`: HTTP 200, JSON;
-- canonical owner/name: `nestjs/nest`;
-- default branch: `master`;
-- canonical URL: `https://github.com/nestjs/nest`.
+- owner/name canónico: `nestjs/nest`;
+- rama por defecto: `master`;
+- URL canónica: `https://github.com/nestjs/nest`.
 
-The dataset reference was objectively stale. It was corrected from `nestjs/nestjs` to `nestjs/nest`; this is a dataset correction, not a production application fix.
+La referencia del dataset estaba objetivamente obsoleta. Se corrigió de `nestjs/nestjs` a `nestjs/nest`; esto es una corrección del dataset, no una corrección de la aplicación de producción.
 
-## 6. Root causes
+## 6. Causas raíz
 
-1. **Large recursive trees:** the existing client intentionally bounds JSON response size at 4 MiB. GitHub returns valid recursive tree JSON larger than that for very large repositories. This is a legitimate bounded-ingestion limitation and not an analyzer/scoring failure.
-2. **Stale repository identifier:** `nestjs/nestjs` is not currently a repository endpoint. `nestjs/nest` is the canonical public repository returned by GitHub.
-3. **No authentication defect:** authenticated requests, repository resolution, current HEAD resolution, and blob retrieval work without exposing the token.
+1. **Árboles recursivos grandes:** el cliente existente limita intencionadamente el tamaño de la respuesta JSON a 4 MiB. GitHub devuelve JSON de árbol recursivo válido mayor que eso para repositorios muy grandes. Esta es una limitación legítima de ingestion acotada y no un fallo del analyzer/scoring.
+2. **Identificador de repositorio obsoleto:** `nestjs/nestjs` no es actualmente un endpoint de repositorio. `nestjs/nest` es el repositorio público canónico devuelto por GitHub.
+3. **Sin defecto de autenticación:** los requests autenticados, la resolución del repositorio, la resolución del HEAD actual y la recuperación de blobs funcionan sin exponer el token.
 
-## 7. Product defect determination
+## 7. Determinación de defecto de producto
 
-No reproducible analyzer, scoring, architecture, security, or benchmark-client defect was demonstrated. The large-tree behavior could motivate a future ingestion design change, but changing response limits or adding pagination would alter production behavior without a Phase 20 requirement to do so and without a focused regression contract.
+No se demostró ningún defecto reproducible de analyzer, scoring, arquitectura, seguridad ni cliente del benchmark. El comportamiento de árbol grande podría motivar un cambio futuro de diseño de ingestión, pero cambiar los límites de respuesta o añadir paginación alteraría el comportamiento de producción sin un requisito de la Phase 20 que lo exija y sin un contrato de regresión enfocado.
 
-The dataset correction was safe and objectively verified, so it was applied only to the benchmark runner.
+La corrección del dataset fue segura y verificada objetivamente, por lo que se aplicó solo al runner del benchmark.
 
-## 8. Fixes applied
+## 8. Correcciones aplicadas
 
-Changed one dataset tuple in `apps/api/src/validate-real-repos.ts`:
+Se cambió una tupla del dataset en `apps/api/src/validate-real-repos.ts`:
 
 ```text
 nestjs/nestjs → nestjs/nest
 ```
 
-No other production behavior was changed. No infrastructure was added.
+No se cambió ningún otro comportamiento de producción. No se añadió infraestructura.
 
-## 9. Regression tests
+## 9. Tests de regresión
 
-No production regression test was added because no production defect was established. The canonical repository correction was validated by direct authenticated API checks and by rerunning the three affected scenarios.
+No se añadió ningún test de regresión de producción porque no se estableció ningún defecto de producción. La corrección del repositorio canónico se validó mediante comprobaciones autenticadas directas de la API y re-ejecutando los tres escenarios afectados.
 
-## 10. Re-run results
+## 10. Resultados de la re-ejecución
 
-The corrected dataset was rerun only for the affected entries:
+El dataset corregido se re-ejecutó solo para las entradas afectadas:
 
-| Repository | 10 | 50 | 100 | Result |
+| Repositorio | 10 | 50 | 100 | Resultado |
 |---|---|---|---|---|
-| `microsoft/TypeScript` | `invalid_response` | `invalid_response` | `invalid_response` | external/configured large-tree limitation remains |
-| `nodejs/node` | `invalid_response` | `invalid_response` | `invalid_response` | external/configured large-tree limitation remains |
-| `nestjs/nest` | completed | completed | completed | 10 files/3 findings; 50 files/3 findings; 100 files/4 findings |
+| `microsoft/TypeScript` | `invalid_response` | `invalid_response` | `invalid_response` | la limitación externa/configurada de árbol grande permanece |
+| `nodejs/node` | `invalid_response` | `invalid_response` | `invalid_response` | la limitación externa/configurada de árbol grande permanece |
+| `nestjs/nest` | completado | completado | completado | 10 archivos/3 findings; 50 archivos/3 findings; 100 archivos/4 findings |
 
-`nestjs/nest` SHAs from the rerun were not copied into this report because this phase’s objective was failure diagnosis and the machine-readable rerun artifact remains temporary; the runner output and `/tmp/phase20-benchmark.json` contain the observed values for this execution.
+Los SHAs de `nestjs/nest` de la re-ejecución no se copiaron en este informe porque el objetivo de esta fase era el diagnóstico de fallos y el artefacto legible por máquina de la re-ejecución sigue siendo temporal; la salida del runner y `/tmp/phase20-benchmark.json` contienen los valores observados para esta ejecución.
 
-## 11. Remaining limitations
+## 11. Limitaciones restantes
 
-- `microsoft/TypeScript` and `nodejs/node` remain unanalysable by the current bounded 4 MiB recursive-tree response policy;
-- GitHub recursive trees can be truncated or very large;
-- 15 × 3 Phase 20 completion has not yet been achieved after correction;
-- ground-truth review remains unavailable;
-- precision, recall, and false-negative rate remain `NOT VALIDATED`;
-- no human evaluation or live AI evaluation was attempted;
-- the benchmark remains network-dependent;
-- no request/response wire-byte accounting is available from the current client;
-- `~/.knowledge.md` was accessible for existence checking, but no ntfy notification was sent because this phase explicitly prohibited sending one and its exact notification instructions were not needed for the diagnosis.
+- `microsoft/TypeScript` y `nodejs/node` siguen sin poder analizarse con la política actual acotada de respuesta de árbol recursivo de 4 MiB;
+- los árboles recursivos de GitHub pueden estar truncados o ser muy grandes;
+- la finalización 15 × 3 de la Phase 20 aún no se ha logrado después de la corrección;
+- la revisión ground-truth sigue sin estar disponible;
+- la precision, el recall y la tasa de falsos negativos siguen en `NOT VALIDATED`;
+- no se intentó ninguna evaluación humana ni evaluación de AI en vivo;
+- el benchmark sigue dependiendo de la red;
+- el cliente actual no dispone de contabilidad de bytes de cable request/response;
+- `~/.knowledge.md` era accesible para comprobar su existencia, pero no se envió ninguna notificación ntfy porque esta fase prohibía explícitamente enviarla y sus instrucciones exactas de notificación no eran necesarias para el diagnóstico.
 
-## 12. Recommendation for Phase 20 completion
+## 12. Recomendación para la finalización de la Phase 20
 
-Do not broaden the benchmark again until the remaining large-tree cases receive an explicit decision. Choose one evidence-based path:
+No vuelvas a ampliar el benchmark hasta que los casos restantes de árbol grande reciban una decisión explícita. Elige una vía basada en evidencia:
 
-- retain the failures as documented external/configured limitations and complete Phase 20 with all statuses classified; or
-- design a separate, security-reviewed large-tree ingestion change with focused tests for bounded pagination/response handling before touching production limits.
+- mantener los fallos como limitaciones externas/configuradas documentadas y completar la Phase 20 con todos los estados clasificados; o
+- diseñar un cambio separado de ingestión de árbol grande revisado en seguridad, con tests enfocados de paginación/manejo de respuesta acotados, antes de tocar los límites de producción.
 
-The exact next action is to decide whether the existing 4 MiB limit is an accepted benchmark limitation. If it is accepted, rerun the complete corrected 15 × 3 benchmark once and update the Phase 20 report with final statuses. If not, create a separate narrowly scoped ingestion issue; do not increase the response limit opportunistically.
+La siguiente acción exacta es decidir si el límite existente de 4 MiB es una limitación aceptada del benchmark. Si se acepta, re-ejecuta el benchmark completo corregido de 15 × 3 una vez y actualiza el informe de la Phase 20 con los estados finales. Si no, crea una issue separada de ingestión con alcance estrecho; no aumentes el límite de respuesta de forma oportunista.
 
-## Final status
+## Estado final
 
-- Files modified: `apps/api/src/validate-real-repos.ts`.
-- Files created: `docs/phase-20.1-benchmark-failure-analysis.md`.
-- Tests: existing tests not yet rerun in this phase at document creation; no regression test added.
-- Quality gates: pending final execution.
-- Git status: changes remain uncommitted; no tag or push.
-- Phase 20 can proceed: only after the large-tree limitation decision.
-- Phase 20 remains blocked: yes, until all 45 scenarios are explicitly classified and the corrected dataset is rerun as required.
-- Exact next action: decide and document acceptance versus narrowly scoped remediation of the 4 MiB recursive-tree response limitation.
+- Archivos modificados: `apps/api/src/validate-real-repos.ts`.
+- Archivos creados: `docs/phase-20.1-benchmark-failure-analysis.md`.
+- Tests: los tests existentes no se re-ejecutaron en esta fase en el momento de creación del documento; no se añadió ningún test de regresión.
+- Quality gates: pendientes de ejecución final.
+- Estado Git: los cambios permanecen sin commitear; sin tag ni push.
+- La Phase 20 puede continuar: solo después de la decisión sobre la limitación de árbol grande.
+- La Phase 20 sigue bloqueada: sí, hasta que los 45 escenarios estén clasificados explícitamente y el dataset corregido se re-ejecute como se requiere.
+- Siguiente acción exacta: decidir y documentar la aceptación frente a la remediación con alcance estrecho de la limitación de respuesta de árbol recursivo de 4 MiB.

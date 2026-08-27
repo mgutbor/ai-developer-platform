@@ -1,6 +1,6 @@
-# Fase 0.1 — Architecture Review & MVP Refinement
+# Fase 0.1 — Architecture Review y refinamiento del MVP
 
-## Executive summary
+## Resumen ejecutivo
 
 La Fase 0 definió principios sólidos de trazabilidad, seguridad y separación entre análisis determinista e IA. Sin embargo, adelantó demasiados límites operativos para un producto aún no validado: tres aplicaciones runtime, worker separado, persistencia abstracta, scoring híbrido desde el inicio y ocho dimensiones completas.
 
@@ -24,7 +24,7 @@ report
 
 La IA queda fuera del primer vertical slice. Se conserva un puerto pequeño para introducirla después, pero no se implementan providers, prompts ni orchestration en el MVP inicial.
 
-## Architecture scorecard
+## Scorecard de arquitectura
 
 La valoración corresponde a la arquitectura de la Fase 0 antes de esta revisión.
 
@@ -65,7 +65,7 @@ La valoración corresponde a la arquitectura de la Fase 0 antes de esta revisió
 - Se reducen las dimensiones operativas iniciales a las que tienen evidencia fiable sin ejecutar el repository.
 - Dashboard, polling sofisticado, realtime y operaciones distribuidas se posponen.
 
-## Critical findings
+## Hallazgos críticos
 
 ### Importante — El MVP intentaba validar demasiadas hipótesis a la vez
 
@@ -97,11 +97,11 @@ La valoración corresponde a la arquitectura de la Fase 0 antes de esta revisió
 
 ## React vs Angular
 
-### Recommendation
+### Recomendación
 
 Elegir **Angular + TypeScript** para `apps/web`.
 
-### Comparison
+### Comparación
 
 | Criterio | React + TypeScript | Angular + TypeScript | Evaluación para este producto |
 | --- | --- | --- | --- |
@@ -118,7 +118,7 @@ Elegir **Angular + TypeScript** para `apps/web`.
 | Design system | Gran oferta de componentes, con riesgo de mezclar paradigmas | Buen encaje con una librería interna consistente | Ligera ventaja para Angular por convención |
 | Evolución | Muy flexible, requiere gobernanza continua | Evolución guiada y explícita, con más ceremony | Angular es preferible para este workflow |
 
-### Reasons
+### Razones
 
 - El producto es una aplicación operativa con formularios, routing, estados de progreso, tablas, filtros y vistas de detalle; Angular ofrece una estructura integrada adecuada para ese workflow.
 - Angular encaja mejor con el objetivo de demostrar arquitectura frontend, boundaries por feature, dependency injection, testing y design system dentro de una aplicación coherente.
@@ -127,17 +127,17 @@ Elegir **Angular + TypeScript** para `apps/web`.
 - La accesibilidad depende de la implementación, no del framework; Angular permite estructurar componentes, forms y estados accesibles sin una desventaja relevante.
 - La integración con la API es equivalente en ambos casos mediante HTTP y contracts compartidos.
 
-### Trade-offs
+### Compromisos (trade-offs)
 
 React tiene un ecosystem más amplio y puede ser más ligero para una única pantalla. Angular introduce más estructura y una curva inicial mayor. Esa ceremony es aceptable aquí porque el objetivo no es solo renderizar un formulario, sino demostrar una aplicación mantenible y accesible.
 
-### When React would be better
+### Cuándo React sería mejor
 
 React sería preferible si el portfolio necesitara deliberadamente demostrar React, si el equipo tuviera mucha más experiencia con React, si se requiriera integrar un ecosystem concreto de componentes React o si el producto evolucionara hacia una superficie de UI muy pequeña y altamente embebible.
 
 La decisión no se basa en cuota de mercado. Está registrada en [ADR-008](adr/ADR-008-angular-frontend.md).
 
-## MVP feature classification
+## Clasificación de features del MVP
 
 | Feature | Classification | Decision |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ La decisión no se basa en cuota de mercado. Está registrada en [ADR-008](adr/A
 | PostgreSQL and multi-instance deployment | NOT NOW | SQLite cubre el primer runtime. |
 | Realtime, dashboard complejo y GitHub write access | NOT NOW | No ayudan a validar el valor central. |
 
-## Vertical slice and AI decision
+## Vertical slice y decisión de IA
 
 El mínimo flujo completo es:
 
@@ -190,7 +190,7 @@ Angular report
 
 La IA no debe formar parte del primer slice. El producto ya puede responder "qué se detectó, dónde y con qué evidencia" sin coste de provider ni riesgo de confundir una inferencia con un hecho. La IA tendrá sentido después para interpretar relaciones semánticas o priorizar acciones sobre evidence existente.
 
-## Job alternatives
+## Alternativas de job
 
 | Option | Assessment |
 | --- | --- |
@@ -198,19 +198,19 @@ La IA no debe formar parte del primer slice. El producto ya puede responder "qu�
 | Worker independiente | Escalable y aislable, pero exige despliegue, coordinación, retries, observabilidad y operación desde el primer commit. Prematuro. |
 | Job abstraction con runner en el mismo proceso | Recomendado: conserva lifecycle, persistencia e idempotencia, con menor complejidad. Debe limitar concurrencia y tener una interfaz extraíble. |
 
-## Persistence decision
+## Decisión de persistence
 
 SQLite es la opción adecuada para el MVP porque necesitamos persistir jobs y resultados, pero no multiinstancia ni alto volumen. In-memory no sobrevive a reinicios y filesystem JSON ofrece peores garantías de integridad y consulta. PostgreSQL queda condicionado a señales de concurrencia, disponibilidad o escalado horizontal.
 
-## GitHub transport decision
+## Decisión de transporte GitHub
 
 GitHub REST es suficiente para resolver metadata, branch, commit, tree y blobs seleccionados. GraphQL no aporta una ventaja necesaria todavía. `git clone` aumenta superficie de filesystem, hooks, submodules y LFS. Archives reducen requests, pero obligan a gestionar descompresión y archive bombs. La decisión está registrada en [ADR-010](adr/ADR-010-github-rest-snapshot.md).
 
-## Refined roadmap reference
+## Referencia del roadmap refinado
 
 La ejecución queda definida en [roadmap.md](roadmap.md): Foundation, contracts, GitHub REST ingestion, analyzer TypeScript/JavaScript, SQLite/job lifecycle, Angular report, hardening, AI condicional y scaling condicional. La IA y la extracción operativa no bloquean la validación del primer producto.
 
-## Complexity audit
+## Auditoría de complejidad
 
 | Tecnología o componente | Use now? | Reason |
 | --- | --- | --- |
@@ -229,7 +229,7 @@ La ejecución queda definida en [roadmap.md](roadmap.md): Foundation, contracts,
 | PostgreSQL | No en MVP | Es una buena opción de producción futura, pero SQLite cubre el primer despliegue y tests con menor coste. |
 | Dedicated worker | No en MVP | Se conserva como evolución posterior al medir jobs reales. |
 
-## Portfolio value
+## Valor de portfolio
 
 Aportan valor real:
 
@@ -251,25 +251,25 @@ Es engineering theatre para el MVP:
 - dashboard complejo o realtime antes de observar usuarios;
 - score global con una cifra aparentemente precisa pero sin calibración.
 
-## Privacy review
+## Revisión de privacidad
 
 La retención de 24 horas es razonable para el MVP si se eliminan también los datos temporales de ingesta y se ofrece una operación de cleanup verificable. La persistencia debe limitarse a request normalizada, SHA, facts, metrics, findings, evidence references y recommendations. No debe guardarse el repository completo, prompts ni responses.
 
 La IA no recibe datos durante el primer vertical slice. Antes de habilitarla se debe documentar provider, transferencia, entrenamiento, consentimiento y redacción. Los logs deben contener solo IDs opacos, estados, duraciones y clases de error.
 
-## Testing review
+## Revisión de testing
 
 Los riesgos que merecen prioridad son la reproducibilidad del snapshot, los límites de ingesta, la validez de evidence, las reglas del analyzer, el scoring y el lifecycle de jobs. El conjunto MUST está documentado en [quality.md](quality.md): unit tests de dominio/analyzer/scoring, integration tests de GitHub y SQLite, contract tests de API y tests del flujo frontend con accessibility.
 
 La validación de IA, los provider contracts y los load tests pertenecen a fases posteriores. No se debe inflar la cobertura con tests de integración contra proveedores reales ni repositories externos inestables.
 
-## Frontend review
+## Revisión del frontend
 
 El frontend mínimo necesita tres vistas de workflow: entrada de repository, progreso y report. El report debe mostrar revision, estado, limitaciones, score determinista, findings, evidence y recommendations. No se necesita dashboard complejo, realtime, historial ni visualizaciones decorativas para validar el producto.
 
 Angular ofrece la estructura adecuada para este flujo, pero la calidad dependerá de una API clara, estados completos y una implementación accesible. La arquitectura debe probar keyboard navigation, focus, labels, `aria-live`, contraste y responsive behavior en el flujo principal.
 
-## ADR review
+## Revisión de ADRs
 
 | ADR | Decision | Action | Reason |
 | --- | --- | --- | --- |
@@ -288,7 +288,7 @@ Angular ofrece la estructura adecuada para este flujo, pero la calidad depender�
 
 No se elimina ningún ADR: los ADRs históricos permanecen para conservar trazabilidad. No se crea un ADR `SUPERSEDE` separado porque las modificaciones están documentadas en ADR-007 y en los estados del índice.
 
-## Success criteria
+## Criterios de éxito
 
 El MVP debe medir únicamente señales que puedan obtenerse razonablemente:
 

@@ -3,11 +3,11 @@
 - **Status:** Accepted for MVP
 - **Date:** 2026-08-26
 
-## Context
+## Contexto
 
 Analizar muchos lenguajes con profundidad exige parsers, fixtures, reglas y conocimiento específico. El proyecto es inicialmente frontend-oriented y necesita validar primero la utilidad del report, no prometer cobertura universal.
 
-## Decision
+## Decisión
 
 Adoptar tres tiers:
 
@@ -17,14 +17,14 @@ Adoptar tres tiers:
 
 El vertical slice priorizará Architecture, Testing, Documentation, Dependencies y Code Quality. Maintainability se limitará a señales estáticas simples. Accessibility y Security se expondrán inicialmente como tooling/configuration coverage, no como auditorías completas.
 
-## Consequences
+## Consecuencias
 
 - Menor superficie de analyzer y resultados más honestos.
 - Mayor calidad demostrable en el stack principal.
 - Repositories fuera de Tier 1 seguirán siendo parcialmente útiles, pero con `insufficient_data`.
 - Añadir un lenguaje requiere fixtures, reglas, evidence model y criterios de aceptación propios.
 
-## Alternatives considered
+## Alternativas consideradas
 
 - **Soportar todos los lenguajes superficialmente:** rechazado porque produciría reportes amplios pero poco fiables.
 - **Empezar con Angular y React por separado:** pospuesto; TypeScript/JavaScript ofrece una base común y los frameworks se detectan como contexto.

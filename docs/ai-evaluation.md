@@ -1,113 +1,113 @@
-# Phase 9 — AI evaluation
+# Phase 9 — Evaluación de AI
 
-## Status
+## Estado
 
-The evaluation was run on 2026-08-26 with Node `v25.3.0`; the project target remains Node 24. No AI credentials were present in the environment.
+La evaluación se ejecutó el 2026-08-26 con Node `v25.3.0`; el target del proyecto sigue siendo Node 24. No había credenciales de AI presentes en el entorno.
 
-## Dataset and methodology
+## Dataset y metodología
 
-The reproducible dataset uses existing deterministic fixtures:
+El dataset reproducible usa los fixtures deterministas existentes:
 
-- clean TypeScript;
-- poor maintainability/testing/code-quality signals;
+- TypeScript limpio;
+- señales deficientes de mantenibilidad/testing/calidad de código;
 - JavaScript/React;
 - Angular;
-- security-like content;
-- malformed and partial input;
-- prompt-injection-like repository data;
-- empty/small reports.
+- contenido tipo seguridad;
+- entrada malformada y parcial;
+- datos de repositorio tipo inyección de prompts;
+- reportes vacíos/pequeños.
 
-Each case is converted to `AnalysisResult`, passed through `buildAIContext`, and evaluated with `FakeAIProvider`. The harness verifies context determinism, bounded selection, no source blobs, valid references, malformed-reference rejection, prompt delimiters, and deterministic report equality before/after AI.
+Cada caso se convierte en un `AnalysisResult`, se pasa por `buildAIContext` y se evalúa con `FakeAIProvider`. El harness verifica el determinismo del contexto, la selección acotada, la ausencia de blobs fuente, las referencias válidas, el rechazo de referencias malformadas, los delimitadores de prompt y la igualdad determinista del reporte antes/después de AI.
 
-## Criteria
+## Criterios
 
 | Criterion | Result |
 | --- | --- |
-| factuality boundary | PASS for validated references; semantic factuality requires human review |
-| traceability | PASS for finding/evidence/recommendation IDs |
-| hallucination protection | PASS for unknown references; free-text claims require human review |
-| usefulness | HUMAN REVIEW REQUIRED |
-| limitations respected | PASS for context limitations; semantic interpretation requires human review |
-| deterministic integrity | PASS; deterministic report unchanged |
+| frontera de factualidad | PASS para referencias validadas; la factualidad semántica requiere revisión humana |
+| trazabilidad | PASS para IDs de finding/evidence/recommendation |
+| protección contra alucinaciones | PASS para referencias desconocidas; las afirmaciones de texto libre requieren revisión humana |
+| utilidad | REVISIÓN HUMANA REQUERIDA |
+| limitaciones respetadas | PASS para las limitaciones de contexto; la interpretación semántica requiere revisión humana |
+| integridad determinista | PASS; el reporte determinista no cambia |
 
-## Fake provider results
+## Resultados del proveedor fake
 
-Measured:
+Medido:
 
-- 4 AI package tests passed;
-- 2 API AI integration tests passed;
-- context serialization is deterministic;
-- invalid finding references are rejected;
-- fake interpretation with existing references is accepted;
-- deterministic report before/after AI is identical;
-- persistence round-trip and unavailable state are covered.
+- 4 tests del paquete de AI aprobados;
+- 2 tests de integración de la API de AI aprobados;
+- la serialización del contexto es determinista;
+- las referencias de findings inválidas se rechazan;
+- la interpretación fake con referencias existentes se acepta;
+- el reporte determinista antes/después de AI es idéntico;
+- el round-trip de persistencia y el estado no disponible están cubiertos.
 
-The fake provider does not prove that a real model is useful or factually accurate. It validates the application contract and safety boundary only.
+El proveedor fake no demuestra que un modelo real sea útil o factualmente preciso. Solo valida el contrato de aplicación y la frontera de seguridad.
 
-## Live provider
-
-```text
-AI LIVE EVALUATION — NOT VALIDATED
-```
-
-Reason: no provider credentials were configured. No live request was made and no credentials were invented.
-
-## Latency
-
-Measured locally for the fake path:
-
-- context construction and validation: sub-millisecond to low-millisecond scale in unit tests;
-- API fake-provider path: below 0.2 seconds in the integration test process.
-
-Real provider latency is **NOT VALIDATED**. Deterministic analysis remains independent of AI latency because AI is invoked through a separate endpoint after the deterministic report exists.
-
-## Cost model
+## Proveedor en vivo
 
 ```text
-COST MODEL — NOT VALIDATED
+EVALUACIÓN EN VIVO DE AI — NO VALIDADA
 ```
 
-No current provider price or token usage was measured. The implementation does not claim a cost per analysis, per 100 analyses, or per 1,000 analyses. A future live evaluation must record provider-reported usage without logging prompts or sensitive content.
+Motivo: no había credenciales de proveedor configuradas. No se hizo ninguna request en vivo ni se inventaron credenciales.
 
-## Failure modes
+## Latencia
 
-The provider contract classifies:
+Medida localmente para la vía fake:
 
-- unavailable provider;
+- construcción y validación del contexto: escala sub-milisegundo a pocos milisegundos en los tests unitarios;
+- vía fake de la API: por debajo de 0,2 segundos en el proceso del test de integración.
+
+La latencia del proveedor real **NO ESTÁ VALIDADA**. El análisis determinista sigue siendo independiente de la latencia de AI porque AI se invoca mediante un endpoint separado después de que el reporte determinista exista.
+
+## Modelo de coste
+
+```text
+MODELO DE COSTE — NO VALIDADO
+```
+
+No se midió ningún precio actual de proveedor ni uso de tokens. La implementación no reivindica un coste por análisis, por 100 análisis ni por 1.000 análisis. Una evaluación en vivo futura debe registrar el uso reportado por el proveedor sin registrar prompts ni contenido sensible.
+
+## Modos de fallo
+
+El contrato del proveedor clasifica:
+
+- proveedor no disponible;
 - timeout;
 - rate limit;
-- malformed response;
-- invalid structured references.
+- respuesta malformada;
+- referencias estructuradas inválidas.
 
-The application records `failed` or `unavailable` in `ai_interpretations` and leaves the deterministic report and job untouched. OpenAI responses are bounded to 512 KiB and the adapter restricts requests to the HTTPS `api.openai.com` host.
+La aplicación registra `failed` o `unavailable` en `ai_interpretations` y deja intactos el reporte determinista y el job. Las respuestas de OpenAI están acotadas a 512 KiB y el adapter restringe las requests al host HTTPS `api.openai.com`.
 
-## Prompt injection
+## Inyección de prompts
 
-The system prompt explicitly states that repository content is untrusted data. User context is delimited and contains only bounded report metadata and references. Tests cover injection-like data and verify that the application does not execute instructions, create new references, or modify deterministic output.
+El system prompt establece explícitamente que el contenido del repositorio son datos no confiables. El contexto de usuario está delimitado y contiene solo metadatos y referencias de reporte acotados. Los tests cubren datos tipo inyección y verifican que la aplicación no ejecuta instrucciones, no crea referencias nuevas ni modifica la salida determinista.
 
 ## Rate limiting
 
-The AI generation endpoint applies an in-memory limit of five requests per analysis per hour. This is appropriate for the current single-process MVP but is not sufficient for a multi-instance public deployment. A distributed limiter remains deferred until deployment requirements justify it.
+El endpoint de generación de AI aplica un límite en memoria de cinco requests por análisis por hora. Esto es apropiado para el MVP actual de un solo proceso, pero no es suficiente para un despliegue público multi-instancia. Un limitador distribuido queda diferido hasta que los requisitos de despliegue lo justifiquen.
 
-## Decision gate
+## Puerta de decisión
 
 ### KEEP WITH LIMITATIONS
 
-The AI layer should remain available as an optional experiment because:
+La capa de AI debe permanecer disponible como un experimento opcional porque:
 
-- the deterministic report remains authoritative;
-- the boundary is isolated;
-- references are validated;
-- context is bounded;
-- fake-provider behavior is reproducible;
-- failure does not invalidate deterministic analysis.
+- el reporte determinista sigue siendo autoritativo;
+- la frontera está aislada;
+- las referencias se validan;
+- el contexto está acotado;
+- el comportamiento del proveedor fake es reproducible;
+- el fallo no invalida el análisis determinista.
 
-Limitations:
+Limitaciones:
 
-- real-provider quality, latency, and cost are not validated;
-- usefulness requires human review;
-- the rate limiter is process-local;
-- no production-grade provider observability exists;
-- no automated semantic evaluation dataset exists yet.
+- la calidad, latencia y coste del proveedor real no están validadas;
+- la utilidad requiere revisión humana;
+- el limitador de rate es local al proceso;
+- no existe observabilidad del proveedor a nivel de producción;
+- aún no existe un dataset de evaluación semántica automatizada.
 
-The evidence does not justify calling the feature production-ready or claiming model accuracy.
+La evidencia no justifica llamar a la funcionalidad lista para producción ni reivindicar precisión del modelo.

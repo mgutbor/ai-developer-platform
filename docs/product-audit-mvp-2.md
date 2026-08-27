@@ -1,424 +1,429 @@
-# Product Audit — MVP 2.0 Definition (Phase 28)
+# Auditoría de producto — Definición del MVP 2.0 (Phase 28)
 
-> Phase 28 is a strategy and validation-planning phase. No code was changed.
-> Verdicts are based on the actual implementation (analyzer, scoring, ingestion,
-> contracts, frontend), real E2E executions from Phases 22–27, and the v1.0.0
-> conceptual audit (`docs/product-audit-v1.0.0.md`).
+> La Phase 28 es una fase de estrategia y planificación de validación. No se cambió ningún código.
+> Los veredictos se basan en la implementación real (analyzer, scoring, ingestion,
+> contratos, frontend), ejecuciones E2E reales de las Phases 22–27 y la auditoría
+> conceptual del v1.0.0 (`docs/product-audit-v1.0.0.md`).
 
-## 1. Executive summary
+## 1. Resumen ejecutivo
 
-`ai-developer-platform` is a deterministic, zero-configuration analyzer of public
-GitHub repositories: paste a URL, get a report with findings, evidence status,
-dimension scores, recommendations and verification guidance. It works, it is
-honest about its limitations, and it is exceptionally well engineered for an MVP.
+`ai-developer-platform` es un analyzer determinista y de configuración cero de
+repositorios públicos de GitHub: pega una URL, obtén un report con findings, estado de
+evidencia, dimension scores, recomendaciones y guía de verificación. Funciona, es
+honesto sobre sus limitaciones y está excepcionalmente bien construido para un MVP.
 
-The developer value is nevertheless **low-to-moderate (3–4/10)**. The reason is
-not engineering quality — it is that the current product competes, for repos a
-developer already owns, with tools that are strictly better at every individual
-job (ESLint, TypeScript, SonarCloud, Dependabot, CodeQL, gitleaks, CI, IDE).
-For repos the developer does **not** own, the current product is often not
-usable at all: the bounded ingestion exceeds the anonymous GitHub quota for
-repositories larger than tiny, and the evidence model does not yet let a
-developer verify a finding without opening the repository.
+El valor para el desarrollador es, sin embargo, **bajo-moderado (3–4/10)**. La razón no
+es la calidad de la ingeniería — es que el producto actual compite, para repos que un
+desarrollador ya posee, con herramientas estrictamente mejores en cada trabajo
+individual (ESLint, TypeScript, SonarCloud, Dependabot, CodeQL, gitleaks, CI, IDE).
+Para repos que el desarrollador **no** posee, el producto actual a menudo no es
+utilizable en absoluto: la ingestion acotada supera la cuota anónima de GitHub para
+repositorios mayores que diminutos, y el modelo de evidencia aún no permite a un
+desarrollador verificar un finding sin abrir el repositorio.
 
-There is, however, one defensible niche where the existing architecture has a
-real structural advantage: **a zero-configuration technical risk snapshot of an
-unfamiliar public repository before adopting it, using it as a dependency, or
-contributing to it.** No competing tool delivers this with zero setup, no clone,
-and an explicit, auditable statement of what was and was not inspected.
+Existe, sin embargo, un nicho defendible donde la arquitectura existente tiene una
+ventaja estructural real: **un snapshot de riesgo técnico de configuración cero de un
+repositorio público desconocido antes de adoptarlo, usarlo como dependencia o
+contribuir a él.** Ninguna herramienta competidora ofrece esto con cero setup, sin
+clon, y una declaración explícita y auditable de qué se inspeccionó y qué no.
 
-**Verdict: continue, but narrow the product to that job.** The current
-"general repository analyzer" is not a differentiated product. The due-diligence
-snapshot is. Phase 29 must validate that hypothesis with a thin experiment
-before any significant build.
+**Veredicto: continuar, pero estrechar el producto a ese trabajo.** El "analyzer
+general de repositorios" actual no es un producto diferenciado. El snapshot de
+due-diligence sí lo es. La Phase 29 debe validar esa hipótesis con un experimento fino
+antes de cualquier build significativo.
 
-## 2. Current product reality (factual)
+## 2. Realidad actual del producto (factual)
 
 ### Input
-A public GitHub repository URL (optionally a ref). Nothing else. No accounts,
-no auth, no configuration. Anonymous GitHub access works within the IP quota
-(~60 requests/hour); an optional server-side `GITHUB_TOKEN` raises it to
-~5,000/hour.
+Una URL de repositorio público de GitHub (opcionalmente un ref). Nada más. Sin cuentas,
+sin auth, sin configuración. El acceso anónimo a GitHub funciona dentro de la cuota de
+IP (~60 requests/hora); un `GITHUB_TOKEN` opcional server-side la eleva a
+~5,000/hora.
 
 ### Pipeline
 ```
-URL → AnalysisJob → GitHub REST → bounded ingestion → deterministic analyzer
-→ scoring → SQLite persistence → report API → Angular frontend
+URL → AnalysisJob → GitHub REST → ingestion acotada → analyzer determinista
+→ scoring → persistence SQLite → report API → frontend Angular
 ```
 
-### Bounded ingestion (actual limits)
-- `maxFileCount = 50` files
-- `maxApiRequests = 125` requests per analysis
-- `maxJsonResponseBytes = 4 MiB` per response
-- `maxTotalBytes = 2 MiB` total file content
-- `maxFileBytes = 256 KiB` per file
-- `maxTreeEntries = 5000` tree entries
-- request timeout 10 s, analysis timeout 60 s
-- segmented tree traversal with semantics-preserving early termination
-  (Phase 21), visited-tree protection, no blob fetch before final selection
+### Ingestion acotada (límites reales)
+- `maxFileCount = 50` archivos
+- `maxApiRequests = 125` requests por análisis
+- `maxJsonResponseBytes = 4 MiB` por respuesta
+- `maxTotalBytes = 2 MiB` de contenido total de archivos
+- `maxFileBytes = 256 KiB` por archivo
+- `maxTreeEntries = 5000` entradas de árbol
+- timeout de request 10 s, timeout de análisis 60 s
+- recorrido segmentado de árbol con terminación temprana que preserva la semántica
+  (Phase 21), protección de árboles visitados, sin obtención de blobs antes de la
+  selección final
 
 ### Analyzer
-14 rule IDs across 6 dimensions, fully deterministic:
-- documentation: `AN-DOC-001` (README absent)
-- testing: `AN-TEST-001` (no test files), `AN-TEST-002` (no test tooling)
-- tooling/code quality: `AN-TOOL-001` (no lint config), `AN-CQ-002`
-  (strictness unverified), `AN-CQ-003` (strict disabled), `AN-CQ-004`
-  (TODO/FIXME count), `AN-CQ-005` (TS ignore directives)
-- dependencies: `AN-DEP-001` (manifest without lockfile)
-- maintainability: `AN-MAINT-001` (source file > 400-line heuristic)
-- architecture: `AN-ARCH-001` (deep nesting), `AN-ARCH-002` (unresolved import)
-- security: `AN-SEC-002` (sensitive filename), `AN-SEC-003` (committed /
-  possible / placeholder / demo secret-like values; **only a hash is stored**)
+14 IDs de regla en 6 dimensiones, totalmente deterministas:
+- documentación: `AN-DOC-001` (README ausente)
+- testing: `AN-TEST-001` (sin archivos de tests), `AN-TEST-002` (sin tooling de tests)
+- tooling/code quality: `AN-TOOL-001` (sin config de lint), `AN-CQ-002`
+  (strictness sin verificar), `AN-CQ-003` (strict deshabilitado), `AN-CQ-004`
+  (conteo de TODO/FIXME), `AN-CQ-005` (directivas TS ignore)
+- dependencias: `AN-DEP-001` (manifest sin lockfile)
+- maintainability: `AN-MAINT-001` (archivo fuente > heurística de 400 líneas)
+- arquitectura: `AN-ARCH-001` (anidamiento profundo), `AN-ARCH-002` (import sin resolver)
+- seguridad: `AN-SEC-002` (nombre de archivo sensible), `AN-SEC-003` (valores
+  tipo secreto commiteados / posibles / placeholder / demo; **solo se almacena un hash**)
 
 ### Output (report)
-- repository identity, commit SHA, analyzer/rule versions
-- coverage: `complete | partial | insufficient`
-- confidence: `high | medium | low`
-- `inspectedScope`: file count, tree entries seen, total bytes
-- dimension scores (0–10 or `null` when signals insufficient) for
-  architecture, maintainability, testing, documentation, dependencies,
-  code quality — **no global score** (explicit MVP decision)
-- findings with severity, category, title, description, impact,
+- identidad del repositorio, SHA de commit, versiones del analyzer/reglas
+- cobertura: `complete | partial | insufficient`
+- confianza: `high | medium | low`
+- `inspectedScope`: conteo de archivos, entradas de árbol vistas, bytes totales
+- dimension scores (0–10 o `null` cuando las señales son insuficientes) para
+  arquitectura, maintainability, testing, documentación, dependencias,
+  code quality — **sin global score** (decisión explícita del MVP)
+- findings con severidad, categoría, título, descripción, impacto,
   `evidenceStatus` (`verified | absence_based | not_inspected | not_verified`)
-- evidence: kind, path, line range, stable `excerptHash` — **no content
-  excerpts** (deliberate security decision)
-- recommendations with title, description, priority and **verification
-  guidance** (added in Phase 27)
-- limitations list, error codes (`SNAPSHOT_LIMIT_EXCEEDED`,
+- evidencia: kind, path, rango de línea, `excerptHash` estable — **sin excerpts de
+  contenido** (decisión de seguridad deliberada)
+- recomendaciones con título, descripción, prioridad y **guía de verificación**
+  (añadida en la Phase 27)
+- lista de limitaciones, códigos de error (`SNAPSHOT_LIMIT_EXCEEDED`,
   `GITHUB_RATE_LIMITED`, etc.)
 
-### Real E2E observations (Phases 22–23, product-value experiment)
-- `octocat/Hello-World`: completed in ~3 s, **1 of ~4 files** ingested,
-  coverage `insufficient`, 3 absence-based findings, 6 dimension scores.
-- `sindresorhus/camelcase`: completed, coverage `partial`, 6 findings.
-- `sindresorhus/type-fest` (small-medium): **consumed all 60 anonymous
-  requests** and failed with `GITHUB_RATE_LIMITED`; no report.
-- `expressjs/express`: no quota available; failed immediately, controlled.
-- react/react and vitejs/vite (Phase 22): `maxApiRequests=125` exhausted before
-  a 50-file snapshot; no findings.
+### Observaciones E2E reales (Phases 22–23, experimento de valor de producto)
+- `octocat/Hello-World`: completado en ~3 s, **1 de ~4 archivos** ingeridos,
+  cobertura `insufficient`, 3 findings basados en ausencia, 6 dimension scores.
+- `sindresorhus/camelcase`: completado, cobertura `partial`, 6 findings.
+- `sindresorhus/type-fest` (pequeño-medio): **consumió las 60 requests anónimas**
+  y falló con `GITHUB_RATE_LIMITED`; sin report.
+- `expressjs/express`: sin cuota disponible; falló de inmediato, controlado.
+- react/react y vitejs/vite (Phase 22): `maxApiRequests=125` agotado antes de
+  un snapshot de 50 archivos; sin findings.
 
-## 3. Developer journey (what a developer actually receives)
+## 3. Journey del desarrollador (lo que un desarrollador recibe realmente)
 
 ```
-INPUT:  a GitHub URL of a public repository
-ANALYSIS: zero config; queued → running → report (seconds to ~1 min)
-REPORT:  coverage banner, dimension scores, findings, recommendations, limitations
-FINDING: title + description + impact + severity + evidenceStatus
-WHY:     impact text ("why it matters")
-ACTION:  recommendation title + description
-VERIFY:  verification guidance ("how to verify", Phase 27)
+INPUT:   una URL de GitHub de un repositorio público
+ANALYSIS: configuración cero; en cola → ejecutándose → report (segundos a ~1 min)
+REPORT:   banner de cobertura, dimension scores, findings, recomendaciones, limitaciones
+FINDING:  título + descripción + impacto + severidad + evidenceStatus
+WHY:      texto de impacto ("por qué importa")
+ACTION:   título + descripción de la recomendación
+VERIFY:   guía de verificación ("cómo verificar", Phase 27)
 ```
 
-Where the journey breaks:
+Dónde se rompe el journey:
 
-1. **Coverage ceiling.** For any repository above "tiny", the report is built on
-   a partial snapshot; for medium+ repositories it frequently fails outright
-   (anonymous quota) or returns no findings (react/react, vitejs/vite). The
-   developer cannot get a report at all for the repositories that would be most
-   worth analyzing.
-2. **Absence dominates.** Most findings are `absence_based` ("X was not
-   detected in the inspected snapshot"). These are honest but weak: they cannot
-   confirm a defect, and a developer who owns the repo already knows whether
-   they have tests.
-3. **Evidence is not verifiable content.** The evidence points to a path and a
-   hash. The developer cannot see *what was observed* without opening the
-   repository — at which point the product's value proposition (understanding
-   without the repo) collapses.
-4. **Scores risk false precision.** `8.5/10` on a partial snapshot reads as a
-   quality verdict even with the honesty framing; the dimension scores add
-   credibility to the report but not much decision power.
+1. **Techo de cobertura.** Para cualquier repositorio por encima de "diminuto", el
+   report se construye sobre un snapshot parcial; para repos medios+ falla con
+   frecuencia por completo (cuota anónima) o devuelve ningún finding (react/react,
+   vitejs/vite). El desarrollador no puede obtener ningún report para los repositorios
+   que más valdría la pena analizar.
+2. **Domina la ausencia.** La mayoría de los findings son `absence_based` ("X no fue
+   detectado en el snapshot inspeccionado"). Son honestos pero débiles: no pueden
+   confirmar un defecto, y un desarrollador que posee el repo ya sabe si tiene tests.
+3. **La evidencia no es contenido verificable.** La evidencia apunta a un path y un
+   hash. El desarrollador no puede ver *qué se observó* sin abrir el repositorio —
+   momento en el que la propuesta de valor del producto (entender sin el repo) se
+   derrumba.
+4. **Los scores arriesgan falsa precisión.** `8.5/10` sobre un snapshot parcial se lee
+   como veredicto de calidad incluso con el framing de honestidad; los dimension
+   scores añaden credibilidad al report pero poco poder de decisión.
 
-## 4. Developer output audit
+## 4. Auditoría del output del desarrollador
 
-| Output | Exists | Comprehensible | Actionable | Verifiable | Real value |
+| Output | ¿Existe? | ¿Comprensible? | ¿Accionable? | ¿Verificable? | Valor real |
 |---|---|---|---|---|---|
-| Finding | YES | YES | PARTIAL | NO (no content) | MEDIUM |
-| Evidence | YES | YES (status) | NO | PARTIAL (path/range) | LOW |
-| Coverage | YES | YES | YES (sets expectations) | YES | MEDIUM-HIGH |
-| Confidence | YES | PARTIAL (can imply more than known) | — | PARTIAL | LOW-MEDIUM |
-| Score | YES | PARTIAL (false precision risk) | LOW | NO | LOW |
-| Recommendation | YES | YES | YES | YES (P27) | MEDIUM-HIGH |
-| Verification | YES | YES | YES | YES (re-run) | MEDIUM-HIGH |
+| Finding | SÍ | SÍ | PARCIAL | NO (sin contenido) | MEDIUM |
+| Evidence | SÍ | SÍ (estado) | NO | PARCIAL (path/rango) | LOW |
+| Coverage | SÍ | SÍ | SÍ (fija expectativas) | SÍ | MEDIUM-HIGH |
+| Confidence | SÍ | PARCIAL (puede implicar más de lo conocido) | — | PARCIAL | LOW-MEDIUM |
+| Score | SÍ | PARCIAL (riesgo de falsa precisión) | LOW | NO | LOW |
+| Recommendation | SÍ | SÍ | SÍ | SÍ (P27) | MEDIUM-HIGH |
+| Verification | SÍ | SÍ | SÍ | SÍ (re-ejecutar) | MEDIUM-HIGH |
 
-The two outputs that carry real, defensible value today are **coverage
-(including the honesty framing)** and **recommendation + verification**.
-The two weakest are **evidence** (traceability, not content) and **scores**
-(false precision risk). Findings sit in the middle: individually plausible, but
-dominated by absence-based claims on partial snapshots.
+Los dos outputs que aportan valor real y defendible hoy son **coverage**
+(incluido el framing de honestidad) y **recomendación + verificación**.
+Los dos más débiles son **evidence** (trazabilidad, no contenido) y **scores**
+(riesgo de falsa precisión). Los findings están en el medio: individualmente
+plausibles, pero dominados por claims basados en ausencia sobre snapshots parciales.
 
-## 5. Value audit (honest, not inflated)
+## 5. Auditoría de valor (honesta, no inflada)
 
-- **Functional (technical) value: HIGH.** It works end to end, is deterministic,
-  reproducible, tested, and honest.
-- **Utility for a repo you own: LOW-MEDIUM.** Your IDE, linter, type checker,
-  CI and Dependabot already do every individual check deeper and with your full
-  codebase. The report adds a summary, not new information.
-- **Utility for a repo you do not own: MEDIUM but conditional.** The idea
-  ("what are this repo's technical risks?") is useful; the delivery currently
-  fails for most such repos (coverage/quotas) and cannot show evidence content.
-- **Differentiation: LOW-MEDIUM.** Nothing in the current output is something a
-  developer cannot get, with more depth, from existing tools — *except* the
-  zero-config, no-clone, auditable combination.
+- **Valor funcional (técnico): HIGH.** Funciona end-to-end, es determinista,
+  reproducible, testeado y honesto.
+- **Utilidad para un repo que posees: LOW-MEDIUM.** Tu IDE, linter, type checker,
+  CI y Dependabot ya hacen cada comprobación individual con más profundidad y con tu
+  codebase completo. El report añade un resumen, no información nueva.
+- **Utilidad para un repo que no posees: MEDIUM pero condicional.** La idea
+  ("¿cuáles son los riesgos técnicos de este repo?") es útil; la entrega actual falla
+  para la mayoría de esos repos (cobertura/cuotas) y no puede mostrar contenido de
+  evidencia.
+- **Diferenciación: LOW-MEDIUM.** Nada en el output actual es algo que un desarrollador
+  no pueda obtener, con más profundidad, de herramientas existentes — *excepto* la
+  combinación de configuración cero, sin clon y auditable.
 
-## 6. Alternatives / competitor test
+## 6. Test de alternativas / competidores
 
-| Tool | Detects | Stronger than this product | Where this product could win |
+| Herramienta | Detecta | Más fuerte que este producto | Dónde podría ganar este producto |
 |---|---|---|---|
-| ESLint / Biome | Lint rules on your code | Deeper, configurable, local, full codebase | Nothing for owned repos |
-| TypeScript | Type errors | Exhaustive for TS | Nothing |
-| SonarCloud/SonarQube | Deep static analysis, maintainability | Far deeper; free tier for public repos | Requires setup/auth; this product is zero-config |
-| Dependabot/Renovate | Dependency updates | Continuous, automated PRs | Nothing for owned repos; needs repo access |
-| CodeQL | Security queries | Deeper, CI-integrated | Needs GitHub Actions setup |
-| gitleaks / secret scanners | Committed secrets | Specialized and better | Determinism + report integration |
-| Snyk | Dependency vulnerabilities | Advisory-based, continuous | Nothing for owned repos |
-| GitHub native signals | Stars, activity, license, README | Always available | GitHub does not synthesize a technical risk summary |
-| IDE + human review | Everything, with judgment | Best possible | Requires context and time |
+| ESLint / Biome | Reglas de lint sobre tu código | Más profundo, configurable, local, codebase completo | Nada para repos propios |
+| TypeScript | Errores de tipo | Exhaustivo para TS | Nada |
+| SonarCloud/SonarQube | Análisis estático profundo, maintainability | Mucho más profundo; free tier para repos públicos | Requiere setup/auth; este producto es de configuración cero |
+| Dependabot/Renovate | Actualizaciones de dependencias | Continuo, PRs automatizados | Nada para repos propios; necesita acceso al repo |
+| CodeQL | Queries de seguridad | Más profundo, integrado en CI | Necesita setup de GitHub Actions |
+| gitleaks / escáneres de secretos | Secretos commiteados | Especializados y mejores | Determinismo + integración con el report |
+| Snyk | Vulnerabilidades de dependencias | Basado en advisory, continuo | Nada para repos propios |
+| Señales nativas de GitHub | Stars, actividad, licencia, README | Siempre disponibles | GitHub no sintetiza un resumen de riesgo técnico |
+| IDE + revisión humana | Todo, con criterio | Lo mejor posible | Requiere contexto y tiempo |
 
-**Conclusion:** for repositories a developer owns, there is no defensible
-differentiation. For **unknown public repositories**, existing tools require
-setup, repo access, or a clone — none deliver a zero-config risk snapshot. The
-differentiation is real but narrow and currently unimplemented.
+**Conclusión:** para repositorios que un desarrollador posee, no hay diferenciación
+defendible. Para **repositorios públicos desconocidos**, las herramientas existentes
+requieren setup, acceso al repo o un clon — ninguna ofrece un snapshot de riesgo de
+configuración cero. La diferenciación es real pero estrecha y actualmente no
+implementada.
 
 ## 7. Jobs To Be Done
 
-Candidate jobs:
+Trabajos candidatos:
 
-1. **Pre-adoption / pre-dependency risk snapshot**
-   - User: a developer evaluating an unfamiliar public repo (adopt, depend on,
-     contribute to).
-   - Situation: browsing GitHub, deciding in minutes whether the repo is
-     healthy enough.
-   - Problem: README + stars + activity do not reveal technical risk (secrets,
-     broken test setup, unmaintained deps, documentation drift).
-   - Motivation: avoid adopting something that will cost time later.
-   - Output: a short, risk-ordered technical snapshot.
-   - Frequency: occasional, high stakes.
-   - Value: high if it surfaces one real risk per repo.
+1. **Snapshot de riesgo pre-adopción / pre-dependencia**
+   - Usuario: un desarrollador que evalúa un repo público desconocido (adoptar,
+     depender de él, contribuir).
+   - Situación: navegando por GitHub, decidiendo en minutos si el repo es lo
+     bastante saludable.
+   - Problema: README + stars + actividad no revelan el riesgo técnico (secretos,
+     setup de tests roto, dependencias sin mantener, deriva de documentación).
+   - Motivación: evitar adoptar algo que costará tiempo después.
+   - Output: un snapshot técnico corto, ordenado por riesgo.
+   - Frecuencia: ocasional, de alto riesgo.
+   - Valor: alto si saca a la luz un riesgo real por repo.
 
-2. **Inherited-codebase onboarding**
-   - User: a developer who just joined a team or inherited a repo.
-   - Situation: needs a map of where to start.
-   - Problem: the product does not currently have the depth (per-file content,
-     dependency graph) to be genuinely useful here.
-   - Value: high, but requires capabilities this product does not have.
+2. **Onboarding en codebase heredada**
+   - Usuario: un desarrollador que acaba de unirse a un equipo o heredó un repo.
+   - Situación: necesita un mapa de por dónde empezar.
+   - Problema: el producto no tiene actualmente la profundidad (contenido por archivo,
+     grafo de dependencias) para ser genuinamente útil aquí.
+   - Valor: alto, pero requiere capacidades que este producto no tiene.
 
-3. **Objective second opinion on my own repo**
-   - User: an owner before a release or audit.
-   - Situation: wants a neutral check.
-   - Problem: existing tools are better; the report adds little beyond a
-     summary.
-   - Value: low.
+3. **Segunda opinión objetiva sobre mi propio repo**
+   - Usuario: un owner antes de un release o una auditoría.
+   - Situación: quiere una comprobación neutral.
+   - Problema: las herramientas existentes son mejores; el report añade poco más allá
+     de un resumen.
+   - Valor: bajo.
 
-4. **Trackable health over time**
-   - User: an owner tracking improvement.
-   - Situation: re-run on new commits.
-   - Problem: requires auth, quotas, and persistence of history; value depends
-     on the other jobs existing first.
-   - Value: medium, later.
+4. **Salud trazable a lo largo del tiempo**
+   - Usuario: un owner que sigue la mejora.
+   - Situación: re-ejecutar sobre commits nuevos.
+   - Problema: requiere auth, cuotas y persistencia de historial; el valor depende de
+     que los otros trabajos existan primero.
+   - Valor: medio, más adelante.
 
-### PRIMARY JOB
+### TRABAJO PRINCIPAL (PRIMARY JOB)
 
-> "Before adopting, depending on, or contributing to an unfamiliar public
-> repository, I want a zero-configuration, honest technical risk snapshot that
-> tells me what I should know — and what was not inspected — in under a minute."
+> "Antes de adoptar, depender de o contribuir a un repositorio público desconocido,
+> quiero un snapshot de riesgo técnico de configuración cero y honesto que me diga qué
+> debería saber — y qué no se inspeccionó — en menos de un minuto."
 
-This is the only job where the current architecture (no clone, no setup,
-deterministic, explicit coverage) is a structural advantage, and the only job
-where the current weaknesses (depth, evidence content) are tolerable in an MVP
-2.0 that fixes them incrementally.
+Este es el único trabajo donde la arquitectura actual (sin clon, sin setup,
+determinista, cobertura explícita) es una ventaja estructural, y el único trabajo donde
+las debilidades actuales (profundidad, contenido de evidencia) son tolerables en un MVP
+2.0 que las corrija de forma incremental.
 
-## 8. The "aha" moment
+## 8. El momento "aha"
 
-> "I just found out something about this repo that I would not have noticed in
-> my first minutes of browsing — and I can see the actual code that proves it."
+> "Acabo de descubrir algo sobre este repo que no habría notado en mis primeros
+> minutos navegando — y puedo ver el código real que lo prueba."
 
-Concrete examples the product is closest to producing:
-- a committed-looking credential in a config file (currently detected, but with
-  no visible excerpt);
-- a README/documentation claim that the code contradicts;
-- test configuration that appears not to run any tests;
-- an unmaintained or stale dependency in a project presented as maintained;
-- evidence (with content) for any `verified` finding.
+Ejemplos concretos a los que el producto está más cerca de llegar:
+- una credencial con aspecto de commiteada en un archivo de configuración
+  (actualmente detectada, pero sin excerpt visible);
+- un claim de README/documentación que el código contradice;
+- una configuración de tests que parece no ejecutar ningún test;
+- una dependencia sin mantener u obsoleta en un proyecto presentado como mantenido;
+- evidencia (con contenido) para cualquier finding `verified`.
 
-The aha requires two things the product does not yet do: **content evidence**
-(what was seen) and **risk ordering** (this is the most important thing). The
-current report cannot produce the moment as designed.
+El aha requiere dos cosas que el producto aún no hace: **evidencia de contenido**
+(qué se vio) y **ordenación por riesgo** (esto es lo más importante). El report actual
+no puede producir el momento tal como está diseñado.
 
-## 9. Current vs potential value
+## 9. Valor actual vs potencial
 
-| Capability | Current value (1–5) | Potential value (1–5) | Effort | Priority |
+| Capacidad | Valor actual (1–5) | Valor potencial (1–5) | Esfuerzo | Prioridad |
 |---|---|---|---|---|
 | Findings | 3 | 4 | S | P1 |
-| Evidence (status) | 3 | 4 | S | P1 |
-| Evidence (content excerpts, redacted) | 1 | 5 | M | P0 |
-| Coverage / honesty | 4 | 5 | S | P1 |
+| Evidence (estado) | 3 | 4 | S | P1 |
+| Evidence (excerpts de contenido, redactados) | 1 | 5 | M | P0 |
+| Coverage / honestidad | 4 | 5 | S | P1 |
 | Scores | 2 | 3 | S | P3 |
-| Recommendations | 4 | 4 | S | P1 |
+| Recomendaciones | 4 | 4 | S | P1 |
 | Verification | 4 | 4 | S | P1 |
-| Key-file presence analysis | 1 | 5 | M-L | P0 |
-| Repository-level signals (license, activity, issues, releases) | 0 | 4 | M | P1 |
-| Risk-ordered summary | 0 | 5 | M | P0 |
-| Anonymous-quota viability for medium repos | 1 | 5 | L | P0 |
-| Global score | 0 | 1 | M | P3 (do not build) |
-| AI interpretation | 0 | 2–3 | XL | P3 (do not build yet) |
+| Análisis de presencia en key-files | 1 | 5 | M-L | P0 |
+| Señales a nivel de repositorio (licencia, actividad, issues, releases) | 0 | 4 | M | P1 |
+| Resumen ordenado por riesgo | 0 | 5 | M | P0 |
+| Viabilidad con cuota anónima para repos medios | 1 | 5 | L | P0 |
+| Global score | 0 | 1 | M | P3 (no construir) |
+| Interpretación de AI | 0 | 2–3 | XL | P3 (aún no construir) |
 
-## 10. MVP 2.0 proposal (max 3 bets)
+## 10. Propuesta de MVP 2.0 (máximo 3 apuestas)
 
-### Bet 1 — Verifiable evidence (safe content excerpts)
+### Apuesta 1 — Evidencia verificable (excerpts de contenido seguros)
 
-- **Problem:** a developer cannot confirm why a finding exists without opening
-  the repo; evidence is traceability, not evidence.
-- **User:** any developer reading the report.
-- **Behavior:** every `verified` finding shows the observed content (line range
-  or snippet) with secret redaction; `absence_based`/`not_inspected`/
-  `not_verified` findings never show content and say why.
-- **Value:** converts "trust the analyzer" into "I can check".
-- **Evidence it works:** a developer confirms a finding from the report alone in
-  a validation session.
-- **Excludes:** full file content, raw secrets, AI summarization.
-- **Risk:** redaction failures — mitigated by reusing the existing
-  secret-classification logic and a strict "when in doubt, show nothing" rule
-  (the Phase 26 security invariant).
+- **Problema:** un desarrollador no puede confirmar por qué existe un finding sin abrir
+  el repo; la evidencia es trazabilidad, no evidencia.
+- **Usuario:** cualquier desarrollador que lea el report.
+- **Comportamiento:** cada finding `verified` muestra el contenido observado (rango de
+  línea o fragmento) con redacción de secretos; los findings
+  `absence_based`/`not_inspected`/`not_verified` nunca muestran contenido y dicen por
+  qué.
+- **Valor:** convierte "confía en el analyzer" en "puedo comprobarlo".
+- **Evidencia de que funciona:** un desarrollador confirma un finding solo con el
+  report en una sesión de validación.
+- **Excluye:** contenido completo de archivos, secretos raw, resumen de AI.
+- **Riesgo:** fallos de redacción — mitigado reutilizando la lógica existente de
+  clasificación de secretos y una regla estricta de "en caso de duda, no mostrar nada"
+  (el invariante de seguridad de la Phase 26).
 
-### Bet 2 — High-signal key-file analysis + repository-level signals
+### Apuesta 2 — Análisis de key-files de alta señal + señales a nivel de repositorio
 
-- **Problem:** bounded ingestion makes reports partial for most repos and
-  absence-based findings dominate; anonymous mode fails for medium repos.
-- **User:** the pre-adoption evaluator.
-- **Behavior:** ingest a curated set of high-signal files first (manifest,
-  README, CI config, entry points, security-sensitive paths) plus cheap
-  repository-level signals from the GitHub API (license, recent release/last
-  commit, open-issue count, dependency manifests) — enough for a meaningful
-  snapshot within the anonymous quota; presence-based checks over the key files
-  instead of absence-based breadth.
-- **Value:** a usable report for most public repos in seconds, with presence
-  findings that are verifiable.
-- **Evidence it works:** ≥80% of a 10-repo validation set completes within the
-  anonymous quota and produces at least one presence-based finding.
-- **Excludes:** full-repo traversal, cloning, deeper rules.
-- **Risk:** changes ingestion economics (the Phase 21 guarantees must be
-  preserved); mitigated by keeping the change additive and measured.
+- **Problema:** la ingestion acotada hace los reports parciales para la mayoría de los
+  repos y dominan los findings basados en ausencia; el modo anónimo falla para repos
+  medios.
+- **Usuario:** el evaluador pre-adopción.
+- **Comportamiento:** ingerir primero un conjunto curado de archivos de alta señal
+  (manifest, README, config de CI, entry points, paths sensibles a seguridad) más
+  señales baratas a nivel de repositorio de la API de GitHub (licencia, release
+  reciente/último commit, conteo de issues abiertos, manifests de dependencias) —
+  suficiente para un snapshot significativo dentro de la cuota anónima; comprobaciones
+  basadas en presencia sobre los key-files en lugar de amplitud basada en ausencia.
+- **Valor:** un report utilizable para la mayoría de los repos públicos en segundos,
+  con findings de presencia verificables.
+- **Evidencia de que funciona:** ≥80% de un set de validación de 10 repos se completa
+  dentro de la cuota anónima y produce al menos un finding basado en presencia.
+- **Excluye:** recorrido completo del repo, clonado, reglas más profundas.
+- **Riesgo:** cambia la economía de la ingestion (deben preservarse las garantías de
+  la Phase 21); mitigado manteniendo el cambio aditivo y medido.
 
-### Bet 3 — Risk-first due-diligence report (product shell)
+### Apuesta 3 — Reporte de due-diligence ordenado por riesgo (cáscara de producto)
 
-- **Problem:** the report presents findings per dimension, not as a decision
-  aid for "should I adopt this repo?".
-- **User:** the pre-adoption evaluator.
-- **Behavior:** the report leads with a short risk summary ("what you should
-  know before adopting"), orders findings by risk to the adopter, and always
-  shows what was not inspected.
-- **Value:** the difference between "an interesting report" and "a decision
-  aid".
-- **Evidence it works:** a developer can state the single most important risk
-  after 30 seconds with the report.
-- **Excludes:** accounts, dashboards, badges, gamification.
-- **Risk:** could become marketing — mitigated by keeping every statement
-  tied to a finding or a fact.
+- **Problema:** el report presenta los findings por dimensión, no como ayuda a la
+  decisión de "¿debería adoptar este repo?".
+- **Usuario:** el evaluador pre-adopción.
+- **Comportamiento:** el report abre con un resumen corto de riesgo ("lo que deberías
+  saber antes de adoptar"), ordena los findings por riesgo para el adoptante y siempre
+  muestra qué no fue inspeccionado.
+- **Valor:** la diferencia entre "un report interesante" y "una ayuda a la decisión".
+- **Evidencia de que funciona:** un desarrollador puede indicar el riesgo individual
+  más importante tras 30 segundos con el report.
+- **Excluye:** cuentas, dashboards, badges, gamificación.
+- **Riesgo:** podría convertirse en marketing — mitigado manteniendo cada afirmación
+  ligada a un finding o un hecho.
 
-These three bets are one product: evidence you can check (1) about the files
-that matter (2), presented as a decision aid (3). They are ordered by
-dependency — 1 and 2 enable 3.
+Estas tres apuestas son un solo producto: evidencia que puedes comprobar (1) sobre los
+archivos que importan (2), presentada como ayuda a la decisión (3). Están ordenadas por
+dependencia — 1 y 2 habilitan 3.
 
-## 11. What not to build
+## 11. Qué no construir
 
-| Candidate | Build now? | Why / why not | Becomes justified when |
+| Candidato | ¿Construir ahora? | Por qué sí / por qué no | Se justifica cuando |
 |---|---|---|---|
-| AI / LLM interpretation | NO | Undermines the determinism-and-honesty differentiator; large effort; the original product.md vision of AI is not the validated value | Bets 1–3 validate the JTBD and evidence content exists to reason over |
-| Chatbot | NO | No evidence anyone needs it | After accounts/usage exist |
-| Global score | NO | False precision; the audit and Phase 22 explicitly rejected it | Only if a defensible composite metric is demonstrated (unlikely) |
-| More analyzer rules | NO | Breadth without depth; the problem is evidence and coverage, not rule count | After key-file presence analysis proves value |
-| More dimensions | NO | Same reason | After depth is proven |
-| More ingestion (full traversal) | NO | The key-files strategy must be tested first; more requests worsen anonymous viability | If key-files proves insufficient and auth is solved |
-| CLI | NO | Server-side product; the URL-in-browser flow is the differentiator | If power users demand automation |
-| CI integration / GitHub App | NO | Requires accounts, auth, webhooks — a platform bet | After validation shows repeated use |
-| Dashboards | NO | Not a decision aid | After usage data exists |
-| Authentication / accounts | NO | Raises the activation barrier | After validated demand |
-| Playwright / Lighthouse infra | NO | QA infrastructure is not developer value | Only when UX regressions actually hurt |
-| Badges / gamification | NO | Marketing over substance | Never, in the near term |
+| Interpretación AI / LLM | NO | Socava el diferenciador de determinismo y honestidad; esfuerzo grande; la visión original de AI de product.md no es el valor validado | Las apuestas 1–3 validan el JTBD y existe contenido de evidencia sobre el que razonar |
+| Chatbot | NO | Sin evidencia de que alguien lo necesite | Después de que existan cuentas/uso |
+| Global score | NO | Falsa precisión; la auditoría y la Phase 22 lo rechazaron explícitamente | Solo si se demuestra una métrica compuesta defendible (improbable) |
+| Más reglas del analyzer | NO | Amplitud sin profundidad; el problema es la evidencia y la cobertura, no el conteo de reglas | Después de que el análisis de presencia en key-files pruebe valor |
+| Más dimensiones | NO | Misma razón | Después de probar la profundidad |
+| Más ingestion (recorrido completo) | NO | La estrategia de key-files debe testearse primero; más requests empeoran la viabilidad anónima | Si key-files resulta insuficiente y la auth está resuelta |
+| CLI | NO | Producto server-side; el flujo URL-en-navegador es el diferenciador | Si los power users exigen automatización |
+| Integración CI / GitHub App | NO | Requiere cuentas, auth, webhooks — una apuesta de plataforma | Después de que la validación muestre uso repetido |
+| Dashboards | NO | No es una ayuda a la decisión | Después de que existan datos de uso |
+| Autenticación / cuentas | NO | Eleva la barrera de activación | Después de demanda validada |
+| Infraestructura Playwright / Lighthouse | NO | La infraestructura de QA no es valor para el desarrollador | Solo cuando las regresiones de UX duelan de verdad |
+| Badges / gamificación | NO | Marketing sobre sustancia | Nunca, en el corto plazo |
 
-## 12. North Star metric
+## 12. Métrica North Star
 
-**"% of analyses that produce at least one finding the developer confirms as
-verifiable and would act on."**
+**"% de análisis que producen al menos un finding que el desarrollador confirma como
+verificable y sobre el que actuaría."**
 
-Why: it measures the aha moment directly, it is evidence-oriented (not a
-findings count), and it forces the product to optimize for the one thing that
-matters — a developer doing something differently because of the report. It
-requires a lightweight feedback control on the report (one click: "I would act
-on this / not useful"). Until instrumentation exists, the proxy is: "% of
-analyses with at least one `verified`, presence-based finding" — measurable
-today.
+Por qué: mide el aha moment directamente, está orientada a la evidencia (no a un conteo
+de findings) y obliga al producto a optimizar por lo único que importa — un
+desarrollador haciendo algo distinto por culpa del report. Requiere un control de
+feedback ligero en el report (un clic: "actuaría sobre esto / no útil"). Hasta que
+exista la instrumentación, el proxy es: "% de análisis con al menos un finding
+`verified` basado en presencia" — medible hoy.
 
-## 13. Success criteria for MVP 2.0
+## 13. Criterios de éxito del MVP 2.0
 
-A developer can:
+Un desarrollador puede:
 
-1. Analyze an unfamiliar public repository with **zero setup** (no auth) and
-   receive a report in under 60 seconds. *(observable, measurable)*
-2. Read **at least one finding confirmed by content evidence** without opening
-   the repository, in ≥80% of analyses on a 10-repo validation set.
-   *(observable, measurable)*
-3. State the **single most important risk** after 30 seconds with the report.
-   *(observable, testable)*
-4. Explain what was **not inspected** and why the result is trustworthy.
-   *(observable, testable)*
-5. Follow a **recommendation to verification** for every finding.
-   *(already true since Phase 27 — must be preserved)*
-6. In a 5–10 developer validation, report ≥1 finding per analysis they
-   "would act on" in ≥70% of analyses. *(measurable, requires feedback
-   instrumentation)*
+1. Analizar un repositorio público desconocido con **cero setup** (sin auth) y
+   recibir un report en menos de 60 segundos. *(observable, medible)*
+2. Leer **al menos un finding confirmado por evidencia de contenido** sin abrir el
+   repositorio, en ≥80% de los análisis de un set de validación de 10 repos.
+   *(observable, medible)*
+3. Indicar el **riesgo individual más importante** tras 30 segundos con el report.
+   *(observable, testeable)*
+4. Explicar qué **no fue inspeccionado** y por qué el resultado es confiable.
+   *(observable, testeable)*
+5. Seguir una **recomendación hasta la verificación** para cada finding.
+   *(ya cierto desde la Phase 27 — debe preservarse)*
+6. En una validación de 5–10 desarrolladores, reportar ≥1 finding por análisis sobre
+   el que "actuarían" en ≥70% de los análisis. *(medible, requiere instrumentación de
+   feedback)*
 
-## 14. Final product verdict
+## 14. Veredicto final de producto
 
-### Does it make sense to keep developing ai-developer-platform?
+### ¿Tiene sentido seguir desarrollando ai-developer-platform?
 
-**YES — but narrow the product.**
+**SÍ — pero estrechar el producto.**
 
-The general repository analyzer, as released in v1.0.0, is not a differentiated
-product: every individual capability is done better by tools developers already
-use, and the bounded/anonymous limitations make it unusable for most medium+
-repositories. Continuing to add rules, scores or coverage on that basis would be
-building on an unvalidated premise.
+El analyzer general de repositorios, tal como se publicó en v1.0.0, no es un producto
+diferenciado: cada capacidad individual la hace mejor una herramienta que los
+desarrolladores ya usan, y las limitaciones acotadas/anónimas lo hacen inutilizable
+para la mayoría de los repositorios medios+. Continuar añadiendo reglas, scores o
+cobertura sobre esa base sería construir sobre una premisa no validada.
 
-However, there is a narrow, defensible job — **zero-configuration technical risk
-snapshot of an unfamiliar public repository** — for which the existing
-architecture (no clone, no setup, deterministic, explicit coverage semantics,
-evidence-status honesty, recommendation + verification) is a structural
-advantage, and for which the three MVP 2.0 bets form a coherent path.
+Sin embargo, existe un trabajo estrecho y defendible — **snapshot de riesgo técnico de
+configuración cero de un repositorio público desconocido** — para el cual la
+arquitectura existente (sin clon, sin setup, determinista, semántica de cobertura
+explícita, honestidad del estado de evidencia, recomendación + verificación) es una
+ventaja estructural, y para el cual las tres apuestas del MVP 2.0 forman un camino
+coherente.
 
-This verdict is **conditional**: if the Phase 29 validation does not demonstrate
-at least one aha per analysis for most repos, the correct answer becomes
-**NO — insufficient differentiation**, and the project should stop feature work
-and remain a portfolio artifact. The decision is intentionally reversible.
+Este veredicto es **condicional**: si la validación de la Phase 29 no demuestra al
+menos un aha por análisis en la mayoría de los repos, la respuesta correcta pasa a
+ser **NO — diferenciación insuficiente**, y el proyecto debería detener el trabajo de
+features y permanecer como artefacto de portfolio. La decisión es intencionadamente
+reversible.
 
-### What should Phase 29 be?
+### ¿Qué debería ser la Phase 29?
 
-**A validation experiment, not an implementation phase.** Hypothesis: "a
-zero-configuration risk snapshot of an unknown public repository produces at
-least one actionable, verifiable insight per analysis that the evaluator would
-not find within five minutes using existing tools." Phase 29 should build the
-thinnest possible prototype on the current stack (key-file presence checks +
-repository signals + redacted evidence excerpts + risk-ordered summary), run it
-on ~10 real public repositories, and collect feedback from 3–5 developers.
-The exit gate: ≥1 aha per analysis in ≥70% of cases → proceed to MVP 2.0 build;
-otherwise → stop and keep the project as portfolio.
+**Un experimento de validación, no una fase de implementación.** Hipótesis: "un
+snapshot de riesgo de configuración cero de un repositorio público desconocido produce
+al menos un insight accionable y verificable por análisis que el evaluador no
+encontraría en cinco minutos con las herramientas existentes". La Phase 29 debería
+construir el prototipo más fino posible sobre el stack actual (comprobaciones de
+presencia en key-files + señales de repositorio + excerpts de evidencia redactados +
+resumen ordenado por riesgo), ejecutarlo sobre ~10 repositorios públicos reales y
+recopilar feedback de 3–5 desarrolladores. El gate de salida: ≥1 aha por análisis en
+≥70% de los casos → proceder al build del MVP 2.0; si no → detener y mantener el
+proyecto como portfolio.
 
-## 15. Recommended next phase (detail)
+## 15. Siguiente fase recomendada (detalle)
 
-- **Name:** Phase 29 — Pre-adoption snapshot validation
-- **Type:** validation experiment (thin prototype + interviews), NOT a build
-- **In scope:** key-file presence checks; repository-level signals; redacted
-  evidence excerpts for top findings; risk-ordered summary; 10-repo run;
-  3–5 developer interviews
-- **Out of scope:** AI, accounts, CI, CLI, GitHub App, global score, new rules
-- **Success:** ≥70% of analyses produce a confirmed aha
-- **Failure:** stop feature development; keep the deterministic analyzer as
+- **Nombre:** Phase 29 — Validación del snapshot pre-adopción
+- **Tipo:** experimento de validación (prototipo fino + entrevistas), NO un build
+- **En alcance:** comprobaciones de presencia en key-files; señales a nivel de
+  repositorio; excerpts de evidencia redactados para los findings principales; resumen
+  ordenado por riesgo; ejecución de 10 repos; 3–5 entrevistas a desarrolladores
+- **Fuera de alcance:** AI, cuentas, CI, CLI, GitHub App, global score, reglas nuevas
+- **Éxito:** ≥70% de los análisis producen un aha confirmado
+- **Fallo:** detener el desarrollo de features; mantener el analyzer determinista como
   portfolio
 
 ---
 
-*This document is a product-strategy audit. It makes no claims about product
-readiness, accuracy, or coverage beyond what the implementation and real
-executions demonstrate. See `docs/product-audit-v1.0.0.md` for the v1.0.0 audit
-and `docs/phase-26-evidence-and-trust.md` / `docs/phase-27-developer-actionability.md`
-for the trust and actionability work it builds on.*
+*Este documento es una auditoría de estrategia de producto. No hace claims sobre
+preparación del producto, exactitud ni cobertura más allá de lo que demuestran la
+implementación y las ejecuciones reales. Ver `docs/product-audit-v1.0.0.md` para la
+auditoría del v1.0.0 y `docs/phase-26-evidence-and-trust.md` / `docs/phase-27-developer-actionability.md`
+para el trabajo de confianza y accionabilidad sobre el que se construye.*

@@ -1,32 +1,32 @@
 # Frontend
 
-## Phase 6 scope
+## Alcance de la Fase 6
 
-The Angular application now exposes the first user-facing vertical slice:
+La aplicación Angular expone ahora el primer corte vertical orientado al usuario:
 
 ```text
 repository URL → POST /analyses → polling → report
 ```
 
-The frontend does not contain analyzer, scoring, persistence, or GitHub logic. It consumes the DTOs in `packages/contracts` through `AnalysisService`.
+El frontend no contiene lógica de analyzer, scoring, persistencia ni GitHub. Consume los DTO de `packages/contracts` a través de `AnalysisService`.
 
-## Structure
+## Estructura
 
-- `core/api/analysis.service.ts`: typed HTTP calls for analysis creation, status, and report retrieval.
-- `features/analysis/pages/home.page.*`: repository URL form and client-side validation.
-- `features/analysis/pages/progress.page.*`: status display and bounded polling.
-- `features/analysis/pages/report.page.*`: findings, evidence, recommendations, dimension scores, and limitations.
+- `core/api/analysis.service.ts`: llamadas HTTP tipadas para la creación del análisis, el estado y la recuperación del reporte.
+- `features/analysis/pages/home.page.*`: formulario de URL del repositorio y validación en cliente.
+- `features/analysis/pages/progress.page.*`: visualización del estado y polling acotado.
+- `features/analysis/pages/report.page.*`: findings, evidencia, recomendaciones, puntuaciones por dimensión y limitaciones.
 
 ## Routing
 
-- `/`: repository input.
-- `/analyses/:id`: queued/running/terminal job status.
-- `/analyses/:id/report`: persisted report loaded from the API, so browser refresh is supported.
+- `/`: entrada del repositorio.
+- `/analyses/:id`: estado del job queued/running/terminal.
+- `/analyses/:id/report`: reporte persistido cargado desde la API, por lo que el refresco del navegador está soportado.
 
-Polling runs every four seconds with `exhaustMap`, stops at terminal states, and is cleaned up with `takeUntilDestroyed`. WebSockets and global state are intentionally deferred.
+El polling se ejecuta cada cuatro segundos con `exhaustMap`, se detiene en los estados terminales y se limpia con `takeUntilDestroyed`. WebSockets y estado global quedan deliberadamente diferidos.
 
-## Accessibility and safety
+## Accesibilidad y seguridad
 
-Pages use semantic headings, labels, associated errors, status announcements, keyboard-focusable controls, visible focus styles, responsive layouts, and text interpolation. Repository paths, filenames, descriptions, and evidence hashes are treated as untrusted text; the UI does not use `innerHTML`.
+Las páginas usan headings semánticos, labels, errores asociados, anuncios de estado, controles enfocables por teclado, estilos de foco visibles, layouts responsive e interpolación de texto. Los paths del repositorio, nombres de archivo, descripciones y hashes de evidencia se tratan como texto no confiable; la UI no usa `innerHTML`.
 
-The current tests validate component behavior and HTTP interactions. Phase 7 confirmed the baseline against the live API flow; this is not a complete WCAG 2.2 AA audit. Automated axe testing and browser-level E2E remain candidates for later hardening.
+Los tests actuales validan el comportamiento de los componentes y las interacciones HTTP. La Fase 7 confirmó la línea base contra el flujo real de la API; esto no es una auditoría completa de WCAG 2.2 AA. El test automático con axe y el E2E a nivel de navegador siguen siendo candidatos para un endurecimiento posterior.

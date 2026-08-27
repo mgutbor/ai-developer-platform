@@ -1,37 +1,37 @@
 # AI Developer Platform v1.0.0
 
-## What it is
+## Qué es
 
-AI Developer Platform analyzes a bounded snapshot of a public GitHub repository and produces an evidence-backed Developer Health Report. The deterministic report is the authoritative product output. An optional AI layer can explain and prioritize existing report material, but it never creates or modifies findings, evidence or scores.
+AI Developer Platform analiza un snapshot acotado de un repositorio público de GitHub y produce un Developer Health Report respaldado por evidencia. El reporte determinista es la salida autoritativa del producto. Una capa de AI opcional puede explicar y priorizar el material existente del reporte, pero nunca crea ni modifica findings, evidencia ni puntuaciones.
 
-## What v1.0.0 does
+## Qué hace v1.0.0
 
-1. Accepts a public GitHub repository URL and optional ref.
-2. Resolves the ref to an immutable commit SHA.
-3. Retrieves bounded repository metadata, tree entries and textual files through GitHub REST (segmented tree traversal with semantics-preserving early termination).
-4. Runs deterministic TypeScript/JavaScript analysis (18 rules across architecture, testing, documentation, dependencies, code quality, security, maintainability and tooling).
-5. Produces facts, metrics, evidence, findings and recommendations.
-6. Calculates nullable dimensional scores (no global score).
-7. Persists jobs and reports in SQLite.
-8. Exposes the report through Fastify API endpoints and an Angular UI.
-9. Optionally generates a separately labeled AI interpretation.
+1. Acepta la URL de un repositorio público de GitHub y una ref opcional.
+2. Resuelve la ref a un commit SHA inmutable.
+3. Obtiene metadatos acotados del repositorio, entradas del tree y archivos textuales mediante GitHub REST (traversal segmentado del tree con terminación temprana que preserva la semántica).
+4. Ejecuta análisis determinista de TypeScript/JavaScript (18 reglas en arquitectura, testing, documentación, dependencias, calidad de código, seguridad, mantenibilidad y tooling).
+5. Produce facts, metrics, evidencia, findings y recomendaciones.
+6. Calcula puntuaciones dimensionales nullable (sin puntuación global).
+7. Persiste jobs y reportes en SQLite.
+8. Expone el reporte mediante endpoints de la API Fastify y una UI Angular.
+9. Genera opcionalmente una interpretación de AI etiquetada por separado.
 
-## Quick start
+## Inicio rápido
 
-Requirements:
+Requisitos:
 
 - Node.js 24;
 - pnpm 10.34.5.
 
 ```bash
 pnpm install --frozen-lockfile
-export GITHUB_TOKEN="<server-side-token>"   # or GH_TOKEN; never commit a real token
+export GITHUB_TOKEN="<server-side-token>"   # o GH_TOKEN; nunca commitees un token real
 pnpm dev
 ```
 
-Open `http://localhost:4200`, enter a public GitHub repository URL and follow the analysis progress to the report.
+Abre `http://localhost:4200`, introduce la URL de un repositorio público de GitHub y sigue el progreso del análisis hasta el reporte.
 
-Quality validation:
+Validación de calidad:
 
 ```bash
 pnpm check:architecture
@@ -43,7 +43,7 @@ pnpm build
 pnpm audit --audit-level=high
 ```
 
-## API flow
+## Flujo de la API
 
 ```text
 POST /analyses
@@ -56,57 +56,57 @@ POST /analyses/:id/ai
 GET  /analyses/:id/ai
 ```
 
-## Added
+## Añadido
 
-- Public GitHub repository URL validation and commit-anchored bounded ingestion.
-- Segmented Git-tree acquisition for large repositories with deterministic, semantics-preserving early termination (`microsoft/TypeScript`, `nodejs/node` ingestible within limits).
-- Deterministic TypeScript/JavaScript analysis producing facts, metrics, evidence, findings and recommendations.
-- Nullable dimensional scoring (architecture, testing, documentation, dependencies, code quality) without a global score.
-- In-process `AnalysisJob` lifecycle with SQLite persistence, idempotency and retention cleanup.
-- Fastify report API and Angular report experience.
-- Clear user-facing states: loading, completed, completed-with-limitations, failed with specific reason, snapshot-limit-exceeded, insufficient coverage, empty findings (Phase 24).
-- Optional AI-assisted interpretation with bounded context, structured output, validated references and local rate limiting.
-- Security boundaries for SSRF, redirects, path traversal, symlinks/submodules, untrusted repository content and prompt injection.
-- Automated quality checks, deterministic fixtures, phase validation documentation, portfolio and release documentation.
+- Validación de URL de repositorios públicos de GitHub e ingestión acotada anclada al commit.
+- Adquisición segmentada del Git-tree para repositorios grandes con terminación temprana determinista que preserva la semántica (`microsoft/TypeScript`, `nodejs/node` ingeribles dentro de los límites).
+- Análisis determinista de TypeScript/JavaScript que produce facts, metrics, evidencia, findings y recomendaciones.
+- Puntuación dimensional nullable (arquitectura, testing, documentación, dependencias, calidad de código) sin puntuación global.
+- Ciclo de vida de `AnalysisJob` en proceso con persistencia SQLite, idempotencia y limpieza por retención.
+- API de reporte Fastify y experiencia de reporte en Angular.
+- Estados claros orientados al usuario: loading, completed, completed-with-limitations, failed con motivo específico, snapshot-limit-exceeded, cobertura insuficiente, findings vacíos (Phase 24).
+- Interpretación asistida por AI opcional con contexto acotado, salida estructurada, referencias validadas y rate limiting local.
+- Fronteras de seguridad para SSRF, redirects, path traversal, symlinks/submódulos, contenido no confiable del repositorio e inyección de prompts.
+- Checks de calidad automatizados, fixtures deterministas, documentación de validación por fases, documentación de portfolio y de release.
 
-## Validated
+## Validado
 
-- **Phase 22 (ground truth):** frozen 8-repository dataset; 25 findings human-classified (7 TP, 0 FP, 2 uncertain, 16 not-evaluable). Conclusion: sample insufficient for defensible precision/recall; decision `KEEP WITH LIMITATIONS`.
-- **Phase 23 (E2E product):** real product server validated against public repositories — successful analysis (real commit SHA, findings, evidence, scores, coverage), invalid URL (400), repository not found, ingestion limit (`SNAPSHOT_LIMIT_EXCEEDED`), partial/insufficient coverage, API↔UI consistency, accessibility and security baselines. Decision `PASS WITH LIMITATIONS`. Fixed a real production defect: the server-side GitHub credential is now wired into the GitHub client (with regression tests).
-- **Phase 24 (UX/docs/portfolio):** plain-language failure, coverage and limitation messaging; README, architecture and portfolio documentation. Decision `PASS`.
-- Full quality-gate suite green: install, architecture check, format, lint, typecheck, tests (92, 0 failures), build, audit (no known vulnerabilities), `git diff --check`.
+- **Phase 22 (ground truth):** dataset congelado de 8 repositorios; 25 findings clasificados por humanos (7 TP, 0 FP, 2 uncertain, 16 not-evaluable). Conclusión: muestra insuficiente para una precisión/recall defendible; decisión `KEEP WITH LIMITATIONS`.
+- **Phase 23 (producto E2E):** servidor real del producto validado contra repositorios públicos — análisis exitoso (commit SHA real, findings, evidencia, puntuaciones, cobertura), URL inválida (400), repositorio no encontrado, límite de ingestión (`SNAPSHOT_LIMIT_EXCEEDED`), cobertura parcial/insuficiente, consistencia API↔UI, líneas base de accesibilidad y seguridad. Decisión `PASS WITH LIMITATIONS`. Se corrigió un defecto real de producción: la credencial GitHub server-side ahora se cablea en el cliente de GitHub (con tests de regresión).
+- **Phase 24 (UX/docs/portfolio):** mensajes de fallo, cobertura y limitaciones en lenguaje llano; documentación de README, arquitectura y portfolio. Decisión `PASS`.
+- Suite completa de quality gates en verde: install, architecture check, format, lint, typecheck, tests (92, 0 fallos), build, audit (sin vulnerabilidades conocidas), `git diff --check`.
 
-## Security
+## Seguridad
 
-- GitHub credentials are **server-side / environment-only** (`GITHUB_TOKEN` or `GH_TOKEN`). The application resolves them from the environment, passes them to the GitHub client, and never returns, persists or logs them.
-- No credential value appears in documentation, artifacts, API responses or SQLite.
-- README examples use placeholders only.
-- Repository contents are treated as data: no repository code is executed and no analyzed-repository dependencies are installed.
-- Errors are sanitized for users (no stack traces or internal details).
+- Las credenciales de GitHub son **solo server-side / de entorno** (`GITHUB_TOKEN` o `GH_TOKEN`). La aplicación las resuelve desde el entorno, las pasa al cliente de GitHub y nunca las devuelve, persiste ni registra.
+- Ningún valor de credencial aparece en documentación, artefactos, respuestas de la API ni SQLite.
+- Los ejemplos del README usan solo placeholders.
+- Los contenidos del repositorio se tratan como datos: no se ejecuta código del repositorio ni se instalan dependencias del repositorio analizado.
+- Los errores están sanitizados para los usuarios (sin stack traces ni detalles internos).
 
-## Known limitations
+## Limitaciones conocidas
 
-- **Bounded ingestion:** `maxFileCount=50`, `maxApiRequests=125`, `maxJsonResponseBytes=4 MiB`, `maxTotalBytes=2 MiB`, `maxFileBytes=256 KiB`. Coverage is `partial`/`insufficient` for most repositories and is surfaced honestly in the UI.
-- **SNAPSHOT_LIMIT_EXCEEDED:** very large repositories (`react/react`, `vitejs/vite`) cannot complete a 50-file snapshot within `maxApiRequests=125`; the product reports a controlled failure and never presents an incomplete analysis as complete.
-- **Absence-based evidence:** rules may report "not detected" when the bounded snapshot may not contain all relevant files.
-- **AN-ARCH-002:** unresolved-import findings reflect bounded static-resolution limits, not proven repository defects.
-- **Ground truth:** the validated sample is insufficient for a statistically defensible precision/recall statement.
-- **No browser E2E (Playwright) / automated axe** tooling; frontend validated by unit tests and API-contract verification against the real server.
-- **AI optional:** not validated with a live provider (no credentials configured); deterministic report is authoritative.
-- Only public GitHub repositories are supported.
+- **Ingestión acotada:** `maxFileCount=50`, `maxApiRequests=125`, `maxJsonResponseBytes=4 MiB`, `maxTotalBytes=2 MiB`, `maxFileBytes=256 KiB`. La cobertura es `partial`/`insufficient` para la mayoría de los repositorios y se comunica honestamente en la UI.
+- **SNAPSHOT_LIMIT_EXCEEDED:** los repositorios muy grandes (`react/react`, `vitejs/vite`) no pueden completar un snapshot de 50 archivos dentro de `maxApiRequests=125`; el producto reporta un fallo controlado y nunca presenta un análisis incompleto como completo.
+- **Evidencia basada en ausencia:** las reglas pueden reportar "not detected" cuando el snapshot acotado puede no contener todos los archivos relevantes.
+- **AN-ARCH-002:** los findings de imports sin resolver reflejan límites de la resolución estática acotada, no defectos demostrados del repositorio.
+- **Ground truth:** la muestra validada es insuficiente para una afirmación estadísticamente defendible de precisión/recall.
+- **Sin E2E de navegador (Playwright) / axe automatizado:** el frontend se valida con tests unitarios y verificación del contrato de la API contra el servidor real.
+- **AI opcional:** no validada con un proveedor en vivo (sin credenciales configuradas); el reporte determinista es autoritativo.
+- Solo se soportan repositorios públicos de GitHub.
 
-## Not included
+## No incluido
 
-- Private repositories, authentication and GitHub App integration.
-- Advanced or unbounded ingestion and additional analyzer rules.
-- Full SAST, complete AST analysis, complete module resolution and vulnerability scanning.
-- Repository code execution, builds, tests or package installation.
-- Global or AI-generated scores and automatic remediation.
-- Workers, queues, Redis, PostgreSQL, microservices, realtime, billing, analytics.
+- Repositorios privados, autenticación e integración con GitHub App.
+- Ingestión avanzada o ilimitada y reglas adicionales del analyzer.
+- SAST completo, análisis AST completo, resolución completa de módulos y escaneo de vulnerabilidades.
+- Ejecución del código del repositorio, builds, tests ni instalación de paquetes.
+- Puntuaciones globales o generadas por AI y remediación automática.
+- Workers, colas, Redis, PostgreSQL, microservicios, realtime, billing, analytics.
 - RAG, embeddings, agents, chat, streaming.
 
-## Release status
+## Estado de la release
 
-This is the **v1.0.0 MVP release** — the final MVP phase. The product is released as v1.0.0 with the documented limitations above. Improvements to bounded ingestion, evidence semantics, browser E2E/axe automation, live AI evaluation and production-scale operations are intentionally deferred to post-MVP work.
+Esta es la **release MVP v1.0.0** — la fase MVP final. El producto se publica como v1.0.0 con las limitaciones documentadas anteriormente. Las mejoras de ingestión acotada, semántica de evidencia, automatización de E2E/axe de navegador, evaluación de AI en vivo y operaciones a escala de producción quedan diferidas deliberadamente al trabajo post-MVP.
 
-See [`docs/release-readiness.md`](release-readiness.md), [`docs/portfolio.md`](portfolio.md), [`docs/security.md`](security.md), [`docs/architecture.md`](architecture.md) and [`docs/roadmap.md`](roadmap.md).
+Ver [`docs/release-readiness.md`](release-readiness.md), [`docs/portfolio.md`](portfolio.md), [`docs/security.md`](security.md), [`docs/architecture.md`](architecture.md) y [`docs/roadmap.md`](roadmap.md).

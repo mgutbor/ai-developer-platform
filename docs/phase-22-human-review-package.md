@@ -1,30 +1,30 @@
-# Phase 22.2 — Human Review Package (evidence, no classification)
+# Phase 22.2 — Paquete de revisión humana (evidencia, sin clasificación)
 
-## Objective
+## Objetivo
 
-Execute the frozen Phase 22.1 dataset (8 public repositories, exact commit SHAs) through the existing deterministic pipeline (ingestion → analyzer → scoring) and produce a **reproducible evidence package** for Manuel's subsequent human ground-truth review.
+Ejecutar el dataset congelado de la Phase 22.1 (8 repositorios públicos, SHAs de commit exactos) a través del pipeline determinista existente (ingestion → analyzer → scoring) y producir un **paquete de evidencia reproducible** para la posterior revisión ground-truth humana de Manuel.
 
-This phase **produces evidence only**. It does **not** classify findings, does **not** compute precision/recall/accuracy, and does **not** change any analyzer rule, scoring formula, ingestion behaviour or resource limit.
+Esta fase **solo produce evidencia**. No **clasifica** findings, no **calcula** precision/recall/accuracy y no **cambia** ninguna regla del analyzer, fórmula de scoring, comportamiento de ingestión ni límite de recursos.
 
 ```text
-DATASET (Phase 22.1, frozen)
+DATASET (Phase 22.1, congelado)
         ↓
-8 executions (this phase)
+8 ejecuciones (esta fase)
         ↓
-FINDINGS + EVIDENCE (review package, this phase)
+FINDINGS + EVIDENCIA (paquete de revisión, esta fase)
         ↓
-[Manuel classifies in Phase 22.3]
+[Manuel clasifica en la Phase 22.3]
         ↓
-METRICS
+MÉTRICAS
         ↓
-DECISION
+DECISIÓN
 ```
 
-## Dataset used
+## Dataset utilizado
 
-Exactly the 8 repositories and frozen SHAs from `docs/phase-22-ground-truth-dataset.md`. Execution uses the frozen SHA as the ingestion `ref`; floating references are never used as the canonical source.
+Exactamente los 8 repositorios y SHAs congelados de `docs/phase-22-ground-truth-dataset.md`. La ejecución usa el SHA congelado como `ref` de ingestión; las referencias flotantes nunca se usan como fuente canónica.
 
-| # | Repository | Frozen SHA |
+| # | Repositorio | SHA congelado |
 | --- | --- | --- |
 | 1 | `octocat/Hello-World` | `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d` |
 | 2 | `sindresorhus/type-fest` | `3fe02d33596f8afa167bc465d9d9ac9ab81b497e` |
@@ -35,11 +35,11 @@ Exactly the 8 repositories and frozen SHAs from `docs/phase-22-ground-truth-data
 | 7 | `nestjs/nest` | `a333a9dae6169537da3954c5b1ac35202b057fcb` |
 | 8 | `vitejs/vite` | `ee644014aab61e546742b862a7d7b0d6c7d67a7b` |
 
-## Execution parameters
+## Parámetros de ejecución
 
-Contractual defaults, unchanged:
+Defaults contractuales, sin cambios:
 
-| Parameter | Value |
+| Parámetro | Valor |
 | --- | ---: |
 | `maxFileCount` | 50 |
 | `maxApiRequests` | 125 |
@@ -50,24 +50,24 @@ Contractual defaults, unchanged:
 | `requestTimeoutMs` | 10,000 |
 | `ingestionTimeoutMs` | 60,000 |
 
-Analyzer version `1.0.0`, scoring version `1.0.0` (project commit `f9361be8048ea17084be44e83e364461fd4f5ccf`).
+Versión del analyzer `1.0.0`, versión del scoring `1.0.0` (commit del proyecto `f9361be8048ea17084be44e83e364461fd4f5ccf`).
 
-## Execution
+## Ejecución
 
 - Runner: `apps/api/src/validate-ground-truth.ts`.
-- Timestamp of execution (UTC): **2026-08-27 16:02**.
-- Mode: sequential (8 repositories, one client+snapshot each) to keep requests bounded and stay reproducible.
-- Per repository run: `GET` repository → resolve commit SHA → (Stage: the snapshot commit) → ingestion → analyzer → scoring.
+- Marca de tiempo de la ejecución (UTC): **2026-08-27 16:02**.
+- Modo: secuencial (8 repositorios, un cliente+snapshot cada uno) para mantener los requests acotados y seguir siendo reproducible.
+- Ejecución por repositorio: `GET` del repositorio → resolver SHA de commit → (Stage: el commit del snapshot) → ingestion → analyzer → scoring.
 
-## Artifacts
+## Artefactos
 
-| Path | Content |
+| Ruta | Contenido |
 | --- | --- |
-| `/tmp/phase22-ground-truth-results.jsonl` | Sanitized per-run summary (8 lines): repository, frozen SHA + resolved SHA (verified equal), status, ingestion category, requests, tree/blob/other request counts, selected file count, total bytes, findings, coverage, limitations, latency. |
-| `/tmp/phase22-human-review/` | The review evidence package: `README.md`, `00-summary.md` and one review file per repository. |
-| `docs/phase-22-human-review-package.md` | This document. |
+| `/tmp/phase22-ground-truth-results.jsonl` | Resumen saneado por ejecución (8 líneas): repositorio, SHA congelado + SHA resuelto (verificados iguales), estado, categoría de ingestión, requests, conteos de tree/blob/otros requests, conteo de archivos seleccionados, bytes totales, findings, cobertura, limitaciones, latencia. |
+| `/tmp/phase22-human-review/` | El paquete de evidencia de revisión: `README.md`, `00-summary.md` y un archivo de revisión por repositorio. |
+| `docs/phase-22-human-review-package.md` | Este documento. |
 
-### Review package structure
+### Estructura del paquete de revisión
 
 ```text
 /tmp/phase22-human-review/
@@ -83,15 +83,15 @@ Analyzer version `1.0.0`, scoring version `1.0.0` (project commit `f9361be8048ea
 └── 08-vitejs-vite.md
 ```
 
-Every dataset repository gets a file, even those that produced no findings.
+Cada repositorio del dataset tiene un archivo, incluso aquellos que no produjeron findings.
 
-## Finding format
+## Formato de los findings
 
-Each review file starts with repository / commit / analyzer version / scoring version / execution status / coverage / limitations, then a `## Findings` section. Each finding lists only analyzer-produced evidence: rule, severity, title, message, evidence (id, kind, path, range, excerpt hash), recommendation, dimension and score impact where available. Evidence excerpts are **not** embedded as repository content — deterministic analyzer evidence carries an excerpt hash + location; full content is not persisted.
+Cada archivo de revisión empieza con repositorio / commit / versión del analyzer / versión del scoring / estado de ejecución / cobertura / limitaciones, y luego una sección `## Findings`. Cada finding lista solo la evidencia producida por el analyzer: regla, severidad, título, mensaje, evidencia (id, kind, path, range, hash del excerpt), recomendación, dimensión e impacto de score cuando esté disponible. Los excerpts de evidencia **no** se incrustan como contenido del repositorio — la evidencia del analyzer determinista lleva un hash de excerpt + location; el contenido completo no se persiste.
 
-Missing-test / missing-lint / missing-doc style findings reference `kind=metadata` evidence (a repository-level observation, path `(none)`).
+Los findings de tipo missing-test / missing-lint / missing-doc referencian evidencia `kind=metadata` (una observación a nivel de repositorio, path `(none)`).
 
-Each finding ends with an **empty** review template reserved for Manuel:
+Cada finding termina con una **plantilla de revisión vacía** reservada para Manuel:
 
 ```text
 ### Human review
@@ -103,13 +103,13 @@ Each finding ends with an **empty** review template reserved for Manuel:
 - Reviewer confidence: [HIGH | MEDIUM | LOW]
 ```
 
-plus concrete reviewer questions. Nothing is pre-filled.
+más preguntas concretas para el revisor. Nada está pre-llenado.
 
-## Results summary
+## Resumen de resultados
 
-8 executions; SHA matches the frozen anchor for all 8 (the 2 that ended `failed` still resolved the frozen SHA before the failure and are recorded as such).
+8 ejecuciones; el SHA coincide con el ancla congelada en las 8 (las 2 que terminaron `failed` aún resolvieron el SHA congelado antes del fallo y se registran como tales).
 
-| Repository | Status | Requests | Files | Findings |
+| Repositorio | Estado | Requests | Archivos | Findings |
 | --- | --- | ---: | ---: | ---: |
 | `octocat/Hello-World` | ok | 5 | 1 | 3 |
 | `sindresorhus/type-fest` | ok | 62 | 50 | 7 |
@@ -120,11 +120,11 @@ plus concrete reviewer questions. Nothing is pre-filled.
 | `nestjs/nest` | ok | 96 | 50 | 2 |
 | `vitejs/vite` | failed (`ingestion_limit_reached`) | 125 | n/a | n/a |
 
-**Total findings produced: 25** (across the 6 repositories whose snapshots completed).
+**Total de findings producidos: 25** (en los 6 repositorios cuyos snapshots se completaron).
 
-### Findings by rule (evidence counters — not accuracy)
+### Findings por regla (contadores de evidencia — no exactitud)
 
-| Rule | Count |
+| Regla | Conteo |
 | --- | ---: |
 | `AN-ARCH-002` | 5 |
 | `AN-TEST-001` | 4 |
@@ -135,9 +135,9 @@ plus concrete reviewer questions. Nothing is pre-filled.
 | `AN-DEP-001` | 2 |
 | `AN-SEC-003` | 2 |
 
-### Findings by severity
+### Findings por severidad
 
-| Severity | Count |
+| Severidad | Conteo |
 | --- | ---: |
 | critical | 0 |
 | high | 0 |
@@ -145,9 +145,9 @@ plus concrete reviewer questions. Nothing is pre-filled.
 | low | 11 |
 | info | 0 |
 
-### Findings by dimension
+### Findings por dimensión
 
-| Dimension | Count |
+| Dimensión | Conteo |
 | --- | ---: |
 | architecture | 5 |
 | code_quality | 6 |
@@ -157,9 +157,9 @@ plus concrete reviewer questions. Nothing is pre-filled.
 | security | 2 |
 | testing | 6 |
 
-### Priority-rule coverage observed
+### Cobertura de reglas prioritarias observada
 
-| Rule | Observed in dataset |
+| Regla | Observada en el dataset |
 | --- | --- |
 | `AN-SEC-003` | FOUND |
 | `AN-TEST-001` | FOUND |
@@ -167,65 +167,65 @@ plus concrete reviewer questions. Nothing is pre-filled.
 | `AN-ARCH-002` | FOUND |
 | `AN-DOC-001` | NOT_FOUND |
 
-`NOT_FOUND` is a recorded observation only; it is not evidence that a rule works or fails.
+`NOT_FOUND` es solo una observación registrada; no es evidencia de que una regla funcione o falle.
 
-## Coverage / ingestion status
+## Estado de cobertura / ingestión
 
-Coverage reflects the snapshot, not repository health.
+La cobertura refleja el snapshot, no la salud del repositorio.
 
-- `octocat/Hello-World`: coverage `insufficient` (`tree_segmented_acquisition`).
-- `expressjs/express`: coverage `partial` (`tree_segmented_acquisition`).
-- `type-fest`, `angular/angular`, `vuejs/core`, `nestjs/nest`: coverage `partial` with limitations such as `tree_segmented_early_termination`, `tree_truncated`, `file_count_limit_reached`, and occasional `file_too_large:<path>`.
-- `react/react` and `vitejs/vite`: coverage `null`, ingestion `ingestion_limit_reached` — no snapshot, no findings.
+- `octocat/Hello-World`: cobertura `insufficient` (`tree_segmented_acquisition`).
+- `expressjs/express`: cobertura `partial` (`tree_segmented_acquisition`).
+- `type-fest`, `angular/angular`, `vuejs/core`, `nestjs/nest`: cobertura `partial` con limitaciones como `tree_segmented_early_termination`, `tree_truncated`, `file_count_limit_reached` y ocasional `file_too_large:<path>`.
+- `react/react` y `vitejs/vite`: cobertura `null`, ingestión `ingestion_limit_reached` — sin snapshot, sin findings.
 
-## Failure explanation — react/react and vitejs/vite
+## Explicación del fallo — react/react y vitejs/vite
 
-Both large repositories exceeded the contract `maxApiRequests=125` before completing a `maxFileCount=50` snapshot:
+Ambos repositorios grandes excedieron el `maxApiRequests=125` contractual antes de completar un snapshot de `maxFileCount=50`:
 
-- `react/react`: 81 tree requests + 41 blob requests + 3 resolution requests = 125.
-- `vitejs/vite`: 79 tree requests + 43 blob requests + 3 resolution requests = 125.
+- `react/react`: 81 requests de árbol + 41 requests de blob + 3 requests de resolución = 125.
+- `vitejs/vite`: 79 requests de árbol + 43 requests de blob + 3 requests de resolución = 125.
 
-Selecting and fetching 50 files from these large trees requires more than 125 API requests under the current per-file retrieval model (`3 resolution + <tree traversal> + 50 blob`). This is the same bounded-resource budget conflict documented in Phases 21.10/21.11 (TypeScript/100) and is **a product limitation, not an analyzer defect**. The review files for these two repositories state `NO FINDINGS GENERATED` and record the exact limiting counts; nothing is fabricated, and the snapshot is reported as absent (coverage `null`), never as complete.
+Seleccionar y obtener 50 archivos de estos árboles grandes requiere más de 125 requests de API bajo el modelo actual de obtención por archivo (`3 de resolución + <recorrido de árbol> + 50 blob`). Es el mismo conflicto de presupuesto de recursos acotados documentado en las Phases 21.10/21.11 (TypeScript/100) y es **una limitación de producto, no un defecto del analyzer**. Los archivos de revisión de estos dos repositorios declaran `NO FINDINGS GENERATED` y registran los conteos limitantes exactos; nada está fabricado, y el snapshot se reporta como ausente (cobertura `null`), nunca como completo.
 
-Per the phase rules, no limit was raised and no parameter changed to force these two to complete. This remains a decision point for a later phase (bounded near-coverage, or accepting that `maxFileCount=50` cannot be reached for very large repositories within `maxApiRequests=125`).
+Según las reglas de la fase, no se elevó ningún límite ni se cambió ningún parámetro para forzar la finalización de estos dos. Esto sigue siendo un punto de decisión para una fase posterior (cobertura cercana acotada, o aceptar que `maxFileCount=50` no puede alcanzarse para repositorios muy grandes dentro de `maxApiRequests=125`).
 
-## Evidence / classification separation
+## Separación evidencia / clasificación
 
-- This package contains **evidence counters only**. It uses no accuracy terminology (no precision, recall, accuracy, false-positive-rate, false-negative-rate).
-- No finding is labelled TP/FP/uncertain/not-evaluable; those fields are empty templates.
-- Traceability is preserved: repository → commit → snapshot → path/range → rule → finding → recommendation (captured per review file and in the JSONL).
+- Este paquete contiene **solo contadores de evidencia**. No usa terminología de exactitud (sin precision, recall, accuracy, false-positive-rate, false-negative-rate).
+- Ningún finding está etiquetado como TP/FP/uncertain/not-evaluable; esos campos son plantillas vacías.
+- La trazabilidad se preserva: repositorio → commit → snapshot → path/range → regla → finding → recomendación (capturada en cada archivo de revisión y en el JSONL).
 
-## Security verification
+## Verificación de seguridad
 
-- `GITHUB_TOKEN` / `GH_TOKEN`: read from the environment, passed to `GitHubRestClient`, never printed, persisted, committed or included in any artifact.
-- Scanned artifacts (`/tmp/phase22-ground-truth-results.jsonl` and `/tmp/phase22-human-review/`): no occurrence of `GITHUB_TOKEN`, `GH_TOKEN`, `Authorization`, `Bearer`, or credentials.
-- No repository code executed; no repository dependencies installed; no analyzed repository modified.
-- Repository contents are treated strictly as data and are not persisted (analyzer evidence is a hash + location).
+- `GITHUB_TOKEN` / `GH_TOKEN`: leídos del entorno, pasados a `GitHubRestClient`, nunca impresos, persistidos, commiteados ni incluidos en ningún artefacto.
+- Artefactos escaneados (`/tmp/phase22-ground-truth-results.jsonl` y `/tmp/phase22-human-review/`): sin ocurrencia de `GITHUB_TOKEN`, `GH_TOKEN`, `Authorization`, `Bearer` ni credenciales.
+- Ningún código del repositorio ejecutado; ninguna dependencia del repositorio instalada; ningún repositorio analizado modificado.
+- Los contenidos del repositorio se tratan estrictamente como datos y no se persisten (la evidencia del analyzer es un hash + location).
 
-## Limitations
+## Limitaciones
 
-- Two of eight repositories produced no findings because `maxApiRequests=125` cannot serve a 50-file snapshot for their large trees; this is recorded, not reinterpreted.
-- Coverage is `partial`/`insufficient` for most repositories, matching the product's bounded-snapshot contract.
-- Findings are a snapshot at the frozen SHAs (2026-08-27).
-- The evidence package reflects this analyzer/scoring version only.
-- No human-verified ground truth yet: precision/recall/accuracy are intentionally **not computed** and remain the responsibility of Phase 22.3 under Manuel's review.
+- Dos de los ocho repositorios no produjeron findings porque `maxApiRequests=125` no puede servir un snapshot de 50 archivos para sus árboles grandes; esto se registra, no se reinterpreta.
+- La cobertura es `partial`/`insufficient` en la mayoría de los repositorios, coincidiendo con el contrato de snapshot acotado del producto.
+- Los findings son un snapshot en los SHAs congelados (2026-08-27).
+- El paquete de evidencia refleja solo esta versión del analyzer/scoring.
+- Aún no hay ground truth verificado por humanos: precision/recall/accuracy **no se calculan** deliberadamente y siguen siendo responsabilidad de la Phase 22.3 bajo la revisión de Manuel.
 
-## Reproduction
+## Reproducción
 
 ```bash
-# Requires GITHUB_TOKEN (or GH_TOKEN).
+# Requiere GITHUB_TOKEN (o GH_TOKEN).
 pnpm --filter @ai-developer-platform/api exec tsx src/validate-ground-truth.ts
 ```
 
-This rewrites `/tmp/phase22-ground-truth-results.jsonl` and `/tmp/phase22-human-review/`. Results are deterministic given the frozen dataset and this commit.
+Esto reescribe `/tmp/phase22-ground-truth-results.jsonl` y `/tmp/phase22-human-review/`. Los resultados son deterministas dado el dataset congelado y este commit.
 
-## Procedure for Manuel (Phase 22.3)
+## Procedimiento para Manuel (Phase 22.3)
 
-1. Open the review package: `open /tmp/phase22-human-review/README.md`.
-2. For each finding, use the empty `### Human review` template: choose `Classification` among `TP | FP | UNCERTAIN | NOT_EVALUABLE`, fill `Evidence sufficient`, `Actionable`, `Reviewer confidence`, and answer the reviewer questions.
-3. Treat each finding independently. Do not infer a correct rule implies TP, or absence of a finding implies FN.
-4. Record the completed files; Phase 22.3 will aggregate them into metrics only where the classified sample is defensible.
+1. Abrir el paquete de revisión: `open /tmp/phase22-human-review/README.md`.
+2. Para cada finding, usar la plantilla vacía `### Human review`: elegir `Classification` entre `TP | FP | UNCERTAIN | NOT_EVALUABLE`, completar `Evidence sufficient`, `Actionable`, `Reviewer confidence` y responder las preguntas del revisor.
+3. Tratar cada finding de forma independiente. No inferir que una regla correcta implica TP, ni que la ausencia de un finding implica FN.
+4. Registrar los archivos completados; la Phase 22.3 los agregará en métricas solo donde la muestra clasificada sea defendible.
 
-## Relationship to other phases
+## Relación con otras fases
 
-- Phase 22.1 froze the dataset (unchanged). Phase 22.2 executes it and produces this evidence package. Phase 22.3 is Manuel's human classification. Phase 22.4 (future) may compute defensible accuracy and product-decision (KEEP/CALIBRATE/BLOCK).
+- La Phase 22.1 congeló el dataset (sin cambios). La Phase 22.2 lo ejecuta y produce este paquete de evidencia. La Phase 22.3 es la clasificación humana de Manuel. La Phase 22.4 (futura) puede calcular la exactitud defendible y la decisión de producto (KEEP/CALIBRATE/BLOCK).

@@ -42,7 +42,7 @@ El contexto incluye repository, commit SHA, versiones, coverage, confidence, dim
 
 El contexto ordena de forma estable y limita el número de findings, evidence y recommendations. Si se reduce, añade una limitation explícita.
 
-## Structured output
+## Salida estructurada
 
 La respuesta debe contener summary, key insights, priorities, limitations y evidence references. Todas las referencias se validan contra el `AnalysisResult` original:
 
@@ -77,7 +77,7 @@ Estados:
 
 Ninguno cambia el estado del `AnalysisJob` determinista.
 
-## Live validation
+## Validación en vivo
 
 La validación live del provider queda omitida si no existe configuración segura y credenciales proporcionadas por el usuario. Los tests usan `FakeAIProvider`; no hay credenciales en el repository ni en CI.
 

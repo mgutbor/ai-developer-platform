@@ -1,128 +1,128 @@
-# Phase 24 — UX + Documentation + Portfolio Polish
+# Phase 24 — Pulido de UX + Documentación + Portfolio
 
-## 1. Objective
+## 1. Objetivo
 
-Make the already-functional MVP understandable, presentable and portfolio-ready without expanding its scope. The focus is CLARITY and PRESENTATION: the user must always understand the current state, what the report says, what the evidence supports, and what the known limitations are.
+Hacer comprensible, presentable y listo para portfolio el MVP ya funcional sin ampliar su alcance. El foco es CLARIDAD y PRESENTACIÓN: el usuario debe entender siempre el estado actual, qué dice el reporte, qué respalda la evidencia y cuáles son las limitaciones conocidas.
 
-Phase 24 is strictly polish. No new analyzer rules, scoring changes, ingestion strategies, limits, AI, auth, database or product features.
+La Phase 24 es estrictamente pulido. Sin nuevas reglas del analyzer, sin cambios de scoring, sin estrategias de ingestión, sin límites, sin AI, sin auth, sin base de datos ni features de producto.
 
-## 2. Starting state
+## 2. Estado inicial
 
-- Phase 22 closed: `KEEP WITH LIMITATIONS` (ground-truth: 7 TP / 0 FP / 2 uncertain / 16 not-evaluable; sample insufficient for precision/recall).
-- Phase 23 closed: `PASS WITH LIMITATIONS` (real E2E against public repos; fixed the GitHub token wiring in the production server with regression tests).
-- Working tree clean at the start of this phase.
-- Existing UX baseline: semantic HTML, labels, `role="status"`/`role="alert"`, visible focus, responsive grids. Gaps: failure states were generic, limitation codes were exposed as primary messages, coverage was a single line without explanation, evidence hash was labelled "evidence hash" (implying content).
+- Phase 22 cerrada: `KEEP WITH LIMITATIONS` (ground-truth: 7 TP / 0 FP / 2 uncertain / 16 not-evaluable; muestra insuficiente para precisión/recall).
+- Phase 23 cerrada: `PASS WITH LIMITATIONS` (E2E real contra repos públicos; corregido el cableado del token de GitHub en el servidor de producción con tests de regresión).
+- Working tree limpio al inicio de esta fase.
+- Línea base UX existente: HTML semántico, labels, `role="status"`/`role="alert"`, foco visible, grids responsive. Gaps: los estados de fallo eran genéricos, los códigos de limitación se exponían como mensajes primarios, la cobertura era una sola línea sin explicación, el hash de evidencia se etiquetaba como "evidence hash" (implicando contenido).
 
-## 3. UX assessment
+## 3. Evaluación de UX
 
-| Area | Before | After |
+| Área | Antes | Después |
 | --- | --- | --- |
-| Failed-job messaging (progress page) | Generic "We could not complete this analysis. Please try again." for all failures | Specific, user-friendly explanation per `errorCode` (`SNAPSHOT_LIMIT_EXCEEDED`, `REPOSITORY_NOT_FOUND`, `REPOSITORY_NOT_PUBLIC`, `REF_NOT_FOUND`, `GITHUB_RATE_LIMITED`, `ANALYSIS_TIMEOUT`) with the internal code as secondary detail |
-| Coverage communication (report) | Single line `Coverage: insufficient` | Dedicated coverage banner titled per state ("Analysis completed" / "Analysis completed with limitations" / "Analysis based on limited information") with a plain-language explanation; internal code as metadata |
-| Limitations (report) | Raw internal codes as the primary message (`tree_segmented_early_termination`, `file_count_limit_reached`, `file_too_large:x`, …) | Friendly primary message per limitation + internal code in parentheses as secondary detail; the `Global score is intentionally not calculated…` message is translated |
-| Evidence hash (report) | "evidence hash xxx" | "evidence reference xxx" — honest: only a reference/hash is stored, not content |
-| Required states | All existed via API but messaging was generic | 1 initial, 2 loading, 3 completed, 4 completed_with_limitations, 5 invalid URL, 6 repo not found, 7 analysis failure, 8 snapshot limit exceeded, 9 empty result — all now with clear language |
+| Mensajes de job fallido (página de progreso) | Genérico "We could not complete this analysis. Please try again." para todos los fallos | Explicación específica y amigable por `errorCode` (`SNAPSHOT_LIMIT_EXCEEDED`, `REPOSITORY_NOT_FOUND`, `REPOSITORY_NOT_PUBLIC`, `REF_NOT_FOUND`, `GITHUB_RATE_LIMITED`, `ANALYSIS_TIMEOUT`) con el código interno como detalle secundario |
+| Comunicación de cobertura (reporte) | Línea única `Coverage: insufficient` | Banner de cobertura dedicado titulado por estado ("Analysis completed" / "Analysis completed with limitations" / "Analysis based on limited information") con explicación en lenguaje llano; código interno como metadato |
+| Limitaciones (reporte) | Códigos internos crudos como mensaje primario (`tree_segmented_early_termination`, `file_count_limit_reached`, `file_too_large:x`, …) | Mensaje primario amigable por limitación + código interno entre paréntesis como detalle secundario; el mensaje `Global score is intentionally not calculated…` se traduce |
+| Hash de evidencia (reporte) | "evidence hash xxx" | "evidence reference xxx" — honesto: solo se almacena una referencia/hash, no el contenido |
+| Estados requeridos | Todos existían vía API pero con mensajería genérica | 1 inicial, 2 loading, 3 completed, 4 completed_with_limitations, 5 URL inválida, 6 repo no encontrado, 7 fallo de análisis, 8 límite de snapshot superado, 9 resultado vacío — todos ahora con lenguaje claro |
 
-## 4. Changes made
+## 4. Cambios realizados
 
-### Code (frontend only — no API/contract changes)
+### Código (solo frontend — sin cambios de API/contratos)
 
-- **New** `apps/web/src/app/features/analysis/analysis-messages.ts` — pure helpers: `failureMessage(errorCode)`, `coverageMessage(coverage)`, `limitationMessage(limitation)`.
-- `apps/web/src/app/features/analysis/pages/progress.page.ts` + `.html` + `.scss` — failure explanation panel with friendly message + `Reference: <errorCode>` secondary detail and an accessible `role="alert"` container.
-- `apps/web/src/app/features/analysis/pages/report.page.ts` + `.html` + `.scss` — coverage banner (with per-state color: green/amber/red left border), translated limitation list, honest evidence-reference label.
-- **New** `apps/web/src/app/features/analysis/analysis-messages.spec.ts` — 13 unit tests for the message mapping.
+- **Nuevo** `apps/web/src/app/features/analysis/analysis-messages.ts` — helpers puros: `failureMessage(errorCode)`, `coverageMessage(coverage)`, `limitationMessage(limitation)`.
+- `apps/web/src/app/features/analysis/pages/progress.page.ts` + `.html` + `.scss` — panel de explicación de fallo con mensaje amigable + detalle secundario `Reference: <errorCode>` y un contenedor accesible `role="alert"`.
+- `apps/web/src/app/features/analysis/pages/report.page.ts` + `.html` + `.scss` — banner de cobertura (con color por estado: borde izquierdo verde/ámbar/rojo), lista de limitaciones traducida, etiqueta honesta de referencia de evidencia.
+- **Nuevo** `apps/web/src/app/features/analysis/analysis-messages.spec.ts` — 13 tests unitarios para el mapeo de mensajes.
 
-### Documentation
+### Documentación
 
-- `README.md` — overhauled: capabilities, architecture table, env vars (`HOST`/`PORT`/`DATABASE_PATH`/`GITHUB_TOKEN`/`GH_TOKEN`), server-side credential configuration with placeholders, quick-start, analysis flow, bounded-ingestion/coverage explanation, security considerations, MVP status, known limitations, future work.
-- `docs/development.md` — configuration section now documents `GITHUB_TOKEN ?? GH_TOKEN` server-side wiring (Phase 23) and the unauthenticated rate-limit consequence.
-- `docs/architecture.md` — "Estado actual del MVP (validado)" with the validated flow; explicit **CURRENT MVP vs FUTURE** distinction; Deferred section renamed and expanded (auth, private repos, worker/queue/PostgreSQL, browser E2E, dashboard, global score).
-- `docs/portfolio.md` — **new** portfolio doc: engineering highlights (deterministic analysis, bounded ingestion, evidence-based findings, reproducibility, separation of concerns, security boundaries, real validation) with honest limitations and documented trade-offs. No marketing claims.
-- `docs/phase-24-ux-documentation-portfolio.md` — this document.
+- `README.md` — revisado: capacidades, tabla de arquitectura, env vars (`HOST`/`PORT`/`DATABASE_PATH`/`GITHUB_TOKEN`/`GH_TOKEN`), configuración de credenciales server-side con placeholders, quick-start, flujo de análisis, explicación de ingestión acotada/cobertura, consideraciones de seguridad, estado del MVP, limitaciones conocidas, trabajo futuro.
+- `docs/development.md` — la sección de configuración ahora documenta el cableado server-side `GITHUB_TOKEN ?? GH_TOKEN` (Phase 23) y la consecuencia del rate limit sin autenticar.
+- `docs/architecture.md` — "Estado actual del MVP (validado)" con el flujo validado; distinción explícita **CURRENT MVP vs FUTURE**; sección Deferred renombrada y ampliada (auth, repos privados, worker/queue/PostgreSQL, E2E de navegador, dashboard, puntuación global).
+- `docs/portfolio.md` — **nuevo** doc de portfolio: highlights de ingeniería (análisis determinista, ingestión acotada, findings basados en evidencia, reproducibilidad, separación de responsabilidades, fronteras de seguridad, validación real) con limitaciones honestas y compromisos documentados. Sin claims de marketing.
+- `docs/phase-24-ux-documentation-portfolio.md` — este documento.
 
-## 5. Accessibility assessment
+## 5. Evaluación de accesibilidad
 
-Verified on the core journey (home → progress → report):
+Verificado en el journey principal (home → progress → report):
 
-- Semantic HTML: `main`, `section`, `form`, `label`, `h1`–`h4` hierarchy preserved.
-- Labels: `label for` on the repository URL and ref inputs; `aria-describedby` links help and error text.
-- Keyboard: native form controls and buttons; visible `:focus-visible` outline (global style) on `button`, `a`, `input`, `select`, `textarea`.
-- Status/error announcements: `role="status"` `aria-live="polite"` for loading/status; `role="alert"` for errors and for the new failure explanation panel.
-- Accessible names: buttons and links have text; sections use `aria-labelledby`.
-- New states keep the same patterns.
+- HTML semántico: jerarquía `main`, `section`, `form`, `label`, `h1`–`h4` preservada.
+- Labels: `label for` en los inputs de URL del repositorio y ref; `aria-describedby` conecta ayuda y texto de error.
+- Teclado: controles de formulario y botones nativos; outline visible de `:focus-visible` (estilo global) en `button`, `a`, `input`, `select`, `textarea`.
+- Anuncios de estado/error: `role="status"` `aria-live="polite"` para loading/status; `role="alert"` para errores y para el nuevo panel de explicación de fallo.
+- Nombres accesibles: botones y enlaces tienen texto; las secciones usan `aria-labelledby`.
+- Los estados nuevos mantienen los mismos patrones.
 
-No genuine accessibility blocker found in the core flow. No redesign performed. Automated axe/browser-level auditing is not configured (documented limitation; full WCAG 2.2 AA audit is a future item).
+No se encontró ningún bloqueador de accesibilidad genuino en el flujo principal. No se realizó rediseño. La auditoría automatizada con axe/a nivel de navegador no está configurada (limitación documentada; la auditoría completa de WCAG 2.2 AA es un elemento futuro).
 
-## 6. Responsive assessment
+## 6. Evaluación responsive
 
-- Existing layout uses `clamp()` typography, `auto-fit minmax` score grid, and `@media (max-width: 600px)` / `(max-width: 40rem)` adjustments.
-- The new coverage banner and failure panel use block layout with normal flow — they adapt without new breakpoints.
-- No obvious layout problem found at desktop or mobile widths for the core flow (URL input, analyze, loading, report, score, findings, limitations, errors).
+- El layout existente usa tipografía `clamp()`, grid de puntuaciones `auto-fit minmax` y ajustes `@media (max-width: 600px)` / `(max-width: 40rem)`.
+- El nuevo banner de cobertura y el panel de fallo usan layout de bloque con flujo normal — se adaptan sin nuevos breakpoints.
+- No se encontró ningún problema obvio de layout en anchos de escritorio o móvil para el flujo principal (entrada de URL, analizar, loading, reporte, puntuación, findings, limitaciones, errores).
 
-## 7. Lighthouse / performance
+## 7. Lighthouse / rendimiento
 
-- The repository has **no Lighthouse configuration, script, target, or browser E2E tooling** (no Playwright; `@vitest/browser-playwright` is only a transitive lockfile reference). Adding Playwright/Lighthouse tooling "merely because it is missing" is explicitly out of Phase 24 scope.
-- Baseline and final Lighthouse runs therefore could **not be executed** in this environment.
-- Code-level review: the report page is a single Angular route with a handful of HTTP calls (polling only during progress; no heavy assets, no unoptimized images, no third-party scripts). No obvious performance regression introduced.
-- **Documented limitation:** Lighthouse scores remain unmeasured for this MVP.
+- El repositorio **no tiene configuración, script, target ni tooling E2E de navegador de Lighthouse** (sin Playwright; `@vitest/browser-playwright` es solo una referencia transitiva del lockfile). Añadir tooling de Playwright/Lighthouse "meramente porque falta" está explícitamente fuera del alcance de la Phase 24.
+- Por tanto, las ejecuciones de Lighthouse de línea base y final **no pudieron ejecutarse** en este entorno.
+- Revisión a nivel de código: la página del reporte es una única ruta Angular con un puñado de llamadas HTTP (polling solo durante el progreso; sin assets pesados, sin imágenes sin optimizar, sin scripts de terceros). No se introdujo ninguna regresión de rendimiento obvia.
+- **Limitación documentada:** las puntuaciones de Lighthouse siguen sin medir para este MVP.
 
-## 8. README / documentation changes
+## 8. Cambios de README / documentación
 
-See section 4 — README overhaul, development.md, architecture.md, and the new portfolio.md. The quick-start path is explicit; GitHub credentials are clearly documented as **server-side only** with placeholder examples and an explicit warning never to commit a real token.
+Ver sección 4 — revisión del README, development.md, architecture.md y el nuevo portfolio.md. El camino de inicio rápido es explícito; las credenciales de GitHub están claramente documentadas como **solo server-side** con ejemplos de placeholders y una advertencia explícita de nunca commitear un token real.
 
-## 9. Portfolio-readiness improvements
+## 9. Mejoras de readiness de portfolio
 
-- `docs/portfolio.md` frames the engineering value factually: deterministic analysis, bounded resource ingestion, evidence-based findings, reproducibility (commit-anchored), package separation with enforced boundaries, security posture, and real validation history (Phases 22–23).
-- Explicitly avoids "AI-powered" claims; the MVP is deterministic, AI optional.
+- `docs/portfolio.md` enmarca el valor de ingeniería de forma factual: análisis determinista, ingestión acotada de recursos, findings basados en evidencia, reproducibilidad (anclada al commit), separación de paquetes con fronteras aplicadas, postura de seguridad e historial de validación real (Phases 22–23).
+- Evita explícitamente los claims "AI-powered"; el MVP es determinista, con AI opcional.
 
-## 10. Known limitations (accepted)
+## 10. Limitaciones conocidas (aceptadas)
 
-- Lighthouse/browser E2E unmeasured (no tooling configured; out of scope to add).
-- Coverage remains partial/insufficient for most repos; `SNAPSHOT_LIMIT_EXCEEDED` for very large repos — now communicated in clear language, not hidden.
-- The report still shows the internal limitation code as secondary detail (intentional: useful for power users while the primary message is plain language).
-- Full WCAG 2.2 AA audit and automated axe testing not configured.
+- Lighthouse/E2E de navegador sin medir (sin tooling configurado; fuera de alcance añadirlo).
+- La cobertura sigue siendo parcial/insuficiente para la mayoría de los repos; `SNAPSHOT_LIMIT_EXCEEDED` para repos muy grandes — ahora comunicado en lenguaje claro, no ocultado.
+- El reporte sigue mostrando el código de limitación interno como detalle secundario (intencional: útil para power users mientras el mensaje primario está en lenguaje llano).
+- La auditoría completa de WCAG 2.2 AA y el testing automatizado con axe no están configurados.
 
-## 11. Deferred work (documented, not implemented)
+## 11. Trabajo diferido (documentado, no implementado)
 
-- Automated axe audit and Lighthouse CI gates.
-- Browser-level E2E (Playwright) regression infrastructure.
-- Deeper per-finding UX (e.g. inline diff/context for evidence), which Phase 22 showed is limited by hash-only evidence.
-- Coverage/evidence semantics improvement for absence-based rules (Phase 22 recommendation).
-- Public API rate limiting and broader hardening (architecture doc Deferred).
+- Auditoría automatizada con axe y gates de Lighthouse en CI.
+- Infraestructura de regresión E2E a nivel de navegador (Playwright).
+- UX más profunda por finding (p. ej., diff/contexto inline para la evidencia), que la Phase 22 mostró limitada por la evidencia solo-hash.
+- Mejora de la semántica de cobertura/evidencia para reglas basadas en ausencia (recomendación de la Phase 22).
+- Rate limiting de la API pública y endurecimiento más amplio (Deferred del doc de arquitectura).
 
 ## 12. Quality gates
 
-All applicable gates pass after the changes:
+Todos los gates aplicables pasan tras los cambios:
 
 - `pnpm install --frozen-lockfile` — pass
 - `pnpm check:architecture` — pass
 - `pnpm format:check` — pass
 - `pnpm lint` — pass
 - `pnpm typecheck` — pass
-- `pnpm test` — pass (frontend: 17 tests including 13 new message-mapping tests; full suite green)
+- `pnpm test` — pass (frontend: 17 tests, incluidos 13 tests nuevos de mapeo de mensajes; suite completa verde)
 - `pnpm build` — pass
-- `pnpm audit --audit-level=high` — pass (no known vulnerabilities)
-- `git diff --check` — clean
+- `pnpm audit --audit-level=high` — pass (sin vulnerabilidades conocidas)
+- `git diff --check` — limpio
 
-## 13. Security verification
+## 13. Verificación de seguridad
 
-- No `GITHUB_TOKEN`, `GH_TOKEN`, `Authorization`, `Bearer`, or credential values appear in any changed file, doc, or diff (placeholders only).
-- The README/development docs state credentials are server-side only and show placeholder examples.
-- No screenshots/assets with credentials were generated.
-- UX changes render only API-provided data via text interpolation (no `innerHTML`), consistent with the existing security baseline.
+- No aparecen valores de `GITHUB_TOKEN`, `GH_TOKEN`, `Authorization`, `Bearer` ni credenciales en ningún archivo cambiado, doc ni diff (solo placeholders).
+- El README/la documentación de desarrollo indican que las credenciales son solo server-side y muestran ejemplos de placeholders.
+- No se generaron screenshots/assets con credenciales.
+- Los cambios de UX renderizan solo datos proporcionados por la API mediante interpolación de texto (sin `innerHTML`), coherente con la línea base de seguridad existente.
 
-## 14. Final conclusion
+## 14. Conclusión final
 
 **PASS**
 
-The MVP is now understandable, usable and presentable enough to proceed to the final v1.0 release phase:
+El MVP ahora es suficientemente comprensible, usable y presentable para proceder a la fase final de release v1.0:
 
-- Users always understand the current state, including specific failure reasons and snapshot-limit outcomes.
-- The report clearly distinguishes complete / partial / insufficient coverage and explains limitations in plain language.
-- Findings show WHAT / WHY / WHERE / HOW TO IMPROVE, with evidence honestly represented as references.
-- The README and developer/architecture/portfolio documentation make the project runnable and presentable.
-- No scope expansion, no new architecture, no opportunistic refactoring; only minimal, tested UX and documentation changes.
+- Los usuarios entienden siempre el estado actual, incluidos los motivos específicos de fallo y los resultados de límite de snapshot.
+- El reporte distingue claramente la cobertura complete / partial / insufficient y explica las limitaciones en lenguaje llano.
+- Los findings muestran WHAT / WHY / WHERE / HOW TO IMPROVE, con la evidencia representada honestamente como referencias.
+- El README y la documentación de developer/arquitectura/portfolio hacen el proyecto ejecutable y presentable.
+- Sin ampliación de alcance, sin arquitectura nueva, sin refactoring oportunista; solo cambios mínimos de UX y documentación, testeados.
 
-## 15. Recommendation for Phase 25
+## 15. Recomendación para la Phase 25
 
-Proceed to **Phase 25 — Release v1.0** (final MVP phase): release packaging, final versioning/release notes (existing `docs/release-notes-v1.0.0.md` and `docs/release-readiness.md` to confirm/refresh), CI finalization, and the v1.0 tag per the project's release process. No further UX phases are planned; non-blocking improvements are documented as future work (section 11).
+Proceder a **Phase 25 — Release v1.0** (fase MVP final): empaquetado de release, versionado final/release notes (los `docs/release-notes-v1.0.0.md` y `docs/release-readiness.md` existentes a confirmar/refrescar), finalización de CI y el tag v1.0 según el proceso de release del proyecto. No se planean más fases de UX; las mejoras no bloqueantes quedan documentadas como trabajo futuro (sección 11).

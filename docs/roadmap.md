@@ -2,150 +2,150 @@
 
 El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la infraestructura distribuida quedan condicionadas a evidencia de valor y carga.
 
-## Phase 1 — Foundation
+## Phase 1 — Fundamentos
 
-**Objective:** crear una base TypeScript mínima y reproducible.
+**Objetivo:** crear una base TypeScript mínima y reproducible.
 
-**Scope:** monorepo con `apps/web`, `apps/api` y solo los packages que tengan ownership real; Angular, configuración, lint, format, tests y configuración tipada.
+**Alcance:** monorepo con `apps/web`, `apps/api` y solo los packages que tengan ownership real; Angular, configuración, lint, format, tests y configuración tipada.
 
-**Dependencies:** ninguna.
+**Dependencias:** ninguna.
 
-**Acceptance criteria:** instalación limpia, checks locales documentados, build de web/API y un contrato mínimo compartido; no hay packages vacíos ni infraestructura innecesaria.
+**Criterios de aceptación:** instalación limpia, checks locales documentados, build de web/API y un contrato mínimo compartido; no hay packages vacíos ni infraestructura innecesaria.
 
 **Definition of Done:** tipos, lint, unit tests, build, README y ADR-008/ADR-007 visibles donde corresponda.
 
-## Phase 2 — Domain and report contracts
+## Phase 2 — Contratos de dominio y report
 
-**Objective:** definir el lenguaje mínimo del report.
+**Objetivo:** definir el lenguaje mínimo del report.
 
-**Scope:** paquete `domain` puro con `RepositorySnapshot`, `Fact`, `Metric`, `Evidence`, `Finding`, `Recommendation`, `DimensionScore` y `AnalysisResult`; contratos API serializables y factories validadas. `AnalysisJob` queda fuera hasta que exista su lifecycle real.
+**Alcance:** paquete `domain` puro con `RepositorySnapshot`, `Fact`, `Metric`, `Evidence`, `Finding`, `Recommendation`, `DimensionScore` y `AnalysisResult`; contratos API serializables y factories validadas. `AnalysisJob` queda fuera hasta que exista su lifecycle real.
 
-**Dependencies:** Phase 1.
+**Dependencias:** Phase 1.
 
-**Acceptance criteria:** invariantes y estados inválidos se rechazan; evidence referencia snapshot/path; contracts distinguen observación, problema y acción; los tests cubren referencias huérfanas, snapshots cruzados, rutas inseguras, incertidumbre y scores nulos.
+**Criterios de aceptación:** invariantes y estados inválidos se rechazan; evidence referencia snapshot/path; contracts distinguen observación, problema y acción; los tests cubren referencias huérfanas, snapshots cruzados, rutas inseguras, incertidumbre y scores nulos.
 
 **Definition of Done:** unit tests de dominio, compilación de contracts, documentación de modelo y ADR-014 aceptado.
 
-## Phase 3 — GitHub REST ingestion
+## Phase 3 — Ingestion REST de GitHub
 
-**Objective:** obtener snapshots públicos, acotados y reproducibles.
+**Objetivo:** obtener snapshots públicos, acotados y reproducibles.
 
-**Scope:** package `github` framework-independent, URL/ref validation, repository metadata, branch-to-SHA resolution, tree, blobs textuales, limits, safe path/encoding handling y GitHub errors. No endpoint HTTP todavía.
+**Alcance:** package `github` framework-independent, URL/ref validation, repository metadata, branch-to-SHA resolution, tree, blobs textuales, limits, safe path/encoding handling y GitHub errors. No endpoint HTTP todavía.
 
-**Dependencies:** Phase 2.
+**Dependencias:** Phase 2.
 
-**Acceptance criteria:** mismo commit produce el mismo snapshot lógico; no se siguen symlinks peligrosos; no se descargan archives ni se ejecuta contenido; repositories fuera de límites terminan con limitación explícita.
+**Criterios de aceptación:** mismo commit produce el mismo snapshot lógico; no se siguen symlinks peligrosos; no se descargan archives ni se ejecuta contenido; repositories fuera de límites terminan con limitación explícita.
 
 **Definition of Done:** tests deterministas unitarios/security, fixture client sin red, documentación de límites, ADR-015 aceptado y quality gates verdes.
 
-## Phase 4 — TypeScript/JavaScript deterministic analyzer
+## Phase 4 — Analyzer determinista TypeScript/JavaScript
 
-**Status:** completada.
+**Estado:** completada.
 
-**Objective:** producir facts, metrics y findings útiles sin IA.
+**Objetivo:** producir facts, metrics y findings útiles sin IA.
 
-**Scope:** imports y estructura, tests, docs, dependencies, lint/format/typecheck, CI/CD, detección de Angular/React/Node.js y reglas de maintainability simples.
+**Alcance:** imports y estructura, tests, docs, dependencies, lint/format/typecheck, CI/CD, detección de Angular/React/Node.js y reglas de maintainability simples.
 
-**Dependencies:** Phase 3.
+**Dependencias:** Phase 3.
 
-**Acceptance criteria:** fixtures Tier 1 generan resultados estables y evidence verificable; otros lenguajes se marcan como limitados; no se ejecutan scripts del repository.
+**Criterios de aceptación:** fixtures Tier 1 generan resultados estables y evidence verificable; otros lenguajes se marcan como limitados; no se ejecutan scripts del repository.
 
 **Definition of Done:** `packages/analyzer` puro, tests unitarios/regression, performance sanity, boundary check, reglas documentadas y ADR-011 alineado. PASS.
 
-## Phase 5 — Deterministic report and SQLite job lifecycle
+## Phase 5 — Report determinista y ciclo de vida del job en SQLite
 
-**Status:** completada.
+**Estado:** completada.
 
-**Objective:** convertir el analyzer en un flujo consultable completo.
+**Objetivo:** convertir el analyzer en un flujo consultable completo.
 
-**Scope:** runner dentro de API, states, idempotency, SQLite adapter, deterministic scoring, recommendations, retention y API de lectura.
+**Alcance:** runner dentro de API, states, idempotency, SQLite adapter, deterministic scoring, recommendations, retention y API de lectura.
 
-**Dependencies:** Phase 2, 3 y 4.
+**Dependencias:** Phase 2, 3 y 4.
 
-**Acceptance criteria:** se puede crear un analysis, consultar estado y leer report; reinicio y duplicación tienen comportamiento definido; no se almacenan blobs completos; `insufficient_data` es visible.
+**Criterios de aceptación:** se puede crear un analysis, consultar estado y leer report; reinicio y duplicación tienen comportamiento definido; no se almacenan blobs completos; `insufficient_data` es visible.
 
 **Definition of Done:** integration/contract tests, límites de concurrencia, cleanup test, persistencia restart, documentación y ADR-016 alineado. PASS.
 
 
-## Phase 6 — Angular report experience
+## Phase 6 — Experiencia de report en Angular
 
-**Status:** completada con baseline de accesibilidad y tests de componentes; axe automatizado y browser E2E quedan explícitamente diferidos.
+**Estado:** completada con baseline de accesibilidad y tests de componentes; axe automatizado y browser E2E quedan explícitamente diferidos.
 
-**Objective:** demostrar valor al usuario mediante un flujo accesible.
+**Objetivo:** demostrar valor al usuario mediante un flujo accesible.
 
-**Scope:** repository input, progress, report summary, dimensions, findings, evidence y recommendations.
+**Alcance:** repository input, progress, report summary, dimensions, findings, evidence y recommendations.
 
-**Dependencies:** Phase 5.
+**Dependencias:** Phase 5.
 
-**Acceptance criteria:** el flujo principal funciona únicamente contra la API; loading/error/partial/empty states existen; teclado, focus, labels y lector de pantalla son utilizables; no hay dashboard ornamental.
+**Criterios de aceptación:** el flujo principal funciona únicamente contra la API; loading/error/partial/empty states existen; teclado, focus, labels y lector de pantalla son utilizables; no hay dashboard ornamental.
 
 **Definition of Done:** component/integration/E2E/accessibility tests, build y revisión de UX.
 
-## Phase 7 — MVP validation and hardening
+## Phase 7 — Validación y endurecimiento del MVP
 
-**Status:** completada como validación controlada del MVP; la ampliación de observabilidad pública y el runbook operativo quedan para hardening posterior.
+**Estado:** completada como validación controlada del MVP; la ampliación de observabilidad pública y el runbook operativo quedan para hardening posterior.
 
-**Objective:** medir si el producto aporta valor y cerrar riesgos del primer release.
+**Objetivo:** medir si el producto aporta valor y cerrar riesgos del primer release.
 
-**Scope:** muestra pequeña de repositories, false-positive review, rate limiting, observabilidad mínima, redaction, dependency audit, secret scanning y retención.
+**Alcance:** muestra pequeña de repositories, false-positive review, rate limiting, observabilidad mínima, redaction, dependency audit, secret scanning y retención.
 
-**Dependencies:** Phase 6.
+**Dependencias:** Phase 6.
 
-**Acceptance criteria:** reproducibility medida, completion rate medida, evidence coverage medida, límites comunicados, fallo de GitHub controlado y datos expirados eliminados.
+**Criterios de aceptación:** reproducibility medida, completion rate medida, evidence coverage medida, límites comunicados, fallo de GitHub controlado y datos expirados eliminados.
 
 **Definition of Done:** CI completa, security/accessibility gates, runbook breve, métricas de éxito y riesgos publicados.
 
-## Phase 8 — AI assessment
+## Phase 8 — Evaluación de AI
 
-**Status:** implementación inicial completada con fake provider, provider OpenAI preparado, contexto limitado y validación estructurada. Live provider validation queda diferida sin credenciales configuradas.
+**Estado:** implementación inicial completada con fake provider, provider OpenAI preparado, contexto limitado y validación estructurada. Live provider validation queda diferida sin credenciales configuradas.
 
-**Objective:** comprobar si la IA añade valor semántico sobre resultados deterministas.
+**Objetivo:** comprobar si la IA añade valor semántico sobre resultados deterministas.
 
-**Scope:** un único provider, `AIProvider` mínimo, selección de contexto, prompt versionado, structured output, validation y `aiAssessment` separada.
+**Alcance:** un único provider, `AIProvider` mínimo, selección de contexto, prompt versionado, structured output, validation y `aiAssessment` separada.
 
-**Dependencies:** Phase 7 y evidencia de que el report determinista tiene valor.
+**Dependencias:** Phase 7 y evidencia de que el report determinista tiene valor.
 
-**Acceptance criteria:** la IA referencia evidence existente, no modifica el score determinista, falla con fallback limpio y sus resultados se evalúan mediante muestra manual.
+**Criterios de aceptación:** la IA referencia evidence existente, no modifica el score determinista, falla con fallback limpio y sus resultados se evalúan mediante muestra manual.
 
 **Definition of Done:** unit/integration/contract/security tests, prompt-injection tests, coste/latencia medidos y nuevo ADR si se combinan scores.
 
-## Phase 9 — AI evaluation and hardening
+## Phase 9 — Evaluación y endurecimiento de AI
 
-**Status:** completada con fake-provider evaluation, regresión determinista, validación de fallos, límites del provider, rate limiting local y decisión `KEEP WITH LIMITATIONS`. Live quality/cost validation queda pendiente sin credenciales.
+**Estado:** completada con fake-provider evaluation, regresión determinista, validación de fallos, límites del provider, rate limiting local y decisión `KEEP WITH LIMITATIONS`. Live quality/cost validation queda pendiente sin credenciales.
 
-**Objective:** medir utilidad, coste, latencia y seguridad antes de extender la capa AI.
+**Objetivo:** medir utilidad, coste, latencia y seguridad antes de extender la capa AI.
 
-**Scope:** dataset reproducible, criterios de factualidad/traceability, failure modes, prompt injection, rate limiting y documentación measured/estimated/not validated.
+**Alcance:** dataset reproducible, criterios de factualidad/traceability, failure modes, prompt injection, rate limiting y documentación measured/estimated/not validated.
 
-**Dependencies:** Phase 8.
+**Dependencias:** Phase 8.
 
-**Acceptance criteria:** el report determinista permanece idéntico; referencias inválidas se rechazan; provider failure no rompe el report; costes/latencias no se inventan; decisión de producto documentada.
+**Criterios de aceptación:** el report determinista permanece idéntico; referencias inválidas se rechazan; provider failure no rompe el report; costes/latencias no se inventan; decisión de producto documentada.
 
-## Phase 10 — MVP final review and release readiness
+## Phase 10 — Revisión final del MVP y preparación del release
 
-**Status:** completada. El MVP queda preparado para una release global `v1.0.0` con limitaciones explícitas.
+**Estado:** completada. El MVP queda preparado para una release global `v1.0.0` con limitaciones explícitas.
 
-**Objective:** revisar producto, arquitectura, seguridad, documentación y criterios de release sin añadir funcionalidades.
+**Objetivo:** revisar producto, arquitectura, seguridad, documentación y criterios de release sin añadir funcionalidades.
 
-**Outcome:** recomendación `READY WITH LIMITATIONS`; arquitectura congelada para el MVP y E2E/browser audit, AI live validation y operación distribuida permanecen no validados.
+**Resultado:** recomendación `READY WITH LIMITATIONS`; arquitectura congelada para el MVP y E2E/browser audit, AI live validation y operación distribuida permanecen no validados.
 
-## Phase 12 — v1.0.0 release execution
+## Phase 12 — Ejecución del release v1.0.0
 
-**Status:** completada. Tag `v1.0.0` publicado en `origin`; verificación post-release realizada.
+**Estado:** completada. Tag `v1.0.0` publicado en `origin`; verificación post-release realizada.
 
-## Phase 13 — Product validation and real-world evaluation
+## Phase 13 — Validación de producto y evaluación en el mundo real
 
-**Status:** completada con un benchmark sobre repositories públicos reales (`Hello-World`, `type-fest`, `express`, `angular`, `react`).
+**Estado:** completada con un benchmark sobre repositories públicos reales (`Hello-World`, `type-fest`, `express`, `angular`, `react`).
 
-**Outcome:** el pipeline funciona end-to-end, pero la validación detectó falsos positivos en `AN-SEC-003` (expresiones `${{ secrets.* }}` y fixtures demo), starving de metadata raíz en la selección de archivos, imposibilidad de ingerir `facebook/react` por redirect canónico de GitHub, y scores que pueden malinterpretarse en snapshots truncados. Detalles en `docs/phase-13-product-validation.md`.
+**Resultado:** el pipeline funciona end-to-end, pero la validación detectó falsos positivos en `AN-SEC-003` (expresiones `${{ secrets.* }}` y fixtures demo), starving de metadata raíz en la selección de archivos, imposibilidad de ingerir `facebook/react` por redirect canónico de GitHub, y scores que pueden malinterpretarse en snapshots truncados. Detalles en `docs/phase-13-product-validation.md`.
 
 **Recomendación para Phase 14:** recalibrar `AN-SEC-003`, priorizar metadata raíz en la selección, manejar redirects canónicos de GitHub y repetir el benchmark. No se justifica infraestructura nueva.
 
-## Phase 14 — Analyzer accuracy and ingestion reliability
+## Phase 14 — Exactitud del analyzer y fiabilidad de la ingestion
 
-**Status:** completada.
+**Estado:** completada.
 
-**Objective:** corregir los tres defectos de mayor impacto medidos en Phase 13 y demostrar regresión.
+**Objetivo:** corregir los tres defectos de mayor impacto medidos en Phase 13 y demostrar regresión.
 
 **Implementado:**
 
@@ -157,56 +157,56 @@ El roadmap se reorganiza alrededor de un vertical slice determinista. La IA y la
 
 **Evidencia:** benchmark antes/después en `docs/phase-14-validation.md`. No se introdujo infraestructura nueva.
 
-## Phase 15 — Operational scaling (conditional)
+## Phase 15 — Escalado operativo (condicional)
 
-**Objective:** extraer componentes solo ante señales medibles.
+**Objetivo:** extraer componentes solo ante señales medibles.
 
-**Scope:** worker independiente, PostgreSQL, cola, multiinstancia o realtime únicamente si completion rate, duración, concurrencia o disponibilidad lo requieren.
+**Alcance:** worker independiente, PostgreSQL, cola, multiinstancia o realtime únicamente si completion rate, duración, concurrencia o disponibilidad lo requieren.
 
-**Status:** sin extraer; Phase 13 no aportó evidencia que lo justifique.
+**Estado:** sin extraer; Phase 13 no aportó evidencia que lo justifique.
 
-**Dependencies:** métricas de MVP y decisión explícita.
+**Dependencias:** métricas de MVP y decisión explícita.
 
-**Acceptance criteria:** la extracción mantiene contracts y dominio, tiene rollback y mejora una métrica operativa concreta.
+**Criterios de aceptación:** la extracción mantiene contracts y dominio, tiene rollback y mejora una métrica operativa concreta.
 
 **Definition of Done:** load tests, migration plan, observabilidad, security review y ADR de la extracción.
 
-## Phase 16 — Real-world evaluation (expanded)
+## Phase 16 — Evaluación en el mundo real (ampliada)
 
-**Status:** completada. `docs/phase-16-real-world-evaluation.md`.
+**Estado:** completada. `docs/phase-16-real-world-evaluation.md`.
 
-## Phase 17 — Developer evaluation
+## Phase 17 — Evaluación de desarrolladores
 
-**Status:** completada. `docs/phase-17-developer-evaluation.md`.
+**Estado:** completada. `docs/phase-17-developer-evaluation.md`.
 
-## Phase 18 — Final product validation
+## Phase 18 — Validación final del producto
 
-**Status:** completada. `docs/phase-18-final-product-validation.md`.
+**Estado:** completada. `docs/phase-18-final-product-validation.md`.
 
-## Phase 19 — Authenticated benchmark readiness
+## Phase 19 — Preparación del benchmark autenticado
 
-**Status:** completada. `docs/phase-19-authenticated-benchmark.md`.
+**Estado:** completada. `docs/phase-19-authenticated-benchmark.md`.
 
-## Phase 20 — Authenticated benchmark execution
+## Phase 20 — Ejecución del benchmark autenticado
 
-**Status:** completada con limitaciones. Benchmark autenticado 15×3; `docs/phase-20-authenticated-benchmark.md` y `docs/phase-20.1-benchmark-failure-analysis.md`. Se confirmó que repositorios con árboles muy grandes superan `maxJsonResponseBytes=4 MiB`.
+**Estado:** completada con limitaciones. Benchmark autenticado 15×3; `docs/phase-20-authenticated-benchmark.md` y `docs/phase-20.1-benchmark-failure-analysis.md`. Se confirmó que repositorios con árboles muy grandes superan `maxJsonResponseBytes=4 MiB`.
 
-## Phase 21 — Large repository ingestion
+## Phase 21 — Ingestión de repositorios grandes
 
-**Status:** completada con limitación documentada. Traversal segmentado de árboles GitHub por SHA de tree con terminación temprana que preserva la semántica de selección; `docs/phase-21-large-repository-ingestion.md`. Se corrigió además un artefacto `dist` desactualizado.
+**Estado:** completada con limitación documentada. Traversal segmentado de árboles GitHub por SHA de tree con terminación temprana que preserva la semántica de selección; `docs/phase-21-large-repository-ingestion.md`. Se corrigió además un artefacto `dist` desactualizado.
 
-## Phase 22 — Ground-truth validation
+## Phase 22 — Validación ground-truth
 
-**Status:** cerrada con `KEEP WITH LIMITATIONS`. Dataset congelado de 8 repositorios, 25 findings clasificados (7 TP / 0 FP / 2 uncertain / 16 not-evaluable); muestra insuficiente para precisión/recall defendibles. `docs/phase-22-final-results.md`.
+**Estado:** cerrada con `KEEP WITH LIMITATIONS`. Dataset congelado de 8 repositorios, 25 findings clasificados (7 TP / 0 FP / 2 uncertain / 16 not-evaluable); muestra insuficiente para precisión/recall defendibles. `docs/phase-22-final-results.md`.
 
-## Phase 23 — E2E + product validation
+## Phase 23 — Validación E2E + de producto
 
-**Status:** cerrada con `PASS WITH LIMITATIONS`. Validación E2E real contra repositorios públicos; se corrigió el wiring de `GITHUB_TOKEN`/`GH_TOKEN` en el servidor de producción con tests de regresión. `docs/phase-23-e2e-product-validation.md`.
+**Estado:** cerrada con `PASS WITH LIMITATIONS`. Validación E2E real contra repositorios públicos; se corrigió el wiring de `GITHUB_TOKEN`/`GH_TOKEN` en el servidor de producción con tests de regresión. `docs/phase-23-e2e-product-validation.md`.
 
-## Phase 24 — UX + documentation + portfolio polish
+## Phase 24 — Pulido de UX + documentación + portfolio
 
-**Status:** cerrada con `PASS`. Mensajería clara de estados/limitaciones/cobertura, README, docs de arquitectura y portfolio. `docs/phase-24-ux-documentation-portfolio.md`.
+**Estado:** cerrada con `PASS`. Mensajería clara de estados/limitaciones/cobertura, README, docs de arquitectura y portfolio. `docs/phase-24-ux-documentation-portfolio.md`.
 
-## Phase 25 — Release v1.0 (final MVP)
+## Phase 25 — Release v1.0 (MVP final)
 
-**Status:** completada. Release v1.0.0 con tag `v1.0.0` apuntando al commit final del MVP; `docs/release-readiness.md` y `docs/release-notes-v1.0.0.md`. Fin del MVP.
+**Estado:** completada. Release v1.0.0 con tag `v1.0.0` apuntando al commit final del MVP; `docs/release-readiness.md` y `docs/release-notes-v1.0.0.md`. Fin del MVP.

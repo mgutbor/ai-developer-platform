@@ -1,6 +1,6 @@
-# Phase 5 application layer and persistence
+# Capa de aplicación y persistencia de la Fase 5
 
-Phase 5 composes the existing pure ingestion and analyzer packages into a small, persistent vertical slice.
+La Fase 5 compone los paquetes puros existentes de ingestión y analyzer en un corte vertical pequeño y persistente.
 
 ```text
 POST /analyses
@@ -9,31 +9,31 @@ POST /analyses
 AnalysisJob (queued)
       |
       v
-in-process runner (concurrency 1)
+runner en proceso (concurrencia 1)
       |
-      +--> GitHub REST ingestion
-      +--> deterministic analyzer
-      +--> deterministic dimension scoring
-      +--> SQLite persistence
+      +--> Ingestión GitHub REST
+      +--> analyzer determinista
+      +--> puntuación dimensional determinista
+      +--> persistencia SQLite
       |
       v
 GET /analyses/:id/report
 ```
 
-## Responsibilities
+## Responsabilidades
 
-- `packages/domain`: `AnalysisJob` lifecycle and report invariants.
-- `packages/github`: public GitHub validation, bounded ingestion, and snapshot creation.
-- `packages/analyzer`: pure facts, metrics, evidence, findings, and recommendations.
-- `packages/scoring`: pure dimension scoring; it never calculates a global score.
-- `packages/persistence`: SQLite adapter using Node 24's `node:sqlite`; no SQLite type escapes this package.
-- `apps/api/src/application.ts`: orchestration, idempotency, timeout, and error classification.
-- `apps/api/src/mapper.ts`: explicit domain-to-contract serialization.
-- `apps/api/src/app.ts`: thin Fastify transport handlers.
+- `packages/domain`: ciclo de vida de `AnalysisJob` e invariantes del reporte.
+- `packages/github`: validación de repositorios públicos de GitHub, ingestión acotada y creación del snapshot.
+- `packages/analyzer`: facts, metrics, evidencia, findings y recomendaciones puros.
+- `packages/scoring`: puntuación dimensional pura; nunca calcula una puntuación global.
+- `packages/persistence`: adapter SQLite que usa `node:sqlite` de Node 24; ningún tipo de SQLite escapa de este paquete.
+- `apps/api/src/application.ts`: orquestación, idempotencia, timeout y clasificación de errores.
+- `apps/api/src/mapper.ts`: serialización explícita de dominio a contrato.
+- `apps/api/src/app.ts`: handlers de transporte Fastify delgados.
 
-## Job lifecycle
+## Ciclo de vida del job
 
-The runner accepts one job at a time by default. A job is persisted before enqueueing and after each lifecycle transition. Valid transitions are:
+El runner acepta un job a la vez por defecto. Un job se persiste antes de encolarlo y tras cada transición del ciclo de vida. Las transiciones válidas son:
 
 ```text
 queued  -> running -> completed
@@ -44,44 +44,44 @@ queued  -> failed
 queued  -> cancelled
 ```
 
-The default analysis timeout is 75 seconds. A timed-out or failed pipeline becomes `failed`; the public response contains a stable error code and no stack trace or provider body.
+El timeout de análisis por defecto es de 75 segundos. Un pipeline con timeout o fallido pasa a `failed`; la respuesta pública contiene un código de error estable y ningún stack trace ni cuerpo del proveedor.
 
-## Idempotency
+## Idempotencia
 
-`POST /analyses` normalizes the repository URL and uses:
+`POST /analyses` normaliza la URL del repositorio y usa:
 
 ```text
 canonicalRepositoryUrl | requestedRef | analyzerVersion | ruleSetVersion
 ```
 
-as the persisted idempotency key. Repeating the same request returns the existing job with HTTP `200`; a new request returns `202`. The key is intentionally based on the requested ref because the commit is resolved by the runner. The resulting snapshot remains anchored to the resolved commit SHA.
+como clave de idempotencia persistida. Repetir la misma request devuelve el job existente con HTTP `200`; una request nueva devuelve `202`. La clave se basa deliberadamente en la ref solicitada porque el commit lo resuelve el runner. El snapshot resultante sigue anclado al commit SHA resuelto.
 
-## Persistence
+## Persistencia
 
-SQLite stores job metadata and a serialized, validated `AnalysisResult` payload. The result payload contains facts, metrics, findings, minimized evidence, recommendations, dimension scores, limitations, snapshot metadata, and versions. Repository file contents are never stored. The adapter supports `:memory:` for tests and a file path for the API server.
+SQLite almacena los metadatos del job y un payload de `AnalysisResult` serializado y validado. El payload del resultado contiene facts, metrics, findings, evidencia minimizada, recomendaciones, puntuaciones por dimensión, limitaciones, metadatos del snapshot y versiones. Los contenidos de archivos del repositorio nunca se almacenan. El adapter soporta `:memory:` para tests y una ruta de archivo para el servidor de la API.
 
-`deleteOlderThan(cutoffIso)` removes expired results and jobs. Cleanup is an explicit idempotent operation; scheduling is deferred.
+`deleteOlderThan(cutoffIso)` elimina resultados y jobs caducados. La limpieza es una operación explícita idempotente; su programación queda diferida.
 
-## Scoring
+## Puntuación
 
-The scorer applies documented severity penalties to a base score of 10 per dimension and clamps to `[0, 10]`. A dimension is nullable when the result has no observed deterministic signal for it. There is no global score. Scoring does not mutate analyzer findings or recommendations.
+El scorer aplica penalizaciones de severidad documentadas a una puntuación base de 10 por dimensión y la limita a `[0, 10]`. Una dimensión es nullable cuando el resultado no tiene ninguna señal determinista observada para ella. No existe puntuación global. La puntuación no muta findings ni recomendaciones del analyzer.
 
 ## API
 
 - `GET /health`
-- `POST /analyses` — returns `202 { id, status }`, or `200` for an idempotent duplicate.
-- `GET /analyses/:id` — job metadata and lifecycle.
-- `GET /analyses/:id/report` — complete mapped report.
+- `POST /analyses` — devuelve `202 { id, status }`, o `200` para un duplicado idempotente.
+- `GET /analyses/:id` — metadatos del job y ciclo de vida.
+- `GET /analyses/:id/report` — reporte completo mapeado.
 - `GET /analyses/:id/findings`
 - `GET /analyses/:id/recommendations`
 - `GET /analyses/:id/facts`
 
-The report endpoints return `404 RESULT_NOT_AVAILABLE` until a job has a result.
+Los endpoints de reporte devuelven `404 RESULT_NOT_AVAILABLE` hasta que un job tiene un resultado.
 
-## Deliberate limitations
+## Limitaciones deliberadas
 
-- The in-process runner is not horizontally scalable.
-- SQLite is local and uses Node's experimental `node:sqlite` API; Node 24 is required by the project engine range.
-- There is no API rate limiting yet; this remains Phase 7 hardening.
-- The server's default SQLite file is `analysis.db`, excluded by `.gitignore`.
-- No global score, AI assessment, worker, queue, PostgreSQL, or frontend report UI is implemented in this phase.
+- El runner en proceso no es escalable horizontalmente.
+- SQLite es local y usa la API `node:sqlite` experimental de Node; Node 24 es requerido por el rango de engine del proyecto.
+- Aún no existe rate limiting de la API; esto sigue siendo endurecimiento de la Phase 7.
+- El archivo SQLite por defecto del servidor es `analysis.db`, excluido por `.gitignore`.
+- En esta fase no se implementan puntuación global, evaluación con AI, worker, cola, PostgreSQL ni UI de reporte en el frontend.

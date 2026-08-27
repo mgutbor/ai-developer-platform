@@ -1,74 +1,74 @@
-# Release readiness — v1.0.0
+# Readiness de release — v1.0.0
 
-## Question
+## Pregunta
 
-**Is ai-developer-platform ready to be released as v1.0.0?**
+**¿Está ai-developer-platform listo para publicarse como v1.0.0?**
 
-**Answer: YES — READY, released as v1.0.0 with documented limitations.**
+**Respuesta: SÍ — LISTO, publicado como v1.0.0 con limitaciones documentadas.**
 
-This document is the authoritative release-readiness statement for the MVP release. It reflects the final state after all MVP phases (1–25), including the ground-truth validation (Phase 22), the end-to-end product validation (Phase 23) and the UX/documentation/portfolio polish (Phase 24).
+Este documento es la declaración autoritativa de readiness de release para la release MVP. Refleja el estado final tras todas las fases del MVP (1–25), incluida la validación ground-truth (Phase 22), la validación E2E del producto (Phase 23) y el pulido de UX/documentación/portfolio (Phase 24).
 
-## Release version
+## Versión de release
 
-**1.0.0** (tag `v1.0.0`, annotated, pointing to the final MVP release commit).
+**1.0.0** (tag `v1.0.0`, anotado, apuntando al commit final de la release MVP).
 
-## Release scope
+## Alcance de la release
 
-The v1.0.0 MVP: a deterministic, evidence-backed Developer Health Report for public GitHub repositories, delivered through an Angular UI and a Fastify API with SQLite persistence.
+El MVP v1.0.0: un Developer Health Report determinista y respaldado por evidencia para repositorios públicos de GitHub, entregado mediante una UI Angular y una API Fastify con persistencia SQLite.
 
-### What is included
+### Qué incluye
 
-- Public GitHub repository URL validation and commit-anchored bounded ingestion.
-- Segmented Git-tree traversal with semantics-preserving early termination (Phase 21) — large repositories like `microsoft/TypeScript` and `nodejs/node` are ingestible within limits.
-- Deterministic TypeScript/JavaScript analysis (18 rules) producing facts, metrics, evidence, findings and recommendations.
-- Nullable dimensional scoring (no global score).
-- In-process `AnalysisJob` lifecycle with SQLite persistence and retention cleanup.
-- Fastify report API (`/analyses`, `/analyses/:id`, `/report`, `/findings`, `/recommendations`, `/facts`, `/ai`).
-- Angular report experience with clear states: loading, completed, completed-with-limitations, failed, snapshot-limit-exceeded, insufficient coverage (Phase 24).
-- Optional, isolated AI interpretation (never authoritative; no live-provider validation).
-- Security boundaries: SSRF/redirect/traversal/symlink/submodule protections, sanitized errors, server-side-only GitHub credentials.
-- Documentation: README, architecture, development, security, portfolio, ADRs, roadmap, phase docs, release notes.
+- Validación de URL de repositorios públicos de GitHub e ingestión acotada anclada al commit.
+- Traversal segmentado del Git-tree con terminación temprana que preserva la semántica (Phase 21) — repositorios grandes como `microsoft/TypeScript` y `nodejs/node` son ingeribles dentro de los límites.
+- Análisis determinista de TypeScript/JavaScript (18 reglas) que produce facts, metrics, evidencia, findings y recomendaciones.
+- Puntuación dimensional nullable (sin puntuación global).
+- Ciclo de vida de `AnalysisJob` en proceso con persistencia SQLite y limpieza por retención.
+- API de reporte Fastify (`/analyses`, `/analyses/:id`, `/report`, `/findings`, `/recommendations`, `/facts`, `/ai`).
+- Experiencia de reporte en Angular con estados claros: loading, completed, completed-with-limitations, failed, snapshot-limit-exceeded, cobertura insuficiente (Phase 24).
+- Interpretación de AI opcional y aislada (nunca autoritativa; sin validación de proveedor en vivo).
+- Fronteras de seguridad: protecciones SSRF/redirect/traversal/symlink/submódulo, errores sanitizados, credenciales de GitHub solo server-side.
+- Documentación: README, arquitectura, desarrollo, seguridad, portfolio, ADRs, roadmap, documentación de fases, release notes.
 
-### What is explicitly NOT included
+### Qué NO incluye explícitamente
 
-- Private repositories and authentication.
-- Advanced ingestion (unbounded or configurable limits, tree redesign beyond segmented traversal).
-- Additional analyzer rules or scoring dimensions beyond the current 18 rules / 5 dimensions.
-- Full SAST, complete AST semantic analysis, or complete module resolution.
-- Repository code execution, builds, tests or package installation.
-- Vulnerability database scanning.
-- Global or AI-generated scores.
-- Automatic remediation, GitHub App integration.
-- Workers, queues, Redis, PostgreSQL, microservices, realtime.
+- Repositorios privados y autenticación.
+- Ingestión avanzada (límites ilimitados o configurables, rediseño del tree más allá del traversal segmentado).
+- Reglas adicionales del analyzer o dimensiones de puntuación más allá de las 18 reglas / 5 dimensiones actuales.
+- SAST completo, análisis semántico AST completo o resolución completa de módulos.
+- Ejecución del código del repositorio, builds, tests o instalación de paquetes.
+- Escaneo de bases de datos de vulnerabilidades.
+- Puntuaciones globales o generadas por AI.
+- Remediación automática, integración con GitHub App.
+- Workers, colas, Redis, PostgreSQL, microservicios, realtime.
 - RAG, embeddings, agents, chat, streaming.
-- Billing, analytics, multi-tenant enterprise features.
-- Browser-level E2E automation (Playwright) and automated axe auditing.
+- Billing, analytics, funcionalidades enterprise multi-tenant.
+- Automatización E2E a nivel de navegador (Playwright) y auditoría automatizada con axe.
 
-## Validation completed
+## Validación completada
 
-### Phase 22 — Ground-truth validation (`KEEP WITH LIMITATIONS`)
+### Phase 22 — Validación ground-truth (`KEEP WITH LIMITATIONS`)
 
-- Frozen dataset of 8 public repositories with exact commit SHAs (`docs/phase-22-ground-truth-dataset.md`).
-- 25 findings produced and classified by human review: **7 TP, 0 FP, 2 uncertain, 16 not-evaluable** (`docs/phase-22-final-results.md`).
-- Conclusion: the sample is **insufficient for a defensible precision/recall evaluation**. Evaluable rate 28% (7/25); the 100% TP rate among evaluable findings is explicitly **not** presented as analyzer precision.
-- Decision: **KEEP WITH LIMITATIONS** — no production rule changes justified by the sample.
+- Dataset congelado de 8 repositorios públicos con commit SHAs exactos (`docs/phase-22-ground-truth-dataset.md`).
+- 25 findings producidos y clasificados mediante revisión humana: **7 TP, 0 FP, 2 uncertain, 16 not-evaluable** (`docs/phase-22-final-results.md`).
+- Conclusión: la muestra es **insuficiente para una evaluación defendible de precisión/recall**. Tasa evaluable 28% (7/25); la tasa del 100% TP entre findings evaluables se presenta explícitamente **no** como precisión del analyzer.
+- Decisión: **KEEP WITH LIMITATIONS** — ninguna regla de producción justificada por la muestra.
 
-### Phase 23 — E2E + product validation (`PASS WITH LIMITATIONS`)
+### Phase 23 — E2E + validación de producto (`PASS WITH LIMITATIONS`)
 
-- Real product server driven over HTTP against real public GitHub repositories (`docs/phase-23-e2e-product-validation.md`).
-- Scenarios PASS: successful analysis (`octocat/Hello-World` → real commit SHA, findings, evidence, scores, coverage), invalid URL (400), repository not found (`REPOSITORY_NOT_FOUND`), ingestion limit (`SNAPSHOT_LIMIT_EXCEEDED` on `react/react`), partial/insufficient coverage, API↔UI consistency, accessibility and security baselines.
-- Defect found and fixed: the production server never wired the server-side GitHub credential into the GitHub client (analyses ran unauthenticated, hitting the ~60 req/h unauthenticated limit). Fixed minimally in `apps/api/src/app.ts` (reads `GITHUB_TOKEN ?? GH_TOKEN`) with regression tests (`apps/api/src/app.token.test.ts`).
-- Zero-finding scenario: **NOT EXECUTED** (no suitable repo in the sample); the UI distinguishes the empty-findings state via code.
+- Servidor real del producto ejecutado por HTTP contra repositorios públicos reales de GitHub (`docs/phase-23-e2e-product-validation.md`).
+- Escenarios PASS: análisis exitoso (`octocat/Hello-World` → commit SHA real, findings, evidencia, puntuaciones, cobertura), URL inválida (400), repositorio no encontrado (`REPOSITORY_NOT_FOUND`), límite de ingestión (`SNAPSHOT_LIMIT_EXCEEDED` en `react/react`), cobertura parcial/insuficiente, consistencia API↔UI, líneas base de accesibilidad y seguridad.
+- Defecto encontrado y corregido: el servidor de producción nunca cableaba la credencial GitHub server-side en el cliente de GitHub (los análisis se ejecutaban sin autenticación, chocando con el límite sin autenticar de ~60 req/h). Corregido mínimamente en `apps/api/src/app.ts` (lee `GITHUB_TOKEN ?? GH_TOKEN`) con tests de regresión (`apps/api/src/app.token.test.ts`).
+- Escenario de cero findings: **NO EJECUTADO** (ningún repo adecuado en la muestra); la UI distingue el estado de findings vacíos mediante código.
 
-### Phase 24 — UX + documentation + portfolio polish (`PASS`)
+### Phase 24 — Pulido de UX + documentación + portfolio (`PASS`)
 
-- User-facing messaging for failure states, coverage and limitations in plain language (internal codes as secondary detail).
-- Coverage banner distinguishing complete / partial / insufficient; honest evidence references.
-- README overhaul (quick-start, env vars, server-side GitHub credential setup), architecture CURRENT-vs-FUTURE, portfolio documentation.
+- Mensajes orientados al usuario para estados de fallo, cobertura y limitaciones en lenguaje llano (códigos internos como detalle secundario).
+- Banner de cobertura que distingue complete / partial / insufficient; referencias de evidencia honestas.
+- Revisión del README (quick-start, env vars, configuración de credenciales GitHub server-side), arquitectura CURRENT-vs-FUTURE, documentación de portfolio.
 
 ## Quality gates
 
-All gates pass on the final release state:
+Todos los gates pasan en el estado final de la release:
 
 ```text
 pnpm install --frozen-lockfile
@@ -82,73 +82,73 @@ pnpm audit --audit-level=high
 git diff --check
 ```
 
-Test suite: domain, github (25), analyzer, scoring, persistence, ai, api, web — 92 tests, 0 failures (frontend 17 including the Phase 24 message-mapping tests; API includes the Phase 23 credential-wiring regression tests).
+Suite de tests: domain, github (25), analyzer, scoring, persistence, ai, api, web — 92 tests, 0 fallos (frontend 17, incluidos los tests de mapeo de mensajes de la Phase 24; la API incluye los tests de regresión del cableado de credenciales de la Phase 23).
 
-## Security verification
+## Verificación de seguridad
 
-- GitHub credentials are **server-side / environment-only** (`GITHUB_TOKEN` or `GH_TOKEN`), resolved by the production API and passed to the GitHub client; never returned through API responses, never persisted in SQLite, never logged.
-- README and docs show placeholder examples only; no real token is committed.
-- Scans of the working tree, staged changes and docs found no committed credentials, `Authorization`/`Bearer` values, or secrets.
-- Repository contents are treated as data; no repository code is executed, no dependencies of analyzed repositories are installed.
-- Errors are sanitized (no stack traces or internal details to users); SSRF/redirect/traversal/symlink/submodule protections are covered by tests.
+- Las credenciales de GitHub son **solo server-side / de entorno** (`GITHUB_TOKEN` o `GH_TOKEN`), resueltas por la API de producción y pasadas al cliente de GitHub; nunca se devuelven mediante respuestas de la API, nunca se persisten en SQLite, nunca se registran.
+- El README y los docs muestran solo ejemplos con placeholders; no se commitea ningún token real.
+- Los escaneos del working tree, de los cambios staged y de los docs no encontraron credenciales commiteadas, valores `Authorization`/`Bearer` ni secretos.
+- Los contenidos del repositorio se tratan como datos; no se ejecuta código del repositorio, no se instalan dependencias de los repositorios analizados.
+- Los errores están sanitizados (sin stack traces ni detalles internos para los usuarios); las protecciones SSRF/redirect/traversal/symlink/submódulo están cubiertas por tests.
 
-## API/product validation
+## Validación de API/producto
 
-Real product E2E against public repositories (Phase 23) validated: successful analysis, invalid URL, repository-not-found, ingestion-limit, partial coverage, upstream errors, report data consistency (API ↔ UI), security baseline. Browser-level E2E (Playwright) is not configured; frontend is validated by unit tests plus API-contract verification against the real server.
+El E2E real del producto contra repositorios públicos (Phase 23) validó: análisis exitoso, URL inválida, repositorio no encontrado, límite de ingestión, cobertura parcial, errores upstream, consistencia de datos del reporte (API ↔ UI), línea base de seguridad. El E2E a nivel de navegador (Playwright) no está configurado; el frontend se valida con tests unitarios más la verificación del contrato de la API contra el servidor real.
 
-## Known limitations
+## Limitaciones conocidas
 
-- **Bounded ingestion:** `maxFileCount=50`, `maxApiRequests=125`, `maxJsonResponseBytes=4 MiB`, `maxTotalBytes=2 MiB`, `maxFileBytes=256 KiB`, timeouts. Coverage is `partial`/`insufficient` for most repositories.
-- **SNAPSHOT_LIMIT_EXCEEDED:** very large repositories (`react/react`, `vitejs/vite`) cannot complete a 50-file snapshot within `maxApiRequests=125`; the product surfaces this as a controlled failure, never as a complete analysis.
-- **Absence-based evidence:** rules such as `AN-TEST-001`/`AN-TEST-002`/`AN-TOOL-001`/`AN-CQ-002`/`AN-DEP-001` can report "not detected" when the bounded snapshot may not contain all relevant files (Phase 22); evidence semantics could improve in a future iteration.
-- **AN-ARCH-002:** unresolved-import findings reflect bounded static-resolution failures; not demonstrably real defects (Phase 22).
-- **Ground truth:** sample insufficient for defensible precision/recall; no claim of analyzer accuracy.
-- **No browser E2E / automated axe** (Playwright and Lighthouse tooling intentionally not added).
-- **AI:** optional and not live-validated (no provider credentials configured); deterministic report is authoritative.
+- **Ingestión acotada:** `maxFileCount=50`, `maxApiRequests=125`, `maxJsonResponseBytes=4 MiB`, `maxTotalBytes=2 MiB`, `maxFileBytes=256 KiB`, timeouts. La cobertura es `partial`/`insufficient` para la mayoría de los repositorios.
+- **SNAPSHOT_LIMIT_EXCEEDED:** los repositorios muy grandes (`react/react`, `vitejs/vite`) no pueden completar un snapshot de 50 archivos dentro de `maxApiRequests=125`; el producto lo comunica como un fallo controlado, nunca como un análisis completo.
+- **Evidencia basada en ausencia:** reglas como `AN-TEST-001`/`AN-TEST-002`/`AN-TOOL-001`/`AN-CQ-002`/`AN-DEP-001` pueden reportar "not detected" cuando el snapshot acotado puede no contener todos los archivos relevantes (Phase 22); la semántica de evidencia podría mejorar en una iteración futura.
+- **AN-ARCH-002:** los findings de imports sin resolver reflejan fallos de la resolución estática acotada; no son defectos demostrables de forma fiable (Phase 22).
+- **Ground truth:** muestra insuficiente para una precisión/recall defendible; sin afirmación de precisión del analyzer.
+- **Sin E2E de navegador / axe automatizado** (tooling de Playwright y Lighthouse añadido deliberadamente no).
+- **AI:** opcional y no validada en vivo (sin credenciales de proveedor configuradas); el reporte determinista es autoritativo.
 
-## Known non-blocking gaps
+## Gaps conocidos no bloqueantes
 
-- Lighthouse scores unmeasured (no tooling configured).
-- No production-scale load/concurrency measurements.
-- No operational backup/retention runbook.
-- No real-provider AI evaluation.
-- No multi-instance rate limiting.
+- Puntuaciones de Lighthouse sin medir (sin tooling configurado).
+- Sin mediciones de carga/concurrencia a escala de producción.
+- Sin runbook operativo de backup/retención.
+- Sin evaluación de AI con proveedor real.
+- Sin rate limiting multi-instancia.
 
-## Operational requirements
+## Requisitos operativos
 
 - Node.js 24 (`.nvmrc`), pnpm 10.34.5.
-- Run `pnpm install --frozen-lockfile`, then `pnpm dev` (web `http://localhost:4200`, API `http://127.0.0.1:3000`) or build/run via the package scripts.
-- SQLite file configured via `DATABASE_PATH` (default `analysis.db`); `:memory:` used in tests.
-- Do not commit `.env`, SQLite databases, logs, build output or Angular caches.
+- Ejecutar `pnpm install --frozen-lockfile`, después `pnpm dev` (web `http://localhost:4200`, API `http://127.0.0.1:3000`) o build/run mediante los scripts del paquete.
+- Archivo SQLite configurado mediante `DATABASE_PATH` (por defecto `analysis.db`); `:memory:` usado en tests.
+- No commitear `.env`, bases de datos SQLite, logs, salida de build ni cachés de Angular.
 
-### Required environment variables
+### Variables de entorno requeridas
 
-| Variable | Purpose | Required |
+| Variable | Propósito | Requerida |
 | --- | --- | --- |
-| `GITHUB_TOKEN` (or `GH_TOKEN`) | Server-side credential for GitHub API ingestion | **Yes** for real analyses of non-trivial repos (without it, unauthenticated ~60 req/h limit applies) |
-| `HOST` | API listen host | No (default `127.0.0.1`) |
-| `PORT` | API port | No (default `3000`) |
-| `DATABASE_PATH` | SQLite path | No (default `analysis.db`) |
-| AI provider env vars | Optional AI interpretation | No (AI optional) |
+| `GITHUB_TOKEN` (o `GH_TOKEN`) | Credencial server-side para la ingestión de la GitHub API | **Sí** para análisis reales de repos no triviales (sin ella, aplica el límite sin autenticar de ~60 req/h) |
+| `HOST` | Host de escucha de la API | No (por defecto `127.0.0.1`) |
+| `PORT` | Puerto de la API | No (por defecto `3000`) |
+| `DATABASE_PATH` | Ruta SQLite | No (por defecto `analysis.db`) |
+| Env vars del proveedor de AI | Interpretación de AI opcional | No (AI opcional) |
 
-### GitHub API/token requirements
+### Requisitos de API/token de GitHub
 
-- Public GitHub API access with a server-side token (`GITHUB_TOKEN` or `GH_TOKEN`). The token is resolved as `GITHUB_TOKEN ?? GH_TOKEN`, passed to the GitHub client only, never printed/persisted/returned.
-- No user-facing authentication; repository access is limited to public repositories.
+- Acceso público a la GitHub API con un token server-side (`GITHUB_TOKEN` o `GH_TOKEN`). El token se resuelve como `GITHUB_TOKEN ?? GH_TOKEN`, se pasa solo al cliente de GitHub y nunca se imprime/persiste/devuelve.
+- Sin autenticación orientada al usuario; el acceso al repositorio se limita a repositorios públicos.
 
-## Reproducibility
+## Reproducibilidad
 
-- Analysis is anchored to an immutable commit SHA before ingestion.
-- The Phase 22 ground-truth dataset is frozen with exact SHAs and a deterministic runner (`apps/api/src/validate-ground-truth.ts`) reproducing the same snapshots/results.
-- Deterministic analyzer/scoring: same commit + same rules → same report.
-- All phase documentation, ADRs and this document are versioned in the repository.
+- El análisis se ancla a un commit SHA inmutable antes de la ingestión.
+- El dataset ground-truth de la Phase 22 está congelado con SHAs exactos y un runner determinista (`apps/api/src/validate-ground-truth.ts`) que reproduce los mismos snapshots/resultados.
+- Analyzer/scoring deterministas: mismo commit + mismas reglas → mismo reporte.
+- Toda la documentación de fases, los ADRs y este documento están versionados en el repositorio.
 
-## Release decision
+## Decisión de release
 
 **READY**
 
-The MVP is released as **v1.0.0** with the documented limitations above. It is a controlled MVP release, not an unqualified production-readiness claim.
+El MVP se publica como **v1.0.0** con las limitaciones documentadas anteriormente. Es una release MVP controlada, no una afirmación incondicional de readiness de producción.
 
-## Final recommendation
+## Recomendación final
 
-Freeze the MVP at v1.0.0. Future work should address the documented limitations (bounded ingestion for very large repos, absence-based evidence semantics, browser E2E/axe automation, real-provider AI evaluation, production-scale operations) — none of which block this release. No new product scope should be added without a dedicated post-MVP phase.
+Congelar el MVP en v1.0.0. El trabajo futuro debe abordar las limitaciones documentadas (ingestión acotada para repos muy grandes, semántica de evidencia basada en ausencia, automatización de E2E/axe de navegador, evaluación de AI con proveedor real, operaciones a escala de producción) — ninguna bloquea esta release. No debe añadirse nuevo alcance de producto sin una fase post-MVP dedicada.

@@ -1,26 +1,26 @@
-# Deterministic analyzer
+# Analyzer determinista
 
-## Responsibility
+## Responsabilidad
 
-`packages/analyzer` is a pure TypeScript package that consumes a bounded snapshot-shaped input and produces the domain `AnalysisResult`. It has no HTTP, GitHub, Fastify, Angular, SQLite, filesystem, network, environment, process execution, or AI dependency.
+`packages/analyzer` es un paquete TypeScript puro que consume una entrada con forma de snapshot acotado y produce el `AnalysisResult` de dominio. No tiene dependencias de HTTP, GitHub, Fastify, Angular, SQLite, filesystem, red, entorno, ejecución de procesos ni AI.
 
-The analyzer treats repository files as untrusted data. It never imports, evaluates, installs, executes, or builds repository content.
+El analyzer trata los archivos del repositorio como datos no confiables. Nunca importa, evalúa, instala, ejecuta ni compila el contenido del repositorio.
 
-## Input and output
+## Entrada y salida
 
-The public API is:
+La API pública es:
 
 ```ts
 analyze(input, options?): AnalysisResult
 ```
 
-The input contains a validated `RepositorySnapshot`, bounded textual files, and optional ingestion limitations. The analyzer accepts the structural shape of Phase 3 `IngestionResult` without importing the GitHub adapter, preserving the boundary:
+La entrada contiene un `RepositorySnapshot` validado, archivos textuales acotados y limitaciones de ingestión opcionales. El analyzer acepta la forma estructural del `IngestionResult` de la Fase 3 sin importar el adapter de GitHub, preservando la frontera:
 
 ```text
 GitHub adapter
       |
       v
-bounded ingestion data
+datos de ingestión acotada
       |
       v
 packages/analyzer
@@ -29,110 +29,110 @@ packages/analyzer
 AnalysisResult
 ```
 
-The result contains facts, metrics, evidence-backed findings, linked recommendations, versions, coverage, confidence, limitations, and no dimension scores. The global score is intentionally deferred.
+El resultado contiene facts, metrics, findings respaldados por evidencia, recomendaciones vinculadas, versiones, cobertura, confianza, limitaciones y ninguna puntuación de dimensión. La puntuación global queda diferida deliberadamente.
 
 ## Pipeline
 
 ```text
-input validation
-  -> stable file classification
-  -> manifest/config detection
-  -> language/framework signals
-  -> test, documentation, tooling and CI signals
-  -> bounded import extraction
+validación de entrada
+  -> clasificación estable de archivos
+  -> detección de manifest/config
+  -> señales de lenguaje/framework
+  -> señales de tests, documentación, tooling y CI
+  -> extracción acotada de imports
   -> facts
   -> metrics
-  -> deterministic rules
-  -> evidence, findings and recommendations
-  -> AnalysisResult validation
+  -> reglas deterministas
+  -> evidencia, findings y recomendaciones
+  -> validación de AnalysisResult
 ```
 
-The implementation uses JSON parsing for JSON manifests/configuration and bounded regular expressions for imports and textual signals. It does not use an AST or the TypeScript compiler program in this phase.
+La implementación usa parseo JSON para manifests/configuration JSON y expresiones regulares acotadas para imports y señales textuales. No usa un AST ni el programa del compilador TypeScript en esta fase.
 
-## Classification and scope
+## Clasificación y alcance
 
-TypeScript and JavaScript are Tier 1: `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` and `.cjs` are classified as source or tests according to their path. `package.json`, lockfiles, configuration, documentation, CI workflows, generated-looking paths and unknown files have separate classifications.
+TypeScript y JavaScript son Tier 1: `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs` y `.cjs` se clasifican como fuente o tests según su path. `package.json`, lockfiles, configuración, documentación, workflows de CI, paths con apariencia generada y archivos desconocidos tienen clasificaciones separadas.
 
-Angular, React and Node.js are detected only as verifiable ecosystem signals. The analyzer does not make framework-quality claims. Other languages are outside the deep-analysis scope and remain unknown or limited.
+Angular, React y Node.js se detectan solo como señales verificables del ecosistema. El analyzer no hace afirmaciones de calidad de frameworks. Otros lenguajes quedan fuera del alcance de análisis profundo y permanecen como unknown o limitados.
 
-## Facts and metrics
+## Facts y metrics
 
-Facts are direct observations such as `package_json_present`, `test_tooling`, `framework_detected`, `ci_capabilities`, `typescript_strict`, and file counts. Metrics are derived values such as:
+Los facts son observaciones directas como `package_json_present`, `test_tooling`, `framework_detected`, `ci_capabilities`, `typescript_strict` y recuentos de archivos. Las metrics son valores derivados como:
 
-- total, source, test, documentation, configuration, TypeScript and JavaScript file counts;
-- source bytes, average source size and maximum source size;
-- import count and TODO/FIXME count;
-- `any`, `console` and `@ts-ignore` signal counts;
-- total, direct, dev, peer and optional dependency counts;
-- test-to-source ratio.
+- recuentos de archivos totales, fuente, tests, documentación, configuración, TypeScript y JavaScript;
+- bytes de fuente, tamaño medio de fuente y tamaño máximo de fuente;
+- recuento de imports y recuento de TODO/FIXME;
+- recuentos de señales `any`, `console` y `@ts-ignore`;
+- recuentos de dependencias totales, directas, dev, peer y opcionales;
+- ratio test-to-source.
 
-Missing manifests produce `insufficient_data`; absent detectable capabilities use `not_detected`. Unknown and insufficient data are never converted to zero or a strong negative claim.
+Los manifests ausentes producen `insufficient_data`; las capacidades detectables ausentes usan `not_detected`. Los datos desconocidos e insuficientes nunca se convierten en cero ni en una afirmación negativa fuerte.
 
-The test-to-source ratio is `test file count / non-test source file count`. It is `insufficient_data` when no non-test source files are available.
+El ratio test-to-source es `recuento de archivos de tests / recuento de archivos fuente no-test`. Es `insufficient_data` cuando no hay archivos fuente no-test disponibles.
 
-## Rules currently implemented
+## Reglas implementadas actualmente
 
-The initial rule set is intentionally small and conservative:
+El conjunto inicial de reglas es intencionadamente pequeño y conservador:
 
-- `AN-DOC-001`: README not detected.
-- `AN-TEST-001`: test files not detected.
-- `AN-TEST-002`: test tooling not detected.
-- `AN-TOOL-001`: lint tooling not detected.
-- `AN-DEP-001`: package manifest without a supported lockfile.
-- `AN-CQ-002` / `AN-CQ-003`: TypeScript strictness unverified or explicitly disabled.
-- `AN-MAINT-001`: source file over the configurable line threshold.
-- `AN-CQ-004`: TODO/FIXME count over the configurable threshold.
-- `AN-CQ-005`: TypeScript ignore directives detected.
-- `AN-ARCH-002`: relative import not matched by bounded static resolution.
-- `AN-ARCH-001`: source path deeper than six segments.
-- `AN-SEC-002`: potentially sensitive filename.
-- `AN-SEC-003`: credential-like content, calibrated by severity tier (below).
+- `AN-DOC-001`: README no detectado.
+- `AN-TEST-001`: archivos de tests no detectados.
+- `AN-TEST-002`: test tooling no detectado.
+- `AN-TOOL-001`: lint tooling no detectado.
+- `AN-DEP-001`: manifest sin lockfile soportado.
+- `AN-CQ-002` / `AN-CQ-003`: estricto de TypeScript no verificado o explícitamente deshabilitado.
+- `AN-MAINT-001`: archivo fuente por encima del umbral de líneas configurable.
+- `AN-CQ-004`: recuento de TODO/FIXME por encima del umbral configurable.
+- `AN-CQ-005`: directivas de ignore de TypeScript detectadas.
+- `AN-ARCH-002`: import relativo no coincidente con la resolución estática acotada.
+- `AN-ARCH-001`: path fuente más profundo de seis segmentos.
+- `AN-SEC-002`: nombre de archivo potencialmente sensible.
+- `AN-SEC-003`: contenido tipo credencial, calibrado por tier de severidad (abajo).
 
-Every finding has a deterministic rule ID/version, conservative severity, a source reference, evidence, and one reciprocal recommendation. Absence of accessibility or security tooling is exposed as a fact; it is not automatically converted into a vulnerability finding.
+Cada finding tiene un ID/versión de regla determinista, una severidad conservadora, una referencia de origen, evidencia y una recomendación recíproca. La ausencia de tooling de accesibilidad o seguridad se expone como un fact; no se convierte automáticamente en un finding de vulnerabilidad.
 
-## AN-SEC-003 calibration
+## Calibración de AN-SEC-003
 
-AN-SEC-003 is calibrated for precision over recall: a false alarm at high severity can destroy trust in the whole report, so the rule is deliberately conservative.
+AN-SEC-003 está calibrado para precisión sobre recall: una falsa alarma de severidad alta puede destruir la confianza en todo el reporte, por lo que la regla es deliberadamente conservadora.
 
-GitHub Actions secret expressions are never flagged. `${{ secrets.X }}`, `${{ github.token }}`, `${{ env.X }}` and `${{ vars.X }}` reference platform-managed secrets and are removed before pattern matching, so `token: '${{ secrets.GITHUB_TOKEN }}'` in a workflow does not produce a finding.
+Las expresiones de secretos de GitHub Actions nunca se marcan. `${{ secrets.X }}`, `${{ github.token }}`, `${{ env.X }}` y `${{ vars.X }}` referencian secretos gestionados por la plataforma y se eliminan antes del matching de patrones, de modo que `token: '${{ secrets.GITHUB_TOKEN }}'` en un workflow no produce un finding.
 
-Detected values are classified into explicit tiers:
+Los valores detectados se clasifican en tiers explícitos:
 
-| Tier | Kind | Severity | Confidence | Example |
+| Tier | Kind | Severity | Confidence | Ejemplo |
 | --- | --- | --- | --- | --- |
-| High-confidence credential | `committed` | high | high | `ghp_…`, `AKIA…`, `-----BEGIN … PRIVATE KEY-----` |
-| Generic secret-like value | `possible` | medium | medium | `apiKey: 'some-plausible-value-…'` |
-| Obvious placeholder | `placeholder` | low | low | `secret: 'your-api-key-here-…'`, `changeme`, `<…>` |
-| Demo/example/test content | `demo` | low | low | any pattern under `examples/`, `fixtures/`, `test/`, `spec/` |
+| Credencial de alta confianza | `committed` | high | high | `ghp_…`, `AKIA…`, `-----BEGIN … PRIVATE KEY-----` |
+| Valor genérico tipo secreto | `possible` | medium | medium | `apiKey: 'some-plausible-value-…'` |
+| Placeholder evidente | `placeholder` | low | low | `secret: 'your-api-key-here-…'`, `changeme`, `<…>` |
+| Contenido demo/ejemplo/test | `demo` | low | low | cualquier patrón bajo `examples/`, `fixtures/`, `test/`, `spec/` |
 
-Files under demo, example, fixture, sample, test, `__tests__` or spec paths are downgraded to `low` severity — they are reported as demo/test content, not as committed credentials. This is conservative: it does not exclude test files from security analysis entirely, and the evidence mechanism still stores only a hash, never the secret itself. Up to five AN-SEC-003 findings are emitted (deterministic, ordered by path).
+Los archivos bajo paths de demo, example, fixture, sample, test, `__tests__` o spec se rebajan a severidad `low` — se reportan como contenido demo/test, no como credenciales commiteadas. Esto es conservador: no excluye los archivos de tests del análisis de seguridad por completo, y el mecanismo de evidencia sigue almacenando solo un hash, nunca el secreto. Se emiten hasta cinco findings de AN-SEC-003 (deterministas, ordenados por path).
 
-## Thresholds and limits
+## Umbrales y límites
 
-Defaults are centralized in `DEFAULT_ANALYZER_OPTIONS`:
+Los valores por defecto están centralizados en `DEFAULT_ANALYZER_OPTIONS`:
 
-- source-size heuristic: 400 lines;
-- TODO/FIXME heuristic: 10 markers;
-- imported-reference limit: 40 references.
+- heurística de tamaño de fuente: 400 líneas;
+- heurística de TODO/FIXME: 10 marcadores;
+- límite de referencias importadas: 40 referencias.
 
-These are MVP heuristics, not universal standards. They are configurable for tests and future calibration. Import resolution only checks bounded snapshot paths and common TypeScript/JavaScript extensions; it does not emulate every runtime or bundler resolver.
+Son heurísticas del MVP, no estándares universales. Son configurables para tests y calibración futura. La resolución de imports solo comprueba paths acotados del snapshot y extensiones comunes de TypeScript/JavaScript; no emula todos los resolvers de runtime ni de bundlers.
 
-## Evidence and security
+## Evidencia y seguridad
 
-Evidence is created through domain factories and is scoped to the snapshot. It points to a normalized repository-relative path when a source location exists, otherwise to metadata, and stores only a stable hash. Full files and detected secrets are never persisted in the result.
+La evidencia se crea mediante las factories de dominio y está acotada al snapshot. Apunta a un path relativo normalizado al repositorio cuando existe una ubicación de origen; en caso contrario, a metadatos, y almacena solo un hash estable. Los archivos completos y los secretos detectados nunca se persisten en el resultado.
 
-Input files with another snapshot ID, unsafe paths, invalid sizes or missing content metadata are excluded and recorded through `invalid_input_files_excluded`. Malformed JSON is isolated to the affected manifest/config and produces a limitation rather than aborting the entire analysis.
+Los archivos de entrada con otro ID de snapshot, paths inseguros, tamaños inválidos o metadatos de contenido ausentes se excluyen y se registran mediante `invalid_input_files_excluded`. El JSON malformado se aísla en el manifest/config afectado y produce una limitación en lugar de abortar todo el análisis.
 
-## Determinism
+## Determinismo
 
-For the same snapshot, input files, `analyzerVersion`, `ruleSetVersion` and options, output ordering, IDs, hashes, timestamps and values are stable. The result timestamp is inherited from `RepositorySnapshot`; the analyzer does not read the current clock, random values, locale, network or local filesystem.
+Para el mismo snapshot, archivos de entrada, `analyzerVersion`, `ruleSetVersion` y opciones, el orden de salida, los IDs, los hashes, los timestamps y los valores son estables. El timestamp del resultado se hereda de `RepositorySnapshot`; el analyzer no lee el reloj actual, valores aleatorios, locale, red ni filesystem local.
 
-## Fixtures and tests
+## Fixtures y tests
 
-The fixtures in `src/fixtures.ts` are small immutable in-memory data sets covering clean TypeScript, poor TypeScript, JavaScript/React, Angular signals, partial/malformed input, security signals, and AN-SEC-003 calibration cases (GitHub expressions, committed/possible/placeholder/demo tiers). They are data only and are never executed or sent over the network.
+Los fixtures de `src/fixtures.ts` son conjuntos de datos inmutables en memoria que cubren TypeScript limpio, TypeScript deficiente, JavaScript/React, señales de Angular, entrada parcial/malformada, señales de seguridad y casos de calibración de AN-SEC-003 (expresiones de GitHub, tiers committed/possible/placeholder/demo). Son solo datos y nunca se ejecutan ni se envían por la red.
 
-Analyzer tests cover classification, manifests, lockfiles, frameworks, tooling, CI, metrics, findings, recommendations, evidence relationships, malformed input, unsafe input paths, secret redaction, AN-SEC-003 tier calibration, GitHub Actions expression exclusion, import extraction, limits, determinism and a bounded performance sanity check.
+Los tests del analyzer cubren clasificación, manifests, lockfiles, frameworks, tooling, CI, metrics, findings, recomendaciones, relaciones de evidencia, entrada malformada, paths de entrada inseguros, redacción de secretos, calibración de tiers de AN-SEC-003, exclusión de expresiones de GitHub Actions, extracción de imports, límites, determinismo y una comprobación acotada de rendimiento.
 
-## Deferred work
+## Trabajo diferido
 
-This phase does not implement AST analysis, complete module resolution, full circular-dependency analysis, vulnerability scanning, SAST, scoring, SQLite, job orchestration, API endpoints, frontend report screens or AI assessment. Those features require separate validation and contracts in later phases.
+Esta fase no implementa análisis AST, resolución completa de módulos, análisis completo de dependencias circulares, escaneo de vulnerabilidades, SAST, puntuación, SQLite, orquestación de jobs, endpoints de API, pantallas de reporte en el frontend ni evaluación de AI. Esas funcionalidades requieren validación y contratos separados en fases posteriores.

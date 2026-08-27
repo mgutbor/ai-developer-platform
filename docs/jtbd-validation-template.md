@@ -1,75 +1,76 @@
-# JTBD Validation — Developer Interview Session Template
+# Validación JTBD — Plantilla de sesión de entrevista con developers
 
-> Recording template for Phase 29 human validation. One section per developer
-> session. **Do not fill in classifications or answers on behalf of the
-> developer** — every field below is completed only from a real session.
+> Plantilla de registro para la validación humana de la Phase 29. Una sección por
+> sesión de developer. **No rellenar clasificaciones ni respuestas en nombre del
+> developer** — cada campo siguiente se completa únicamente a partir de una
+> sesión real.
 
-## Session metadata
+## Metadatos de la sesión
 
-- Session ID: `S-01` (increment per session)
-- Date:
-- Participant role: (e.g., frontend dev / backend dev / tech lead / architect)
-- Experience (years):
-- Anonymous: YES / NO (record without personal identifiers)
-- Repositories used in the session (unfamiliar to the participant):
+- ID de sesión: `S-01` (incrementar por sesión)
+- Fecha:
+- Rol del participante: (p. ej., frontend dev / backend dev / tech lead / architect)
+- Experiencia (años):
+- Anónimo: YES / NO (registrar sin identificadores personales)
+- Repositorios usados en la sesión (desconocidos para el participante):
 
-## Protocol (8 questions)
+## Protocolo (8 preguntas)
 
-1. What do you think this product is for?
-2. What was the first thing that caught your attention?
-3. Did you discover anything you would not have noticed yourself?
-4. Which finding did you trust?
-5. Which finding did you not trust?
-6. Did any result change what you would do with the repository?
-7. What information was confusing or unnecessary?
-8. Would you use this before adopting another GitHub repository? Why?
+1. ¿Para qué crees que sirve este producto?
+2. ¿Qué fue lo primero que te llamó la atención?
+3. ¿Descubriste algo que no habrías notado por ti mismo?
+4. ¿Qué finding te inspiró confianza?
+5. ¿Qué finding no te inspiró confianza?
+6. ¿Algún resultado cambió lo que harías con el repositorio?
+7. ¿Qué información resultó confusa o innecesaria?
+8. ¿Lo usarías antes de adoptar otro repositorio de GitHub? ¿Por qué?
 
-## Session record
+## Registro de la sesión
 
-### Q1 — Product purpose (participant's words)
+### Q1 — Propósito del producto (palabras del participante)
 
-### Q2 — First impression
+### Q2 — Primera impresión
 
-### Q3 — Discovered anything novel?
+### Q3 — ¿Descubrió algo novedoso?
 
-- Finding(s) mentioned:
-- Novel vs 3–5 min manual inspection: OBVIOUS / NON_OBVIOUS / UNCERTAIN
-- Could the participant verify the finding from the report alone? YES / NO
+- Finding(s) mencionados:
+- Novedoso frente a inspección manual de 3–5 min: OBVIOUS / NON_OBVIOUS / UNCERTAIN
+- ¿Pudo el participante verificar el finding solo con el reporte? YES / NO
 
-### Q4 — Trusted findings
-
-- Finding(s):
-- Reason given:
-
-### Q5 — Untrusted findings
+### Q4 — Findings de confianza
 
 - Finding(s):
-- Reason given:
+- Motivo dado:
 
-### Q6 — Changed next action?
+### Q5 — Findings sin confianza
 
-- Action before: ADOPT / INVESTIGATE / REJECT / OTHER
-- Action after:
-- What changed:
+- Finding(s):
+- Motivo dado:
 
-### Q7 — Confusing / unnecessary
+### Q6 — ¿Cambió la siguiente acción?
 
-### Q8 — Would use before adopting?
+- Acción antes: ADOPT / INVESTIGATE / REJECT / OTHER
+- Acción después:
+- Qué cambió:
+
+### Q7 — Confuso / innecesario
+
+### Q8 — ¿Lo usaría antes de adoptar?
 
 - YES / NO / MAYBE
-- Reason:
+- Motivo:
 
-## Evaluator scoring (per session, only after the session)
+## Puntuación del evaluador (por sesión, solo después de la sesión)
 
-- Non-obvious + verifiable + actionable findings: count
-- Purpose understood without explanation: PASS / PARTIAL / FAIL
-- Evidence trusted enough to investigate: PASS / PARTIAL / FAIL
-- Changed next action: YES / NO
-- Would use it: YES / NO / MAYBE
+- Findings no obvios + verificables + accionables: recuento
+- Propósito entendido sin explicación: PASS / PARTIAL / FAIL
+- Evidencia suficientemente confiable para investigar: PASS / PARTIAL / FAIL
+- Cambió la siguiente acción: YES / NO
+- Lo usaría: YES / NO / MAYBE
 
-## Aggregate (fill after ≥3 sessions)
+## Agregado (rellenar después de ≥3 sesiones)
 
-- Sessions completed:
-- Sessions with ≥1 non-obvious + verifiable + actionable finding: n / total
-- Success threshold (≥70%): MET / NOT MET
-- Overall session decision: STRONG GO / WEAK GO / NO-GO
+- Sesiones completadas:
+- Sesiones con ≥1 finding no obvio + verificable + accionable: n / total
+- Umbral de éxito (≥70%): MET / NOT MET
+- Decisión global de la sesión: STRONG GO / WEAK GO / NO-GO

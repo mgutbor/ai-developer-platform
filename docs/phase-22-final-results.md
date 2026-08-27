@@ -1,56 +1,56 @@
-# Phase 22 — Final Results: Product Validation / Ground-Truth Review
+# Phase 22 — Resultados finales: Validación de producto / Revisión ground-truth
 
-## Objective
+## Objetivo
 
-Close Phase 22 cleanly using the evidence already collected, record Manuel's human classifications, compute only defensible descriptive metrics, and establish the real conclusions that move the project to the next product stage.
+Cerrar la Phase 22 limpiamente usando la evidencia ya recopilada, registrar las clasificaciones humanas de Manuel, calcular solo métricas descriptivas defendibles y establecer las conclusiones reales que mueven el proyecto a la siguiente etapa de producto.
 
-This is the **final step of Phase 22**. It does not create Phase 22.4, does not add analyzer features, and does not change ingestion, scoring, UX, E2E or AI. The dataset was frozen and executed in Phases 22.1–22.2; the classifications below are applied from the human-review instructions provided for this closure. No analyzer or scoring rule was modified.
+Este es el **paso final de la Phase 22**. No crea la Phase 22.4, no añade funcionalidades del analyzer y no cambia ingestion, scoring, UX, E2E ni AI. El dataset se congeló y ejecutó en las Phases 22.1–22.2; las clasificaciones de abajo se aplican a partir de las instrucciones de revisión humana proporcionadas para este cierre. No se modificó ninguna regla del analyzer ni del scoring.
 
 ## Dataset
 
-The frozen 8-repository dataset (frozen on **2026-08-27**) defined in `docs/phase-22-ground-truth-dataset.md`:
+El dataset congelado de 8 repositorios (congelado el **2026-08-27**) definido en `docs/phase-22-ground-truth-dataset.md`:
 
-| # | Repository | Frozen commit SHA | Snapshot | Findings |
+| # | Repositorio | SHA de commit congelado | Snapshot | Findings |
 | --- | --- | --- | --- | ---: |
 | 1 | `octocat/Hello-World` | `7fd1a60b01f91b314f59955a4e4d4e80d8edf11d` | ok (insufficient) | 3 |
 | 2 | `sindresorhus/type-fest` | `3fe02d33596f8afa167bc465d9d9ac9ab81b497e` | ok (partial) | 7 |
 | 3 | `expressjs/express` | `023767fe9872e029271df1418f73401bff20ff40` | ok (partial) | 4 |
 | 4 | `angular/angular` | `133cafda42028fbd8efd7840d6ff3fea25223166` | ok (partial) | 4 |
-| 5 | `react/react` | `29d9d3184484b03cb0369e0494617207df777b7a` | no snapshot (`ingestion_limit_reached`) | 0 |
+| 5 | `react/react` | `29d9d3184484b03cb0369e0494617207df777b7a` | sin snapshot (`ingestion_limit_reached`) | 0 |
 | 6 | `vuejs/core` | `d63616ca17de965ed32dcb449a4c5cd9982f15d2` | ok (partial) | 5 |
 | 7 | `nestjs/nest` | `a333a9dae6169537da3954c5b1ac35202b057fcb` | ok (partial) | 2 |
-| 8 | `vitejs/vite` | `ee644014aab61e546742b862a7d7b0d6c7d67a7b` | no snapshot (`ingestion_limit_reached`) | 0 |
+| 8 | `vitejs/vite` | `ee644014aab61e546742b862a7d7b0d6c7d67a7b` | sin snapshot (`ingestion_limit_reached`) | 0 |
 
-Total findings: **25** across 6 repositories. `react/react` and `vitejs/vite` produced no findings because ingestion reached `maxApiRequests=125` before a complete `maxFileCount=50` snapshot (documented bounded-resource limitation; no limits changed in this phase).
+Total de findings: **25** en 6 repositorios. `react/react` y `vitejs/vite` no produjeron findings porque la ingestion alcanzó `maxApiRequests=125` antes de un snapshot completo de `maxFileCount=50` (limitación documentada de recursos acotados; no se cambiaron límites en esta fase).
 
-## Execution summary
+## Resumen de ejecución
 
-- Runner: `apps/api/src/validate-ground-truth.ts`; pipeline: ingestion → analyzer → scoring (unchanged).
-- Execution timestamp (UTC): **2026-08-27 16:02**.
-- Source of truth: `/tmp/phase22-ground-truth-results.jsonl` and the review package `/tmp/phase22-human-review/` (documented in `docs/phase-22-human-review-package.md`).
-- All 8 frozen SHAs resolved and matched their anchors; no `commit_mismatch`.
+- Runner: `apps/api/src/validate-ground-truth.ts`; pipeline: ingestion → analyzer → scoring (sin cambios).
+- Marca de tiempo de ejecución (UTC): **2026-08-27 16:02**.
+- Fuente de verdad: `/tmp/phase22-ground-truth-results.jsonl` y el paquete de revisión `/tmp/phase22-human-review/` (documentado en `docs/phase-22-human-review-package.md`).
+- Los 8 SHAs congelados se resolvieron y coincidieron con sus anclas; sin `commit_mismatch`.
 
-## Human classification methodology
+## Metodología de clasificación humana
 
-Classifications are applied from the human-review instructions for this closure, using only the four labels **TP / FP / UNCERTAIN / NOT_EVALUABLE**, based on the bounded-snapshot evidence captured in Phases 22.2–22.3.
+Las clasificaciones se aplican a partir de las instrucciones de revisión humana para este cierre, usando solo las cuatro etiquetas **TP / FP / UNCERTAIN / NOT_EVALUABLE**, basándose en la evidencia de snapshot acotado capturada en las Phases 22.2–22.3.
 
-Reviewer-notes rules applied consistently:
+Reglas de notas de revisor aplicadas de forma consistente:
 
 - **TP**: `Evidence sufficient: YES`, `Actionable: YES`, `Reviewer confidence: HIGH`.
 - **UNCERTAIN**: `Evidence sufficient: NO`, `Actionable: YES`, `Reviewer confidence: LOW`.
 - **NOT_EVALUABLE**: `Evidence sufficient: NO`, `Actionable: NO`, `Reviewer confidence: HIGH`.
 
-- **AN-ARCH-002** was classified **NOT_EVALUABLE**, never FP: bounded static resolution failed, but this proves only that the import was unresolvable under the bounded policy — not that the import is invalid. Resolver/snapshot limitation is possible.
-- **AN-MAINT-001** TPs are explained by the objective line-count condition directly supporting the finding.
-- NOT_EVALUABLE is an evidence limitation, not a statement that the rule is correct or incorrect.
+- **AN-ARCH-002** se clasificó como **NOT_EVALUABLE**, nunca FP: la resolución estática acotada falló, pero esto solo demuestra que el import era irresoluble bajo la política acotada — no que el import sea inválido. La limitación de resolver/snapshot es posible.
+- Los TP de **AN-MAINT-001** se explican por la condición objetiva de conteo de líneas que respalda directamente el finding.
+- NOT_EVALUABLE es una limitación de evidencia, no una afirmación de que la regla sea correcta o incorrecta.
 
-These classifications were written into `/tmp/phase22-human-review/*.md` (one entry per finding).
+Estas clasificaciones se escribieron en `/tmp/phase22-human-review/*.md` (una entrada por finding).
 
-## Complete classification table (25 findings)
+## Tabla de clasificación completa (25 findings)
 
-Grouped by repository, in the exact file order (`F1` = FINDING 1).
+Agrupados por repositorio, en el orden exacto de archivo (`F1` = FINDING 1).
 
-| Repo | # | Rule | Severity | Path / file | Evidence range | Classification |
+| Repo | # | Regla | Severidad | Path / archivo | Rango de evidencia | Classification |
 | --- | --- | --- | --- | --- | --- | --- |
 | octocat/Hello-World | F1 | AN-TEST-001 | medium | `(none)` | — | **TP** |
 | octocat/Hello-World | F2 | AN-TEST-002 | low | `(none)` | — | **TP** |
@@ -78,9 +78,9 @@ Grouped by repository, in the exact file order (`F1` = FINDING 1).
 | nestjs/nest | F1 | AN-CQ-002 | low | `tsconfig.json` | — | NOT_EVALUABLE |
 | nestjs/nest | F2 | AN-ARCH-002 | medium | `gulpfile.mjs` | L13 | NOT_EVALUABLE |
 
-## Classification totals
+## Totales de clasificación
 
-| Classification | Count |
+| Clasificación | Conteo |
 | --- | ---: |
 | TP | 7 |
 | FP | 0 |
@@ -88,82 +88,82 @@ Grouped by repository, in the exact file order (`F1` = FINDING 1).
 | NOT_EVALUABLE | 16 |
 | **Total** | **25** |
 
-> Note on totals: the instructing phase text included an "expected" line of TP=8 / NOT_EVALUABLE=15, but the explicit per-finding classifications distribute as **TP=7 / NOT_EVALUABLE=16** (no 8th true positive exists among the per-finding assignments). This document uses the count derived from the per-finding classifications (user-confirmed).
+> Nota sobre los totales: el texto instructor de la fase incluía una línea "esperada" de TP=8 / NOT_EVALUABLE=15, pero las clasificaciones explícitas por finding se distribuyen como **TP=7 / NOT_EVALUABLE=16** (no existe un octavo true positive entre las asignaciones por finding). Este documento usa el conteo derivado de las clasificaciones por finding (confirmado por el usuario).
 
-## Defensible descriptive metrics
+## Métricas descriptivas defendibles
 
-Metrics below are purely descriptive counters and are **not** a validated accuracy estimate for the analyzer.
+Las métricas de abajo son solo contadores descriptivos y **no** son una estimación validada de exactitud del analyzer.
 
-- **Total findings**: 25
-- **TP count**: 7
-- **FP count**: 0
-- **UNCERTAIN count**: 2
-- **NOT_EVALUABLE count**: 16
-- **Evaluable findings** (TP + FP): 7
-- **Evaluable rate**: 7 / 25 = **28.0 %**
-- **TP rate among evaluable findings**: 7 / 7 = **100 %**
+- **Total de findings**: 25
+- **Conteo TP**: 7
+- **Conteo FP**: 0
+- **Conteo UNCERTAIN**: 2
+- **Conteo NOT_EVALUABLE**: 16
+- **Findings evaluables** (TP + FP): 7
+- **Tasa evaluable**: 7 / 25 = **28.0 %**
+- **Tasa TP entre findings evaluables**: 7 / 7 = **100 %**
 
-**Important caveat — this 100 % is NOT statistically valid precision.** The dataset contains no systematically labelled negatives (FP = 0 by construction), only 7 of 25 findings were evaluable, and 16 were NOT_EVALUABLE due to bounded ingestion. TP/(TP+FP) here is a descriptive figure from a small, skewed sample and must not be presented as analyzer precision. **Recall and false-negative rate are intentionally NOT calculated** (no ground-truth negatives were collected; do not manufacture false negatives). Analyzer accuracy is NOT claimed.
+**Advertencia importante — este 100 % NO es precision estadísticamente válida.** El dataset no contiene negativos etiquetados sistemáticamente (FP = 0 por construcción), solo 7 de los 25 findings fueron evaluables, y 16 fueron NOT_EVALUABLE por la ingestion acotada. TP/(TP+FP) aquí es una cifra descriptiva de una muestra pequeña y sesgada y no debe presentarse como precision del analyzer. **El recall y la tasa de falsos negativos NO se calculan deliberadamente** (no se recopilaron negativos de ground truth; no fabricar falsos negativos). La exactitud del analyzer NO se reivindica.
 
-## What the sample proves
+## Qué demuestra la muestra
 
-- The deterministic pipeline (ingestion → analyzer → scoring) executes reproducibly against the frozen dataset, with bounded resource usage and strict provenance.
-- Bounded ingestion works within its limits; where a snapshot completes, findings are produced deterministically and traceably.
-- AN-MAINT-001's line-count condition yields objectively verifiable true positives (all four large-file findings where a snapshot completed).
-- Absence-based rules fire meaningfully on a minimal repository (Hello-World: no tests / no test tooling / no lint config) — confirmed as TP.
+- El pipeline determinista (ingestion → analyzer → scoring) se ejecuta de forma reproducible contra el dataset congelado, con uso acotado de recursos y provenance estricto.
+- La ingestion acotada funciona dentro de sus límites; donde un snapshot se completa, los findings se producen de forma determinista y trazable.
+- La condición de conteo de líneas de AN-MAINT-001 produce verdaderos positivos objetivamente verificables (los cuatro findings de archivo grande donde el snapshot se completó).
+- Las reglas basadas en ausencia se disparan de forma significativa en un repositorio mínimo (Hello-World: sin tests / sin tooling de tests / sin config de lint) — confirmado como TP.
 
-## What the sample does NOT prove
+## Qué NO demuestra la muestra
 
-- It does **not** validate analyzer accuracy, precision or recall.
-- It does **not** establish that absence-based rules are correct: most of their findings were NOT_EVALUABLE because the bounded snapshot may not contain all relevant files.
-- It does **not** determine whether AN-ARCH-002's unresolved-import findings are real defects, resolver limitations, or snapshot limitations.
-- It does **not** provide a labelled negative set, so no FP/FN metrics are defensible.
-- It does **not** cover `react/react` or `vitejs/vite` (no snapshot within `maxApiRequests=125`).
+- **No** valida la exactitud, precision ni recall del analyzer.
+- **No** establece que las reglas basadas en ausencia sean correctas: la mayoría de sus findings fueron NOT_EVALUABLE porque el snapshot acotado puede no contener todos los archivos relevantes.
+- **No** determina si los findings de import sin resolver de AN-ARCH-002 son defectos reales, limitaciones del resolver o limitaciones del snapshot.
+- **No** proporciona un conjunto de negativos etiquetados, por lo que ninguna métrica FP/FN es defendible.
+- **No** cubre `react/react` ni `vitejs/vite` (sin snapshot dentro de `maxApiRequests=125`).
 
-## Ingestion limitations
+## Limitaciones de ingestion
 
-- Coverage is `partial` or `insufficient` for most repositories (`tree_segmented_acquisition`, `tree_segmented_early_termination`, `tree_truncated`, `file_count_limit_reached`, `file_too_large:*`).
-- `react/react` and `vitejs/vite` cannot complete the intended 50-file snapshot within `maxApiRequests=125` (81+41+3 and 79+43+3 requests respectively); the snapshot is absent (coverage null), never presented as complete.
-- Limits were **not** changed in this phase. This is a known validation limitation for a future ingestion decision, outside the ground-truth scope.
+- La cobertura es `partial` o `insufficient` en la mayoría de los repositorios (`tree_segmented_acquisition`, `tree_segmented_early_termination`, `tree_truncated`, `file_count_limit_reached`, `file_too_large:*`).
+- `react/react` y `vitejs/vite` no pueden completar el snapshot previsto de 50 archivos dentro de `maxApiRequests=125` (81+41+3 y 79+43+3 requests respectivamente); el snapshot está ausente (cobertura null), nunca se presenta como completo.
+- Los límites **no** se cambiaron en esta fase. Esta es una limitación de validación conocida para una decisión futura de ingestión, fuera del alcance del ground truth.
 
-## Rule-level observations
+## Observaciones a nivel de regla
 
-- **Absence-based rules** (`AN-TEST-001`, `AN-TEST-002`, `AN-TOOL-001`, `AN-CQ-002`, `AN-DEP-001`) can report "not detected" even when the bounded snapshot may not contain all relevant files. This is a validation/evidence semantic limitation, documented here rather than asserted as a rule defect.
-- **AN-MAINT-001** produced the clearest directly verifiable findings in this sample (objective line-count > 400). 4/4 completed-snapshot instances classified TP.
-- **AN-SEC-003** (2 findings) classified UNCERTAIN: only a hash is persisted; underlying content was unavailable for human inspection.
+- **Reglas basadas en ausencia** (`AN-TEST-001`, `AN-TEST-002`, `AN-TOOL-001`, `AN-CQ-002`, `AN-DEP-001`) pueden reportar "not detected" incluso cuando el snapshot acotado puede no contener todos los archivos relevantes. Esta es una limitación de semántica de validación/evidencia, documentada aquí en lugar de afirmada como defecto de regla.
+- **AN-MAINT-001** produjo los findings directamente verificables más claros de esta muestra (conteo objetivo de líneas > 400). 4/4 instancias de snapshot completado clasificadas como TP.
+- **AN-SEC-003** (2 findings) clasificado como UNCERTAIN: solo se persiste un hash; el contenido subyacente no estaba disponible para inspección humana.
 
-## AN-ARCH-002 observation
+## Observación sobre AN-ARCH-002
 
-AN-ARCH-002 findings reflect a failure of **bounded static resolution**, not evidence that the import is invalid. These were classified NOT_EVALUABLE (not FP). Future validation should distinguish:
-- genuinely unresolved/invalid import;
-- valid import unsupported by the static resolver;
-- resolver limitation;
-- snapshot limitation.
+Los findings de AN-ARCH-002 reflejan un fallo de **resolución estática acotada**, no evidencia de que el import sea inválido. Se clasificaron como NOT_EVALUABLE (no FP). La validación futura debería distinguir:
+- import genuinamente sin resolver/inválido;
+- import válido no soportado por el resolver estático;
+- limitación del resolver;
+- limitación del snapshot.
 
-## Security finding limitations
+## Limitaciones de los findings de seguridad
 
-Security findings where only an excerpt hash is persisted (no raw content retained for human inspection) cannot be confirmed or refuted from the package. They were classified UNCERTAIN. No credentials or tokens appear in any artifact or in this document.
+Los findings de seguridad donde solo se persiste un hash de excerpt (sin contenido raw retenido para inspección humana) no pueden confirmarse ni refutarse desde el paquete. Se clasificaron como UNCERTAIN. No aparecen credenciales ni tokens en ningún artefacto ni en este documento.
 
-## Decision
+## Decisión
 
 **KEEP WITH LIMITATIONS**
 
-- The deterministic analyzer/scoring remains intact; no production rule change is justified by this sample.
-- Ingestion limitations are known (`maxApiRequests=125` vs `maxFileCount=50` for very large repos; partial coverage most repositories).
-- Absence-based evidence semantics need future improvement (stronger evidence semantics so "not detected" cannot be read as "absent", and so AN-ARCH-002 disambiguates resolver vs. real-defect).
-- The current sample is insufficient for a defensible precision/recall evaluation.
-- Further work should move to **product-level validation** rather than extending the ground-truth exercise indefinitely.
+- El analyzer/scoring determinista permanece intacto; ningún cambio de regla de producción se justifica con esta muestra.
+- Las limitaciones de ingestion son conocidas (`maxApiRequests=125` vs `maxFileCount=50` para repositorios muy grandes; cobertura parcial en la mayoría de los repositorios).
+- La semántica de evidencia basada en ausencia necesita mejora futura (semántica de evidencia más fuerte para que "not detected" no pueda leerse como "ausente", y para que AN-ARCH-002 desambigüe entre limitación del resolver y defecto real).
+- La muestra actual es insuficiente para una evaluación defendible de precision/recall.
+- El trabajo adicional debería moverse a la **validación a nivel de producto** en lugar de extender indefinidamente el ejercicio de ground truth.
 
-## Phase 22 closure
+## Cierre de la Phase 22
 
-**Phase 22 is CLOSED.**
+**La Phase 22 está CERRADA.**
 
-- No Phase 22.4 is created.
-- No further ground-truth/analyzer-validation phase is started automatically.
-- Classifications are recorded in `/tmp/phase22-human-review/*.md` and summarized here.
+- No se crea la Phase 22.4.
+- No se inicia automáticamente ninguna fase adicional de ground truth/validación del analyzer.
+- Las clasificaciones están registradas en `/tmp/phase22-human-review/*.md` y resumidas aquí.
 
-## Recommended next project stage
+## Siguiente etapa recomendada del proyecto
 
-- **Product-level validation and hardening** (outside ground-truth/analyzer scope): focus on end-to-end product experience, error/partial-state UX messaging (coverage is currently `partial`/`insufficient` for most repos), ingestion decisions for large repositories (near-coverage within budget), and stronger absence-based evidence semantics driven by future product evidence rather than by extending this review.
+- **Validación y endurecimiento a nivel de producto** (fuera del alcance del ground truth/analyzer): centrarse en la experiencia de producto end-to-end, el mensaje de UX para estados de error/parciales (la cobertura es actualmente `partial`/`insufficient` en la mayoría de los repos), las decisiones de ingestión para repositorios grandes (cobertura cercana dentro del presupuesto), y una semántica de evidencia de ausencia más fuerte impulsada por evidencia futura de producto en lugar de extender esta revisión.
 
-Sources: `docs/phase-22-ground-truth-dataset.md`, `docs/phase-22-human-review-package.md`, `docs/phase-22-human-review.md`, `/tmp/phase22-human-review/*.md`, `/tmp/phase22-ground-truth-results.jsonl`.
+Fuentes: `docs/phase-22-ground-truth-dataset.md`, `docs/phase-22-human-review-package.md`, `docs/phase-22-human-review.md`, `/tmp/phase22-human-review/*.md`, `/tmp/phase22-ground-truth-results.jsonl`.

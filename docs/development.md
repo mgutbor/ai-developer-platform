@@ -70,11 +70,11 @@ La API acepta `HOST`, `PORT`, `DATABASE_PATH` y una configuración local fija de
 La ingestión de GitHub usa credenciales server-side únicamente, resueltas como `process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN` y pasadas al `GitHubRestClient` por el servidor de producción (`apps/api/src/app.ts`, verificado en Phase 23). Sin token, la API pública de GitHub limita a ~60 requests/hora y los análisis de repositorios no triviales fallarán con un error de rate limit. El token nunca se imprime, persiste ni devuelve al frontend; los tests de wiring usan un stub fetch offline.
 
 
-## Security baseline
+## Baseline de seguridad
 
 La API valida `PORT`, usa `HOST` configurable y limita CORS a origins locales explícitos. Expone headers básicos de seguridad y errores internos como `Internal server error`. La protección SSRF de la ingestión GitHub y sus límites de red ya están implementados; rate limiting público avanzado, OAuth y controles de GitHub adicionales quedan para hardening posterior.
 
-## Dependency review
+## Revisión de dependencias
 
 | Package | Purpose | Why needed now | Alternative | Risk |
 | --- | --- | --- | --- | --- |
@@ -90,7 +90,7 @@ La API valida `PORT`, usa `HOST` configurable y limita CORS a origins locales ex
 | `@ai-developer-platform/github` | Resolución e ingestión REST acotada | Responsabilidad real de Phase 3 | SDK de GitHub, descartado | Adapter propio; límites y validación cubiertos por tests |
 | `@ai-developer-platform/analyzer` | Facts, metrics y findings deterministas | Responsabilidad real de Phase 4 | AST framework y parser completo, diferidos | Heurísticas acotadas; sin infraestructura ni ejecución |
 
-## Testing scope
+## Alcance del testing
 
 La Foundation cubre:
 

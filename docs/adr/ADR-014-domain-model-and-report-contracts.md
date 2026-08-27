@@ -1,34 +1,34 @@
-# ADR-014 — Domain model and report contracts
+# ADR-014 — Modelo de dominio y contratos de reporte
 
-- **Status:** Accepted for Phase 2
-- **Date:** 2026-08-26
+- **Estado:** Aceptado para la Fase 2
+- **Fecha:** 2026-08-26
 
-## Context
+## Contexto
 
-The Foundation only contained a health response contract. Future ingestion, analysis, persistence, API, and frontend work need a shared vocabulary, but exposing framework or storage models would couple the product to implementation details. Evidence also needs to remain verifiable against the exact repository revision, and incomplete observations must not be interpreted as negative results.
+La base inicial del proyecto solo contenía un contrato de respuesta de health. El trabajo futuro de ingestión, análisis, persistencia, API y frontend necesita un vocabulario compartido, pero exponer modelos de framework o de almacenamiento acoplaría el producto a detalles de implementación. La evidencia también debe seguir siendo verificable contra la revisión exacta del repositorio, y las observaciones incompletas no deben interpretarse como resultados negativos.
 
-## Decision
+## Decisión
 
-Create `packages/domain` as a plain TypeScript package containing immutable records, controlled value sets, and explicit factories for `RepositorySnapshot`, `Fact`, `Metric`, `Evidence`, `Finding`, `Recommendation`, `DimensionScore`, and `AnalysisResult`.
+Crear `packages/domain` como un paquete TypeScript plano que contiene registros inmutables, conjuntos de valores controlados y factories explícitas para `RepositorySnapshot`, `Fact`, `Metric`, `Evidence`, `Finding`, `Recommendation`, `DimensionScore` y `AnalysisResult`.
 
-Keep `packages/contracts` boundary-oriented. It contains serializable API shapes and does not import domain entities. Future API adapters will map domain records to those DTOs explicitly.
+Mantener `packages/contracts` orientado a fronteras. Contiene formas de API serializables y no importa entidades de dominio. Los adapters de API futuros mapearán los registros de dominio a esos DTO de forma explícita.
 
-Make evidence first-class and snapshot-scoped. Findings require evidence references; findings and recommendations must resolve their reciprocal relationships in an `AnalysisResult`. Represent `unknown`, `not_detected`, and `insufficient_data` explicitly, with nullable values and scores where data is inadequate. Preserve `analyzerVersion` and `ruleSetVersion` independently for reproducibility.
+Hacer que la evidencia sea de primera clase y esté acotada al snapshot. Los findings requieren referencias de evidencia; los findings y las recomendaciones deben resolver sus relaciones recíprocas en un `AnalysisResult`. Representar `unknown`, `not_detected` e `insufficient_data` de forma explícita, con valores y puntuaciones nullable donde los datos sean inadecuados. Preservar `analyzerVersion` y `ruleSetVersion` de forma independiente para la reproducibilidad.
 
-Do not add `AnalysisJob`, persistence, analyzer logic, GitHub adapters, or AI implementation until there is a real consumer in a later phase.
+No añadir `AnalysisJob`, persistencia, lógica del analyzer, adapters de GitHub ni implementación de AI hasta que exista un consumidor real en una fase posterior.
 
-## Consequences
+## Consecuencias
 
-- Core semantics can be tested without infrastructure or external services.
-- Invalid paths, ranges, controlled values, cross-snapshot references, orphan evidence, and unresolved relationships are rejected at creation boundaries.
-- API contracts can evolve independently from domain internals.
-- Entity IDs remain simple opaque strings, while snapshot identity is deterministic from the analyzed revision.
-- Future adapters must perform explicit mapping and preserve the invariants enforced here.
-- The model is intentionally small; job lifecycle and execution semantics remain a later decision.
+- La semántica central se puede testear sin infraestructura ni servicios externos.
+- Los paths, rangos, valores controlados, referencias entre snapshots, evidencia huérfana y relaciones sin resolver inválidos se rechazan en las fronteras de creación.
+- Los contratos de API pueden evolucionar de forma independiente de los internos del dominio.
+- Los IDs de entidad siguen siendo cadenas opacas simples, mientras que la identidad del snapshot es determinista a partir de la revisión analizada.
+- Los adapters futuros deben realizar el mapeo explícito y preservar los invariantes impuestos aquí.
+- El modelo es intencionadamente pequeño; el ciclo de vida del job y la semántica de ejecución siguen siendo una decisión posterior.
 
-## Alternatives considered
+## Alternativas consideradas
 
-- **Expose domain entities directly from the API:** rejected because transport serialization would become part of the domain contract.
-- **Use one generic JSON schema or validation framework:** rejected because it would add abstraction without a current boundary consumer.
-- **Represent findings as free text with embedded evidence:** rejected because traceability and relationship validation would be lost.
-- **Model every planned concept now, including `AnalysisJob`:** rejected because empty abstractions would increase coupling before their lifecycle is implemented.
+- **Exponer las entidades de dominio directamente desde la API:** rechazado porque la serialización de transporte pasaría a formar parte del contrato de dominio.
+- **Usar un esquema JSON genérico o framework de validación:** rechazado porque añadiría abstracción sin un consumidor de frontera actual.
+- **Representar los findings como texto libre con evidencia incrustada:** rechazado porque se perderían la trazabilidad y la validación de relaciones.
+- **Modelar ahora todos los conceptos planeados, incluido `AnalysisJob`:** rechazado porque las abstracciones vacías aumentarían el acoplamiento antes de que su ciclo de vida esté implementado.

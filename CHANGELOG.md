@@ -1,40 +1,40 @@
 # Changelog
 
-All notable changes to this project are documented here.
+Todos los cambios notables de este proyecto quedan documentados aquí.
 
 ## [1.0.0] — 2026-08-27
 
-### Added
+### Añadido
 
-- Public GitHub repository URL validation and bounded REST ingestion.
-- Segmented Git-tree acquisition for large repositories with semantics-preserving early termination (Phase 21).
-- Reproducible repository snapshots anchored to an immutable commit SHA.
-- Deterministic TypeScript and JavaScript analysis (18 rules).
-- Evidence-backed findings and recommendations.
-- Deterministic dimensional scoring without a global score.
-- In-process `AnalysisJob` lifecycle with SQLite persistence and retention cleanup.
-- Fastify report API and Angular report experience.
-- Clear user-facing states: loading, completed, completed-with-limitations, failed with specific reason, snapshot-limit-exceeded, insufficient coverage, empty findings (Phase 24).
-- Optional AI-assisted interpretation with bounded context, structured output and validated references.
-- Security boundaries for SSRF, path traversal, untrusted repository content and prompt injection.
-- Server-side GitHub credential wiring (`GITHUB_TOKEN`/`GH_TOKEN`) for the production API (Phase 23 fix) with regression tests.
-- Automated quality checks, deterministic fixtures and validation documentation.
+- Validación de URL de repositorios públicos de GitHub e ingestión REST acotada.
+- Adquisición segmentada del Git-tree para repositorios grandes con terminación temprana que preserva la semántica (Phase 21).
+- Snapshots de repositorio reproducibles anclados a un commit SHA inmutable.
+- Análisis determinista de TypeScript y JavaScript (18 reglas).
+- Findings y recomendaciones respaldados por evidencia.
+- Puntuación dimensional determinista sin puntuación global.
+- Ciclo de vida de `AnalysisJob` en proceso con persistencia SQLite y limpieza por retención.
+- API de reporte Fastify y experiencia de reporte en Angular.
+- Estados claros orientados al usuario: loading, completed, completed-with-limitations, failed con motivo específico, snapshot-limit-exceeded, cobertura insuficiente, findings vacíos (Phase 24).
+- Interpretación asistida por AI opcional con contexto acotado, salida estructurada y referencias validadas.
+- Fronteras de seguridad para SSRF, path traversal, contenido no confiable del repositorio e inyección de prompts.
+- Cableado de credenciales GitHub server-side (`GITHUB_TOKEN`/`GH_TOKEN`) para la API de producción (fix de la Phase 23) con tests de regresión.
+- Checks de calidad automatizados, fixtures deterministas y documentación de validación.
 
-### Validated
+### Validado
 
-- Phase 22 — ground-truth validation: frozen 8-repository dataset, 25 findings human-classified (7 TP, 0 FP, 2 uncertain, 16 not-evaluable); sample insufficient for defensible precision/recall; decision `KEEP WITH LIMITATIONS`.
-- Phase 23 — real E2E product validation against public repositories (success, invalid URL, not found, ingestion limit, partial coverage, API↔UI consistency, security baseline); decision `PASS WITH LIMITATIONS`.
-- Phase 24 — UX/documentation/portfolio polish; decision `PASS`.
-- Full quality-gate suite green (install, architecture, format, lint, typecheck, 92 tests, build, audit).
+- Phase 22 — validación ground-truth: dataset congelado de 8 repositorios, 25 findings clasificados por humanos (7 TP, 0 FP, 2 uncertain, 16 not-evaluable); muestra insuficiente para una precisión/recall defendible; decisión `KEEP WITH LIMITATIONS`.
+- Phase 23 — validación E2E real del producto contra repositorios públicos (éxito, URL inválida, no encontrado, límite de ingestión, cobertura parcial, consistencia API↔UI, línea base de seguridad); decisión `PASS WITH LIMITATIONS`.
+- Phase 24 — pulido de UX/documentación/portfolio; decisión `PASS`.
+- Suite completa de quality gates en verde (install, architecture, format, lint, typecheck, 92 tests, build, audit).
 
-### Limitations
+### Limitaciones
 
-- Only public GitHub repositories are supported.
-- Ingestion is bounded and may complete with explicit limitations; coverage is `partial`/`insufficient` for most repositories.
-- Very large repositories (`react/react`, `vitejs/vite`) exceed the request budget and report `SNAPSHOT_LIMIT_EXCEEDED`.
-- The analyzer uses conservative static heuristics and does not execute repository code.
-- Absence-based rules may report "not detected" when the bounded snapshot may not contain all relevant files.
-- Scores are dimensional signals, not an absolute quality rating.
-- AI interpretation is optional and not authoritative; real-provider quality is not validated.
-- Full WCAG 2.2 AA conformance and browser E2E (Playwright/Lighthouse) are not claimed or automated.
-- The runtime remains a single-process MVP using local SQLite.
+- Solo se soportan repositorios públicos de GitHub.
+- La ingestión es acotada y puede completarse con limitaciones explícitas; la cobertura es `partial`/`insufficient` para la mayoría de los repositorios.
+- Los repositorios muy grandes (`react/react`, `vitejs/vite`) superan el presupuesto de requests y reportan `SNAPSHOT_LIMIT_EXCEEDED`.
+- El analyzer usa heurísticas estáticas conservadoras y no ejecuta el código del repositorio.
+- Las reglas basadas en ausencia pueden reportar "not detected" cuando el snapshot acotado puede no contener todos los archivos relevantes.
+- Las puntuaciones son señales dimensionales, no una calificación absoluta de calidad.
+- La interpretación de AI es opcional y no es autoritativa; la calidad de los proveedores reales no está validada.
+- No se reivindica ni se automatiza la conformidad completa con WCAG 2.2 AA ni el E2E de navegador (Playwright/Lighthouse).
+- El runtime sigue siendo un MVP de un solo proceso que usa SQLite local.

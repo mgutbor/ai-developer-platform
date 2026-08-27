@@ -1,83 +1,83 @@
-# Phase 13 — Product validation & real-world evaluation
+# Phase 13 — Validación de producto y evaluación en el mundo real
 
-## Executive summary
+## Resumen ejecutivo
 
-Phase 13 ran the released v1.0.0 deterministic pipeline against real public GitHub repositories. The product works end-to-end: every analyzed repository produced a commit-anchored snapshot, findings, evidence, recommendations and dimensional scores without executing any repository code.
+La Phase 13 ejecutó el pipeline determinista del v1.0.0 publicado contra repositorios públicos reales de GitHub. El producto funciona end-to-end: cada repositorio analizado produjo un snapshot anclado a commit, findings, evidencia, recomendaciones y scores dimensionales sin ejecutar ningún código del repositorio.
 
-The validation also found concrete product defects:
+La validación también encontró defectos concretos de producto:
 
-1. **`AN-SEC-003` produces high-severity false positives.** A standard GitHub Actions expression (`token: '${{secrets.GITHUB_TOKEN}}'` in `angular/angular`) and a demo session secret (`examples/auth/index.js` in `expressjs/express`) are both reported as "A potential committed secret was detected" with `high` severity. This is the most damaging defect for an evidence-based product.
-2. **File selection starves root metadata.** The selection policy takes files in tree order. Dot-directories (`.github/`, `.devcontainer/`, `.gemini/`) dominate the cap and starve `package.json`, `README`, `tsconfig.json` and test directories. This produced false positives ("README missing", "tests missing", "tooling missing") and false negatives (Angular was not detected on `angular/angular` itself).
-3. **`facebook/react` cannot be ingested.** GitHub returns `301` on `GET /repos/facebook/react` (canonical redirect to the numeric repository URL). The SSRF-safe redirect policy rejects it and the user receives only `GITHUB_UNAVAILABLE`, with no actionable information.
-4. **Scores are mechanically consistent but can mislead on truncated snapshots.** Repositories with heavy truncation still receive scores like `9.5/10`, which a user may read as a quality verdict even though `coverage: partial` and explicit limitations are present.
+1. **`AN-SEC-003` produce falsos positivos de severidad alta.** Una expresión estándar de GitHub Actions (`token: '${{secrets.GITHUB_TOKEN}}'` en `angular/angular`) y un secreto de sesión de demostración (`examples/auth/index.js` en `expressjs/express`) se reportan ambos como "A potential committed secret was detected" con severidad `high`. Este es el defecto más dañino para un producto basado en evidencia.
+2. **La selección de archivos deja sin presupuesto a los metadatos raíz.** La política de selección toma archivos en orden de árbol. Los directorios de puntos (`.github/`, `.devcontainer/`, `.gemini/`) dominan el cap y dejan sin presupuesto a `package.json`, `README`, `tsconfig.json` y los directorios de tests. Esto produjo falsos positivos ("README missing", "tests missing", "tooling missing") y falsos negativos (Angular no se detectó en el propio `angular/angular`).
+3. **`facebook/react` no puede ingerirse.** GitHub devuelve `301` en `GET /repos/facebook/react` (redirect canónico a la URL numérica del repositorio). La política de redirects segura contra SSRF lo rechaza y el usuario recibe solo `GITHUB_UNAVAILABLE`, sin información accionable.
+4. **Los scores son mecánicamente consistentes pero pueden engañar en snapshots truncados.** Los repositorios con truncamiento intenso siguen recibiendo scores como `9.5/10`, que un usuario puede leer como veredicto de calidad aunque existan `coverage: partial` y limitaciones explícitas.
 
-## Methodology
+## Metodología
 
-- Runner: `apps/api/src/validate-real-repos.ts` (uses only the existing `ingestRepository` → `analyze` → `scoreAnalysis` pipeline).
-- Limits used in this benchmark (reduced from API defaults to fit the unauthenticated GitHub rate limit of 60 requests/hour): `maxFileCount: 10`, `maxTotalBytes: 1 MiB`, `maxApiRequests: 14`. The API default is `maxFileCount: 50`, `maxTotalBytes: 2 MiB`, `maxApiRequests: 125`.
-- No repository code was executed, installed or built.
-- Findings were verified against the real repositories using read-only raw file fetches and tree simulation.
+- Runner: `apps/api/src/validate-real-repos.ts` (usa solo el pipeline existente `ingestRepository` → `analyze` → `scoreAnalysis`).
+- Límites usados en este benchmark (reducidos respecto a los defaults de la API para caber en el rate limit anónimo de GitHub de 60 requests/hora): `maxFileCount: 10`, `maxTotalBytes: 1 MiB`, `maxApiRequests: 14`. El default de la API es `maxFileCount: 50`, `maxTotalBytes: 2 MiB`, `maxApiRequests: 125`.
+- No se ejecutó, instaló ni compiló ningún código del repositorio.
+- Los findings se verificaron contra los repositorios reales usando obtenciones de archivos raw de solo lectura y simulación de árbol.
 
-## Benchmark dataset
+## Dataset del benchmark
 
-| Repository | Note | Commit SHA | Size (KB) | Files selected | Tree entries | Coverage | Status |
+| Repositorio | Nota | SHA de commit | Tamaño (KB) | Archivos seleccionados | Entradas de árbol | Cobertura | Estado |
 | --- | --- | --- | --- | ---: | ---: | --- | --- |
-| `octocat/Hello-World` | tiny baseline, no tests | `7fd1a60b` | 1 | 1 | 1 | insufficient | completed_with_limitations |
-| `sindresorhus/type-fest` | clean TypeScript, tests | `3fe02d33` | 3,089 | 10 | 495 | partial | completed_with_limitations |
+| `octocat/Hello-World` | baseline diminuto, sin tests | `7fd1a60b` | 1 | 1 | 1 | insufficient | completed_with_limitations |
+| `sindresorhus/type-fest` | TypeScript limpio, tests | `3fe02d33` | 3,089 | 10 | 495 | partial | completed_with_limitations |
 | `expressjs/express` | JavaScript/Node.js, tests, CI | `023767fe` | 9,857 | 10 | 281 | partial | completed_with_limitations |
-| `angular/angular` | large TypeScript, Angular | `66d505e2` | 655,323 | 10 | 12,919 | partial | completed_with_limitations |
-| `facebook/react` | large JavaScript, React | n/a (failed) | n/a | n/a | n/a | n/a | failed (redirect) |
+| `angular/angular` | TypeScript grande, Angular | `66d505e2` | 655,323 | 10 | 12,919 | partial | completed_with_limitations |
+| `facebook/react` | JavaScript grande, React | n/a (fallido) | n/a | n/a | n/a | n/a | failed (redirect) |
 
-Category coverage achieved: TypeScript clean (`type-fest`), JavaScript/Node.js (`express`), Angular (`angular`), tiny/no-tests (`Hello-World`), large (`angular`, `react`), with/without CI, with/without lockfile. The React and "Angular detection" cases are covered by the failure evidence and the framework-detection false negative below.
+Cobertura de categorías lograda: TypeScript limpio (`type-fest`), JavaScript/Node.js (`express`), Angular (`angular`), diminuto/sin tests (`Hello-World`), grande (`angular`, `react`), con/sin CI, con/sin lockfile. Los casos de React y de "detección de Angular" quedan cubiertos por la evidencia de fallo y el falso negativo de detección de framework que se indica abajo.
 
-## Findings quality
+## Calidad de los findings
 
-| Repo | Findings | Verdict |
+| Repo | Findings | Veredicto |
 | --- | --- | --- |
-| `Hello-World` | no tests, no test tooling, no lint | **correct** (the repository has none of these) |
-| `type-fest` | no README, no test tooling, strictness not verified, unresolved import | **false positive / questionable** — `readme.md`, `package.json`, `tsconfig.json` exist but were starved by selection |
-| `express` | no tests, no test tooling, no lint, unresolved import, potential secret | **mixed** — no-lint is correct (no ESLint config at that commit); tests/tooling are false positives (starved); secret is a pattern match on a demo fixture |
-| `angular` | no tests, no lint, potential secret | **false positive** — test suite is huge (starved); secret is a standard `${{ secrets.* }}` expression |
+| `Hello-World` | sin tests, sin tooling de tests, sin lint | **correcto** (el repositorio no tiene nada de eso) |
+| `type-fest` | sin README, sin tooling de tests, strictness no verificada, import sin resolver | **falso positivo / cuestionable** — `readme.md`, `package.json`, `tsconfig.json` existen pero quedaron fuera por la selección |
+| `express` | sin tests, sin tooling de tests, sin lint, import sin resolver, posible secreto | **mixto** — no-lint es correcto (no hay config de ESLint en ese commit); tests/tooling son falsos positivos (fuera por selección); el secreto es un match de patrón sobre un fixture de demo |
+| `angular` | sin tests, sin lint, posible secreto | **falso positivo** — la suite de tests es enorme (fuera por selección); el secreto es una expresión estándar `${{ secrets.* }}` |
 
-### Correct findings
+### Findings correctos
 
-- `Hello-World`: all three findings are true positives.
-- `express` "Lint configuration was not detected": verified correct at commit `023767fe` (no `.eslintrc*`/`eslint.config.*` exists).
+- `Hello-World`: los tres findings son verdaderos positivos.
+- `express` "Lint configuration was not detected": verificado correcto en el commit `023767fe` (no existe ningún `.eslintrc*`/`eslint.config.*`).
 
-### False positives observed
+### Falsos positivos observados
 
-- `AN-DOC-001` "README was not detected" on `type-fest`: `readme.md` exists at the analyzed commit; it was not selected because `.github/workflows/*` files fill the cap first.
-- `AN-TEST-001` "Test files were not detected" on `express` and `angular`: both have extensive test suites; test directories were not selected.
-- `AN-TEST-002` "Test tooling was not detected" on `type-fest` and `express`: `package.json` (with `xo`/`tsd`/`mocha`) was not selected.
-- `AN-TOOL-001` "Lint configuration was not detected" on `angular`: Angular has ESLint configuration; it was not selected.
-- `AN-ARCH-002` "Unresolved relative import" on `type-fest` (`index.d.ts`) and `express` (`examples/auth/index.js`): both resolve in reality; the resolver only sees the selected subset.
-- `AN-SEC-003` "Potential committed secret" on `angular` (`.github/workflows/adev-preview-deploy.yml`): the matched value is `token: '${{secrets.GITHUB_TOKEN}}'` — a standard GitHub Actions expression, not a credential.
-- `AN-SEC-003` on `express` (`examples/auth/index.js`): the matched value is `secret: 'shhhh, very secret'` — a demo fixture; the pattern is technically matched but `high` severity is misleading.
+- `AN-DOC-001` "README was not detected" en `type-fest`: `readme.md` existe en el commit analizado; no fue seleccionado porque los archivos de `.github/workflows/*` llenan el cap primero.
+- `AN-TEST-001` "Test files were not detected" en `express` y `angular`: ambos tienen suites de tests extensas; los directorios de tests no fueron seleccionados.
+- `AN-TEST-002` "Test tooling was not detected" en `type-fest` y `express`: `package.json` (con `xo`/`tsd`/`mocha`) no fue seleccionado.
+- `AN-TOOL-001` "Lint configuration was not detected" en `angular`: Angular tiene configuración de ESLint; no fue seleccionada.
+- `AN-ARCH-002` "Unresolved relative import" en `type-fest` (`index.d.ts`) y `express` (`examples/auth/index.js`): ambos se resuelven en realidad; el resolver solo ve el subconjunto seleccionado.
+- `AN-SEC-003` "Potential committed secret" en `angular` (`.github/workflows/adev-preview-deploy.yml`): el valor coincidente es `token: '${{secrets.GITHUB_TOKEN}}'` — una expresión estándar de GitHub Actions, no una credencial.
+- `AN-SEC-003` en `express` (`examples/auth/index.js`): el valor coincidente es `secret: 'shhhh, very secret'` — un fixture de demo; el patrón coincide técnicamente pero la severidad `high` es engañosa.
 
-### False negative detected
+### Falso negativo detectado
 
-- `angular/angular`: `framework_detected` was `not_detected`. The repository is the Angular framework itself; detection failed because `package.json`/`angular.json` were not selected. The `typescript_strict: observed = true` fact was derived from `.github/actions/deploy-docs-site/tsconfig.json` — a CI-internal configuration, not the main build configuration.
+- `angular/angular`: `framework_detected` fue `not_detected`. El repositorio es el propio framework Angular; la detección falló porque `package.json`/`angular.json` no fueron seleccionados. El hecho `typescript_strict: observed = true` se derivó de `.github/actions/deploy-docs-site/tsconfig.json` — una configuración interna del CI, no la configuración principal de build.
 
-## False positive analysis per rule
+## Análisis de falsos positivos por regla
 
-| Rule | Activations | Plausibly correct | Questionable | Confirmed FP |
+| Regla | Activaciones | Plausiblemente correctas | Cuestionables | FP confirmados |
 | --- | ---: | ---: | ---: | ---: |
 | README missing (`AN-DOC-001`) | 1 | 0 | 0 | 1 |
 | Tests missing (`AN-TEST-001`) | 3 | 1 (`Hello-World`) | 0 | 2 |
 | Test tooling missing (`AN-TEST-002`) | 3 | 1 (`Hello-World`) | 0 | 2 |
 | Lint missing (`AN-TOOL-001`) | 3 | 2 (`Hello-World`, `express`) | 0 | 1 |
 | Strictness not verified (`AN-CQ-002`) | 1 | 0 | 1 | 0 |
-| Unresolved import (`AN-ARCH-002`) | 2 | 0 | 0 | 2 |
-| Potential secret (`AN-SEC-003`) | 2 | 0 | 0 | 2 |
+| Import sin resolver (`AN-ARCH-002`) | 2 | 0 | 0 | 2 |
+| Posible secreto (`AN-SEC-003`) | 2 | 0 | 0 | 2 |
 
-Root causes, not rule-by-rule exceptions:
+Causas raíz, no excepciones regla por regla:
 
-1. **Selection starvation (primary).** Selection iterates the tree in API order without prioritizing root metadata. Dot-directories and examples dominate the cap. Fix direction (not implemented in this phase): prioritize manifest/metadata/config/lockfile paths in the selection pass, and reserve slots for root files.
-2. **`AN-SEC-003` pattern is naive.** The regex treats any `secret|token|api_key = "12+ chars"` as a high-severity finding. It must exclude GitHub Actions expressions (`${{ ... }}`), demo/test/example paths, and require stronger evidence (file naming, surrounding context, longer/higher-entropy values) before assigning `high`.
+1. **Inanición de selección (principal).** La selección itera el árbol en orden de la API sin priorizar los metadatos raíz. Los directorios de puntos y `examples` dominan el cap. Dirección de corrección (no implementada en esta fase): priorizar paths de manifest/metadata/config/lockfile en el pase de selección y reservar slots para archivos raíz.
+2. **El patrón de `AN-SEC-003` es ingenuo.** El regex trata cualquier `secret|token|api_key = "12+ chars"` como finding de severidad alta. Debe excluir expresiones de GitHub Actions (`${{ ... }}`), paths de demo/test/example, y requerir evidencia más fuerte (naming de archivo, contexto circundante, valores más largos/de mayor entropía) antes de asignar `high`.
 
-## Scoring validation
+## Validación del scoring
 
-Observed dimension scores:
+Scores dimensionales observados:
 
 | Repo | Architecture | Maintainability | Testing | Documentation | Dependencies | Code Quality |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -86,38 +86,38 @@ Observed dimension scores:
 | `express` | 9 | 10 | 8.5 | 10 | null | 9.5 |
 | `angular` | 10 | 10 | 9 | 10 | null | 9.5 |
 
-Observations:
+Observaciones:
 
-- Scores are mechanically consistent with the penalty table and never below `8.5` in this sample. That is expected: the rule set is deliberately conservative and this sample contains reputable repositories.
-- `dependencies` is `null` (insufficient coverage) for every repository because `package.json` was not selected — the dimension is effectively inert under the current selection behavior.
-- `testing` penalties are driven partly by false-positive findings (`express`, `angular`), so the score can punish a repository for signals the analyzer failed to observe.
-- Scores are computed even on heavily truncated snapshots. `coverage: partial` and limitations are present, but the numeric score still reads as a quality verdict. The report must make the connection between score and coverage more explicit.
+- Los scores son mecánicamente consistentes con la tabla de penalizaciones y nunca bajan de `8.5` en esta muestra. Eso es esperable: el conjunto de reglas es deliberadamente conservador y esta muestra contiene repositorios reputados.
+- `dependencies` es `null` (cobertura insuficiente) en todos los repositorios porque `package.json` no fue seleccionado — la dimensión es efectivamente inerte bajo el comportamiento de selección actual.
+- Las penalizaciones de `testing` están impulsadas en parte por findings falsos positivos (`express`, `angular`), por lo que el score puede castigar a un repositorio por señales que el analyzer no logró observar.
+- Los scores se calculan incluso sobre snapshots fuertemente truncados. `coverage: partial` y las limitaciones están presentes, pero el score numérico sigue leyéndose como veredicto de calidad. El informe debe hacer más explícita la conexión entre score y cobertura.
 
-No scoring formula change was made in this phase.
+No se hizo ningún cambio de fórmula de scoring en esta fase.
 
-## Coverage and limitations
+## Cobertura y limitaciones
 
-- `coverage: insufficient` appears when there are no selectable source files (`Hello-World`). This is expected and correctly communicated.
-- `coverage: partial` appears for every other repository, driven by `file_count_limit_reached`, `import_count_limit_reached` and `relative_import_resolution_is_heuristic` limitations.
-- `status: completed_with_limitations` was produced for every analyzed repository — including `Hello-World` with a single file. This is honest but risks being read as a failure. The API and frontend surface the limitations; the frontend displays them under an explicit "Limitations" section.
-- `score: null` is rendered as "Score unavailable" in the frontend, distinct from a numeric score. This is correct.
-- With the API default cap (`maxFileCount: 50`), the worst truncation artifacts would be reduced but not eliminated: repositories with many dot-directory files (e.g., `angular` with 12,919 tree entries) can still starve root metadata.
+- `coverage: insufficient` aparece cuando no hay archivos fuente seleccionables (`Hello-World`). Es esperado y se comunica correctamente.
+- `coverage: partial` aparece en todos los demás repositorios, impulsado por las limitaciones `file_count_limit_reached`, `import_count_limit_reached` y `relative_import_resolution_is_heuristic`.
+- `status: completed_with_limitations` se produjo en todos los repositorios analizados — incluido `Hello-World` con un único archivo. Es honesto pero corre el riesgo de leerse como un fallo. La API y el frontend exponen las limitaciones; el frontend las muestra bajo una sección explícita "Limitations".
+- `score: null` se renderiza como "Score unavailable" en el frontend, distinto de un score numérico. Es correcto.
+- Con el cap por defecto de la API (`maxFileCount: 50`), los peores artefactos de truncamiento se reducirían pero no se eliminarían: los repositorios con muchos archivos de directorios de puntos (p. ej., `angular` con 12,919 entradas de árbol) pueden seguir dejando sin presupuesto a los metadatos raíz.
 
-## AI evaluation
+## Evaluación de AI
 
-**Real provider semantic evaluation: NOT VALIDATED** — no provider credentials were available, none were invented, and no live request was made.
+**Evaluación semántica con proveedor real: NOT VALIDATED** — no había credenciales de proveedor disponibles, no se inventaron y no se hizo ninguna solicitud en vivo.
 
-Technical integration is validated with `FakeAIProvider` through existing tests (context construction, reference validation, bounded context, prompt delimiters, deterministic report unchanged). The `POST /analyses/:id/ai` and `GET /analyses/:id/ai` contract is covered by API integration tests.
+La integración técnica está validada con `FakeAIProvider` mediante los tests existentes (construcción de contexto, validación de referencias, contexto acotado, delimitadores de prompt, informe determinista sin cambios). El contrato `POST /analyses/:id/ai` y `GET /analyses/:id/ai` está cubierto por tests de integración de la API.
 
-## AI vs deterministic report
+## Informe de AI vs informe determinista
 
-The AI layer is correctly bounded: it can only reference existing findings/evidence/recommendations, cannot create new paths/ranges/scores, and its context is derived from the deterministic report.
+La capa de AI está correctamente acotada: solo puede referenciar findings/evidencia/recomendaciones existentes, no puede crear nuevos paths/ranges/scores, y su contexto se deriva del informe determinista.
 
-Verdict for this phase: **not enough evidence** that the AI layer improves the user experience, and one concrete risk — the AI inherits the deterministic report's false positives (e.g., "README missing", "tests missing", "potential secret") and would present them as inputs to its synthesis. Until the deterministic findings quality improves, the AI interpretation should be treated as an experiment, not a differentiator.
+Veredicto para esta fase: **no hay suficiente evidencia** de que la capa de AI mejore la experiencia de usuario, y hay un riesgo concreto — la AI hereda los falsos positivos del informe determinista (p. ej., "README missing", "tests missing", "potential secret") y los presentaría como entradas de su síntesis. Hasta que mejore la calidad de los findings deterministas, la interpretación de AI debe tratarse como un experimento, no como un diferenciador.
 
-## Performance baseline
+## Baseline de rendimiento
 
-Measured locally (Node 25.3.0, single process, unauthenticated GitHub):
+Medido localmente (Node 25.3.0, proceso único, GitHub sin autenticar):
 
 | Repo | Ingestion | Analyzer | Scoring | Total |
 | --- | ---: | ---: | ---: | ---: |
@@ -126,67 +126,67 @@ Measured locally (Node 25.3.0, single process, unauthenticated GitHub):
 | `express` | 4,227 ms | 4 ms | 1 ms | 4,232 ms |
 | `angular` | 5,050 ms | 2 ms | 1 ms | 5,053 ms |
 
-Analysis is network-bound; the analyzer and scorer are sub-50 ms for this snapshot size. No caching, workers or queues are justified by this data.
+El análisis está acotado por la red; el analyzer y el scorer están por debajo de 50 ms para este tamaño de snapshot. Ningún caché, worker ni cola se justifica con estos datos.
 
-## Product usefulness
+## Utilidad del producto
 
-1. **What it solves:** it gives a developer a reproducible, evidence-linked overview of a repository's structural signals (tests, docs, tooling, dependencies, large files, potential secrets).
-2. **For whom:** a developer evaluating a repository before contributing or adopting it; a maintainer looking for an external, deterministic second opinion.
-3. **What is genuinely useful:** commit-anchored snapshots, evidence paths, limitations, dimension scores with explicit coverage, and the honest `completed_with_limitations` model.
-4. **What is noise:** "README missing"/"tests missing"/"tooling missing" when they are selection artifacts; `high` severity secret findings on standard CI expressions or demo fixtures.
-5. **What is missing for actionable reports:** prioritized root-metadata selection; severity calibration for `AN-SEC-003`; a clearer "score meaning given coverage" explanation; and per-repository detail that shows why a signal was not observed.
-6. **What could mislead:** numeric scores on truncated snapshots; `high` security findings that are false positives; the `GITHUB_UNAVAILABLE` error for `facebook/react`.
-7. **Differentiator:** deterministic, evidence-traceable, reproducible analysis with explicit limitations — the security findings must be trustworthy for this to hold.
-8. **Technically interesting but low value today:** the AI interpretation layer, until deterministic findings quality improves.
+1. **Qué resuelve:** da a un desarrollador un resumen reproducible y vinculado a evidencia de las señales estructurales de un repositorio (tests, docs, tooling, dependencias, archivos grandes, posibles secretos).
+2. **Para quién:** un desarrollador que evalúa un repositorio antes de contribuir o adoptarlo; un maintainer que busca una segunda opinión externa y determinista.
+3. **Qué es genuinamente útil:** snapshots anclados a commit, paths de evidencia, limitaciones, scores dimensionales con cobertura explícita, y el modelo honesto de `completed_with_limitations`.
+4. **Qué es ruido:** "README missing"/"tests missing"/"tooling missing" cuando son artefactos de selección; findings de secretos de severidad `high` sobre expresiones estándar de CI o fixtures de demo.
+5. **Qué falta para informes accionables:** selección priorizada de metadatos raíz; calibración de severidad para `AN-SEC-003`; una explicación más clara del "significado del score dada la cobertura"; y detalle por repositorio que muestre por qué una señal no fue observada.
+6. **Qué podría engañar:** scores numéricos sobre snapshots truncados; findings de seguridad `high` que son falsos positivos; el error `GITHUB_UNAVAILABLE` para `facebook/react`.
+7. **Diferenciador:** análisis determinista, trazable por evidencia y reproducible con limitaciones explícitas — los findings de seguridad deben ser confiables para que esto se sostenga.
+8. **Técnicamente interesante pero de bajo valor hoy:** la capa de interpretación de AI, hasta que mejore la calidad de los findings deterministas.
 
-## Architecture assessment
+## Evaluación de arquitectura
 
-| Component | Verdict | Justification |
+| Componente | Veredicto | Justificación |
 | --- | --- | --- |
-| Angular frontend | KEEP | Renders the report correctly, including null scores and limitations |
-| Fastify API | KEEP | Contract and error handling validated |
-| Application layer | KEEP | Runner, idempotency and job lifecycle behaved correctly |
-| In-process runner | KEEP | Concurrency/timeout semantics adequate for the sample |
-| GitHub REST ingestion | KEEP, fix | Works, but redirect handling produces an opaque failure for valid repos; selection starves root metadata |
-| Deterministic analyzer | KEEP, fix | Findings are evidence-traceable, but `AN-SEC-003` and truncation-sensitive rules need calibration |
-| Scoring | KEEP | Mechanically consistent; must communicate coverage dependence better |
-| SQLite | KEEP | Persistence round-trips validated |
-| AI provider | KEEP (experimental) | Boundary is safe; semantic value unproven |
+| Frontend Angular | KEEP | Renderiza el informe correctamente, incluidos scores null y limitaciones |
+| API Fastify | KEEP | Contrato y manejo de errores validados |
+| Capa de aplicación | KEEP | Runner, idempotencia y ciclo de vida del job se comportaron correctamente |
+| Runner in-process | KEEP | Semánticas de concurrencia/timeout adecuadas para la muestra |
+| Ingestion REST de GitHub | KEEP, fix | Funciona, pero el manejo de redirects produce un fallo opaco para repos válidos; la selección deja sin presupuesto a los metadatos raíz |
+| Analyzer determinista | KEEP, fix | Los findings son trazables por evidencia, pero `AN-SEC-003` y las reglas sensibles al truncamiento necesitan calibración |
+| Scoring | KEEP | Mecánicamente consistente; debe comunicar mejor la dependencia de cobertura |
+| SQLite | KEEP | Round-trips de persistence validados |
+| AI provider | KEEP (experimental) | La frontera es segura; el valor semántico no está probado |
 
-No new infrastructure (workers, queues, Redis, PostgreSQL, caching) is justified by this phase's data.
+Ninguna infraestructura nueva (workers, colas, Redis, PostgreSQL, caché) se justifica con los datos de esta fase.
 
-## Critical issues
+## Problemas críticos
 
-1. `AN-SEC-003` high-severity false positives on standard GitHub Actions expressions and demo fixtures.
-2. File-selection starvation of root metadata produces false positives and false negatives (including failing to detect Angular on `angular/angular`).
-3. `facebook/react` cannot be analyzed and the error is opaque.
-4. Scores on truncated snapshots can mislead despite `coverage: partial`.
+1. Falsos positivos de severidad alta de `AN-SEC-003` sobre expresiones estándar de GitHub Actions y fixtures de demo.
+2. La inanición de selección de archivos sobre los metadatos raíz produce falsos positivos y falsos negativos (incluido no detectar Angular en `angular/angular`).
+3. `facebook/react` no puede analizarse y el error es opaco.
+4. Los scores sobre snapshots truncados pueden engañar a pesar de `coverage: partial`.
 
-## Recommended changes (not implemented in this phase)
+## Cambios recomendados (no implementados en esta fase)
 
-1. Recalibrate `AN-SEC-003`: exclude `${{ ... }}` expressions, exclude `examples/`, `test/`, `tests/`, `fixtures/`, `*.test.*` paths, require higher-entropy values, and reassign severity.
-2. Prioritize root metadata in the selection policy (`package.json`, `README*`, lockfiles, `tsconfig*`, lint/format configs) before source and CI files.
-3. Add a redirect-aware resolution path in the GitHub client (same-host redirects to `api.github.com/repositories/{id}` are legitimate) or a clearer error mapping for redirect-rejected repositories.
-4. Communicate score/coverage coupling in the API and frontend ("score computed on partial snapshot").
-5. Before any further AI promotion, fix the deterministic false positives the AI would inherit.
+1. Recalibrar `AN-SEC-003`: excluir expresiones `${{ ... }}`, excluir paths `examples/`, `test/`, `tests/`, `fixtures/`, `*.test.*`, requerir valores de mayor entropía y reasignar la severidad.
+2. Priorizar los metadatos raíz en la política de selección (`package.json`, `README*`, lockfiles, `tsconfig*`, configs de lint/format) antes que los archivos fuente y de CI.
+3. Añadir una vía de resolución consciente de redirects en el cliente de GitHub (los redirects al mismo host hacia `api.github.com/repositories/{id}` son legítimos) o un mapeo de errores más claro para repositorios rechazados por redirect.
+4. Comunicar el acoplamiento score/cobertura en la API y el frontend ("score computado sobre snapshot parcial").
+5. Antes de cualquier promoción adicional de la AI, corregir los falsos positivos deterministas que la AI heredaría.
 
-## Deferred changes
+## Cambios diferidos
 
-- Scoring formula changes (no evidence of formula defects; issues are input-selection and severity-calibration problems).
-- New rules, new dimensions, global score.
-- Workers, queues, Redis, PostgreSQL, caching, realtime.
-- Real-provider AI semantic evaluation (blocked on credentials).
+- Cambios de fórmula de scoring (sin evidencia de defectos de fórmula; los problemas son de selección de entradas y calibración de severidad).
+- Nuevas reglas, nuevas dimensiones, global score.
+- Workers, colas, Redis, PostgreSQL, caché, realtime.
+- Evaluación semántica de AI con proveedor real (bloqueada por credenciales).
 
-## v1.0.0 assessment
+## Evaluación del v1.0.0
 
-**READY WITH LIMITATIONS** remains the correct release classification. The defects found do not invalidate the MVP release: they are quality/calibration issues in the analyzer and ingestion selection, not correctness or security failures of the release process. They should be fixed before the product is presented as a trustworthy health-report tool and before any marketing claim about security findings.
+**READY WITH LIMITATIONS** sigue siendo la clasificación de release correcta. Los defectos encontrados no invalidan el release del MVP: son problemas de calidad/calibración en el analyzer y en la selección de ingestión, no fallos de corrección o seguridad del proceso de release. Deberían corregirse antes de presentar el producto como herramienta confiable de informes de salud y antes de cualquier claim de marketing sobre findings de seguridad.
 
-## Recommendation for Phase 14
+## Recomendación para la Phase 14
 
-Fix the three highest-impact defects found here, in order:
+Corregir los tres defectos de mayor impacto encontrados aquí, en orden:
 
-1. Recalibrate `AN-SEC-003` (false positives destroy trust).
-2. Prioritize root metadata in file selection (fixes most README/tests/tooling artifacts and the Angular false negative).
-3. Handle GitHub canonical redirects and improve error messaging (fixes `facebook/react`).
+1. Recalibrar `AN-SEC-003` (los falsos positivos destruyen la confianza).
+2. Priorizar los metadatos raíz en la selección de archivos (corrige la mayoría de los artefactos de README/tests/tooling y el falso negativo de Angular).
+3. Manejar los redirects canónicos de GitHub y mejorar los mensajes de error (corrige `facebook/react`).
 
-Then re-run this same benchmark to measure the reduction in false positives. No new infrastructure is justified.
+Después re-ejecutar este mismo benchmark para medir la reducción de falsos positivos. Ninguna infraestructura nueva está justificada.

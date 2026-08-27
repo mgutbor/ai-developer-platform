@@ -1,12 +1,12 @@
-# Phase 15 — Product Usefulness & Finding Quality Evaluation
+# Phase 15 — Evaluación de utilidad del producto y calidad de los findings
 
-## Executive Summary
+## Resumen ejecutivo
 
-Phase 15 evaluó la utilidad del report mediante fixtures controlados, regresiones existentes y un intento de benchmark real con los cinco repositories públicos definidos en Phase 14. La validación local confirma que el pipeline determinista produce findings trazables, evidencia sin secretos, recomendaciones enlazadas y scores dimensionales reproducibles. La evaluación semántica con un provider AI real y el benchmark remoto no pudieron validarse en esta ejecución: GitHub devolvió `rate_limited` para los cinco repositories por el límite no autenticado.
+La Phase 15 evaluó la utilidad del report mediante fixtures controlados, regresiones existentes y un intento de benchmark real con los cinco repositories públicos definidos en la Phase 14. La validación local confirma que el pipeline determinista produce findings trazables, evidencia sin secretos, recomendaciones enlazadas y scores dimensionales reproducibles. La evaluación semántica con un provider AI real y el benchmark remoto no pudieron validarse en esta ejecución: GitHub devolvió `rate_limited` para los cinco repositories por el límite no autenticado.
 
 **Conclusión:** el producto es técnicamente defendible como MVP de señales deterministas acotadas, pero la utilidad frente a repositories reales sigue **PARTIALLY VALIDATED**. No se modificaron reglas, fórmula de scoring ni arquitectura.
 
-## Evaluation Methodology
+## Metodología de evaluación
 
 - Se reutilizó `apps/api/src/validate-real-repos.ts` sin ejecutar, instalar, compilar ni clonar código externo.
 - Se mantuvieron los límites del runner: `maxFileCount: 10`, `maxTotalBytes: 1 MiB`, `maxApiRequests: 14` por repository.
@@ -16,236 +16,236 @@ Phase 15 evaluó la utilidad del report mediante fixtures controlados, regresion
 
 ## Dataset
 
-### Controlled fixtures — VALIDATED
+### Fixtures controlados — VALIDATED
 
-| Case | Purpose | Result |
+| Caso | Propósito | Resultado |
 | --- | --- | --- |
-| clean TypeScript | healthy baseline | PASS |
-| poor TypeScript | maintainability, testing and code-quality signals | PASS |
-| JavaScript/React | language/framework signals | PASS |
-| Angular | Angular metadata detection | PASS |
-| security calibration | real-looking, placeholder, demo and GitHub expressions | PASS |
-| malformed/partial | invalid files and insufficient data | PASS |
+| TypeScript limpio | baseline saludable | PASS |
+| TypeScript deficiente | señales de maintainability, testing y code quality | PASS |
+| JavaScript/React | señales de lenguaje/framework | PASS |
+| Angular | detección de metadatos de Angular | PASS |
+| calibración de seguridad | expresiones reales, placeholders, demo y de GitHub | PASS |
+| malformado/parcial | archivos inválidos y datos insuficientes | PASS |
 
-### Public repositories — NOT VALIDATED in this execution
+### Repositorios públicos — NOT VALIDATED en esta ejecución
 
-| Repository | Intended coverage | Execution result |
+| Repositorio | Cobertura prevista | Resultado de ejecución |
 | --- | --- | --- |
-| `octocat/Hello-World` | tiny/no tests | `rate_limited` |
-| `sindresorhus/type-fest` | clean TypeScript | `rate_limited` |
+| `octocat/Hello-World` | diminuto/sin tests | `rate_limited` |
+| `sindresorhus/type-fest` | TypeScript limpio | `rate_limited` |
 | `expressjs/express` | JavaScript/Node.js | `rate_limited` |
-| `angular/angular` | Angular/large TypeScript | `rate_limited` |
-| `facebook/react` | React/large JavaScript | `rate_limited` |
+| `angular/angular` | Angular/TypeScript grande | `rate_limited` |
+| `facebook/react` | React/JavaScript grande | `rate_limited` |
 
-The previous Phase 14 report remains historical evidence; this Phase 15 run does not silently reuse it as a newly measured benchmark.
+El informe anterior de la Phase 14 sigue siendo evidencia histórica; esta ejecución de la Phase 15 no lo reutiliza silenciosamente como benchmark medido de nuevo.
 
-## Ground Truth
+## Ground truth
 
-Controlled ground truth was established for the highest-impact security and bounded-snapshot cases:
+Se estableció ground truth controlado para los casos de seguridad de mayor impacto y de snapshot acotado:
 
-| Rule/case | Expected | Actual | Classification | Confidence |
+| Regla/caso | Esperado | Real | Clasificación | Confianza |
 | --- | --- | --- | --- | --- |
-| `AN-SEC-003`, `${{ secrets.GITHUB_TOKEN }}` | no committed secret | no finding | correct | high |
-| `AN-SEC-003`, `${{ github.token }}` / `${{ env.X }}` / `${{ vars.X }}` | no committed secret | no finding | correct | high |
-| `AN-SEC-003`, `ghp_...` in source | secret-like finding, high | high finding, high confidence | correct for fixture | high |
-| `AN-SEC-003`, placeholder value | low informational signal | low finding, low confidence | correct for fixture | high |
-| `AN-SEC-003`, demo path | not high severity | low finding, low confidence | correct for fixture | high |
-| `AN-TEST-001`, tooling present but tests absent from bounded snapshot | limitation, not strong absence claim | low finding with bounded-snapshot wording | correct | high |
-| `AN-DEP-001`, lockfile excluded by size limitation | do not claim missing lockfile | no finding | correct | high |
-| Angular root metadata present | Angular detected | Angular detected | correct | high |
+| `AN-SEC-003`, `${{ secrets.GITHUB_TOKEN }}` | sin secreto commiteado | sin finding | correct | high |
+| `AN-SEC-003`, `${{ github.token }}` / `${{ env.X }}` / `${{ vars.X }}` | sin secreto commiteado | sin finding | correct | high |
+| `AN-SEC-003`, `ghp_...` en source | finding tipo secreto, high | finding high, confianza alta | correct para fixture | high |
+| `AN-SEC-003`, valor placeholder | señal informativa low | finding low, confianza baja | correct para fixture | high |
+| `AN-SEC-003`, path de demo | no severidad alta | finding low, confianza baja | correct para fixture | high |
+| `AN-TEST-001`, tooling presente pero tests ausentes del snapshot acotado | limitación, no afirmación fuerte de ausencia | finding low con wording de snapshot acotado | correct | high |
+| `AN-DEP-001`, lockfile excluido por límite de tamaño | no afirmar lockfile ausente | sin finding | correct | high |
+| Metadatos raíz de Angular presentes | Angular detectado | Angular detectado | correct | high |
 
-Ground truth for false negatives in complete public repositories was **NOT VALIDATED** during this run because GitHub rate limiting prevented fresh ingestion.
+El ground truth de falsos negativos en repositories públicos completos fue **NOT VALIDATED** durante esta ejecución porque el rate limiting de GitHub impidió la ingestion nueva.
 
-## Finding Quality
+## Calidad de los findings
 
-### Security findings — PASS for controlled cases
+### Findings de seguridad — PASS para casos controlados
 
-`AN-SEC-003` distinguishes managed GitHub expressions, committed-looking tokens, placeholders and demo/example paths. Evidence uses hashes and does not include the complete secret. This validates the implementation boundary, not the recall of a complete secret scanner.
+`AN-SEC-003` distingue expresiones gestionadas de GitHub, tokens con aspecto de commiteados, placeholders y paths de demo/example. La evidencia usa hashes y no incluye el secreto completo. Esto valida la frontera de implementación, no el recall de un escáner de secretos completo.
 
-### Test, dependency, documentation and tooling findings — PARTIAL
+### Findings de tests, dependencias, documentación y tooling — PARTIAL
 
-The messages are now appropriately scoped when a bounded snapshot contains tooling but not test files, or when a lockfile is excluded by size. However, an absence finding remains a statement about observed data, not proof that the repository lacks the capability. This is a product limitation rather than a newly changed rule.
+Los mensajes ahora están apropiadamente acotados cuando un snapshot acotado contiene tooling pero no archivos de tests, o cuando un lockfile queda excluido por tamaño. Sin embargo, un finding de ausencia sigue siendo una afirmación sobre los datos observados, no una prueba de que el repository carece de la capacidad. Esta es una limitación de producto, no una regla recién cambiada.
 
-### Architecture/import findings — PARTIAL
+### Findings de arquitectura/imports — PARTIAL
 
-`AN-ARCH-002` is explicitly heuristic and confidence is medium. A missing imported module in a partial snapshot cannot establish a real unresolved import. The finding is useful as a review signal only when the limitation is visible.
+`AN-ARCH-002` es explícitamente heurístico y su confianza es media. Un módulo importado ausente en un snapshot parcial no puede establecer un import sin resolver real. El finding solo es útil como señal de revisión cuando la limitación es visible.
 
-## Evidence Evaluation
+## Evaluación de la evidencia
 
-**Result: PASS for contract integrity; PARTIAL for developer sufficiency.**
+**Resultado: PASS para integridad del contrato; PARTIAL para suficiencia del desarrollador.**
 
-Validated properties:
+Propiedades validadas:
 
-- evidence points to normalized repository-relative paths;
-- source ranges are positive and ordered when present;
-- evidence references the same snapshot as the finding;
-- findings reference existing evidence;
-- evidence contains an excerpt hash or safe redacted value;
-- security evidence does not persist complete secret values;
-- provenance retains deterministic source, rule ID/version and snapshot ID;
-- commit SHA is available on the snapshot.
+- la evidencia apunta a paths normalizados relativos al repositorio;
+- los rangos de source son positivos y ordenados cuando están presentes;
+- la evidencia referencia el mismo snapshot que el finding;
+- los findings referencian evidencia existente;
+- la evidencia contiene un hash de excerpt o un valor redactado seguro;
+- la evidencia de seguridad no persiste valores completos de secretos;
+- el provenance conserva la fuente determinista, el ID/versión de regla y el snapshot ID;
+- el SHA del commit está disponible en el snapshot.
 
-Remaining limitation: hash-only evidence can prove that a source excerpt existed without showing the developer the relevant safe context. This is privacy-preserving but may reduce immediate actionability for some findings.
+Limitación restante: la evidencia de solo hash puede probar que un excerpt de source existió sin mostrar al desarrollador el contexto seguro relevante. Esto preserva la privacidad pero puede reducir la accionabilidad inmediata de algunos findings.
 
-## Recommendation Evaluation
+## Evaluación de las recomendaciones
 
-**Result: PARTIAL.**
+**Resultado: PARTIAL.**
 
-Recommendations are linked to findings and generally provide a concrete action, such as adding tests, committing a lockfile, configuring linting or reviewing an import. They are not AI-generated and do not modify deterministic results.
+Las recomendaciones están enlazadas a los findings y generalmente proporcionan una acción concreta, como añadir tests, commitear un lockfile, configurar linting o revisar un import. No son generadas por AI y no modifican los resultados deterministas.
 
-The evaluation did not establish an independent human-rated actionable recommendation rate. That metric is **NOT ENOUGH DATA** because the real-repository sample was unavailable and no multi-reviewer assessment was conducted.
+La evaluación no estableció una tasa independiente de recomendaciones accionables valorada por humanos. Esa métrica es **NOT ENOUGH DATA** porque la muestra de repositories reales no estaba disponible y no se realizó ninguna evaluación con múltiples revisores.
 
-## Scoring Evaluation
+## Evaluación del scoring
 
-The existing formula was not changed. Scores remain dimensional and nullable; there is no global score.
+La fórmula existente no se cambió. Los scores siguen siendo dimensionales y anulables; no existe global score.
 
-Validated:
+Validado:
 
-- deterministic repeated scoring produces identical output;
-- insufficient deterministic signals produce `score: null` and `coverage: insufficient`;
-- partial snapshots retain numeric dimensional scores only with an explicit partial-coverage limitation;
-- no score is presented as a global repository quality score.
+- el scoring repetido determinista produce salida idéntica;
+- las señales deterministas insuficientes producen `score: null` y `coverage: insufficient`;
+- los snapshots parciales conservan scores numéricos dimensionales solo con una limitación explícita de cobertura parcial;
+- ningún score se presenta como score global de calidad del repositorio.
 
-Assessment: **PARTIAL**. The model is mechanically coherent, but a numeric score on a partial snapshot can still be over-read by users. The current limitation text is necessary, but its user comprehension was not tested with real developers. No scoring redesign is justified from this run.
+Evaluación: **PARTIAL**. El modelo es mecánicamente coherente, pero un score numérico sobre un snapshot parcial aún puede ser sobreinterpretado por los usuarios. El texto de limitación actual es necesario, pero su comprensión por los usuarios no se probó con desarrolladores reales. Ningún rediseño del scoring se justifica con esta ejecución.
 
-## Coverage Evaluation
+## Evaluación de la cobertura
 
-| Situation | Expected semantics | Validation |
+| Situación | Semántica esperada | Validación |
 | --- | --- | --- |
-| complete fixture with sufficient signals | `complete` | PASS |
-| bounded or truncated snapshot with usable signals | `partial` | PASS |
-| no usable source/signals | `insufficient` | PASS |
-| unavailable dependency signal | nullable dimension score | PASS |
-| partial numeric dimension score | explicit limitation | PASS |
+| fixture completo con señales suficientes | `complete` | PASS |
+| snapshot acotado o truncado con señales utilizables | `partial` | PASS |
+| sin source/señales utilizables | `insufficient` | PASS |
+| señal de dependencia no disponible | score dimensional anulable | PASS |
+| score dimensional numérico parcial | limitación explícita | PASS |
 
-Coverage correctly describes observed data availability, not repository quality. Metadata completeness and source completeness are not independently represented in the current model; this remains a limitation for future product evaluation.
+La cobertura describe correctamente la disponibilidad de datos observados, no la calidad del repositorio. La completitud de metadatos y la completitud de source no están representadas de forma independiente en el modelo actual; esto sigue siendo una limitación para la evaluación futura del producto.
 
-## UX Evaluation
+## Evaluación de UX
 
-**Result: PARTIALLY VALIDATED.**
+**Resultado: PARTIALLY VALIDATED.**
 
-The existing frontend contract and report page expose coverage, limitations, nullable scores, findings, evidence and recommendations. The report distinguishes deterministic analysis from AI-assisted interpretation. Existing tests cover score-unavailable behavior and report states.
+El contrato del frontend existente y la página del report exponen coverage, limitaciones, scores anulables, findings, evidencia y recomendaciones. El report distingue el análisis determinista de la interpretación asistida por AI. Los tests existentes cubren el comportamiento de score no disponible y los estados del report.
 
-Not validated in this phase:
+No validado en esta fase:
 
-- moderated developer usability sessions;
-- browser-based keyboard/screen-reader walkthrough;
-- comprehension of partial-score wording;
-- end-user actionability of recommendations.
+- sesiones de usabilidad moderadas con desarrolladores;
+- recorrido de teclado/lector de pantalla basado en navegador;
+- comprensión del wording de score parcial;
+- accionabilidad de las recomendaciones para el usuario final.
 
-No frontend redesign was justified by the available evidence.
+Ningún rediseño del frontend se justificó con la evidencia disponible.
 
-## AI Evaluation
+## Evaluación de AI
 
-**Real provider: NOT VALIDATED.** No AI credentials were configured and no live request was made.
+**Provider real: NOT VALIDATED.** No había credenciales de AI configuradas y no se hizo ninguna solicitud en vivo.
 
-**Fake provider: VALIDATED technically.** Existing tests confirm:
+**Fake provider: VALIDATED técnicamente.** Los tests existentes confirman:
 
-- bounded context construction;
-- no source blobs in AI context;
-- deterministic prompt/data delimiters;
-- invalid finding/evidence/recommendation references rejected;
-- valid references accepted;
-- deterministic report unchanged before and after AI;
-- API behavior when AI is available or unavailable;
-- request limiting without affecting the deterministic report.
+- construcción de contexto acotada;
+- sin blobs de source en el contexto de AI;
+- delimitadores deterministas de prompt/datos;
+- referencias inválidas de finding/evidence/recommendation rechazadas;
+- referencias válidas aceptadas;
+- report determinista sin cambios antes y después de AI;
+- comportamiento de la API cuando AI está disponible o no;
+- limitación de requests sin afectar al report determinista.
 
-Semantic usefulness, factuality in natural-language output, latency and cost with a real model remain **NOT VALIDATED**. AI should remain optional and experimental.
+La utilidad semántica, la factualidad en la salida en lenguaje natural, la latencia y el coste con un modelo real siguen **NOT VALIDATED**. La AI debe seguir siendo opcional y experimental.
 
-## Metrics
+## Métricas
 
-| Metric | Result | Status |
+| Métrica | Resultado | Estado |
 | --- | --- | --- |
-| false-positive rate on public benchmark | not calculated; all five runs rate-limited | NOT ENOUGH DATA |
-| false-negative count on public benchmark | not calculated | NOT ENOUGH DATA |
-| useful finding rate | not calculated; no independent human review | NOT ENOUGH DATA |
-| actionable recommendation rate | not calculated | NOT ENOUGH DATA |
-| evidence adequacy rate | contract-level fixture pass only; no human adequacy sample | NOT ENOUGH DATA |
-| controlled security calibration cases | all expected cases passed | VALIDATED, fixture scope only |
+| tasa de falsos positivos en benchmark público | no calculada; las cinco ejecuciones rate-limited | NOT ENOUGH DATA |
+| conteo de falsos negativos en benchmark público | no calculado | NOT ENOUGH DATA |
+| tasa de findings útiles | no calculada; sin revisión humana independiente | NOT ENOUGH DATA |
+| tasa de recomendaciones accionables | no calculada | NOT ENOUGH DATA |
+| tasa de adecuación de la evidencia | solo pass de fixture a nivel de contrato; sin muestra humana de adecuación | NOT ENOUGH DATA |
+| casos controlados de calibración de seguridad | todos los casos esperados pasaron | VALIDATED, solo scope de fixture |
 
-No metric is extrapolated from the failed remote run.
+Ninguna métrica se extrapola de la ejecución remota fallida.
 
-## Benchmark Results
+## Resultados del benchmark
 
-The attempted real-world benchmark produced no analysis result because the unauthenticated GitHub API rate limit was exhausted. This is an operational limitation of the evaluation environment, not evidence that the repositories failed analysis. A future run must use a user-authorized GitHub token handled outside logs, or wait for reset, while preserving the same ingestion caps and methodology.
+El benchmark del mundo real intentado no produjo ningún resultado de análisis porque el rate limit de la API anónima de GitHub estaba agotado. Esta es una limitación operativa del entorno de evaluación, no evidencia de que los repositories fallaran el análisis. Una ejecución futura debe usar un token de GitHub autorizado por el usuario manejado fuera de los logs, o esperar al reset, preservando los mismos caps de ingestión y la misma metodología.
 
-## Defects Discovered
+## Defectos descubiertos
 
-1. **Evaluation blocked by external rate limit.** The current runner cannot produce a representative fresh benchmark when the unauthenticated GitHub quota is exhausted.
-2. **Human usefulness is unmeasured.** Technical traceability does not prove that a developer understands or acts on a finding.
-3. **Partial-score comprehension is unmeasured.** Explicit limitation text may still be insufficient UX communication.
-4. **Hash-only evidence can be less immediately actionable.** It protects sensitive data but does not show safe context.
+1. **Evaluación bloqueada por rate limit externo.** El runner actual no puede producir un benchmark fresco representativo cuando la cuota anónima de GitHub está agotada.
+2. **La utilidad humana no está medida.** La trazabilidad técnica no prueba que un desarrollador entienda o actúe sobre un finding.
+3. **La comprensión del score parcial no está medida.** El texto de limitación explícito puede seguir siendo comunicación de UX insuficiente.
+4. **La evidencia de solo hash puede ser menos accionable de inmediato.** Protege datos sensibles pero no muestra el contexto seguro.
 
-No new analyzer defect was demonstrated by this Phase 15 execution. No new rule was introduced and no scoring change was made.
+Ningún defecto nuevo del analyzer se demostró con esta ejecución de la Phase 15. No se introdujo ninguna regla nueva ni se hizo ningún cambio de scoring.
 
-## Changes Implemented
+## Cambios implementados
 
-- Created this evaluation report.
-- No production behavior, analyzer rule, score formula or architecture changed.
+- Se creó este informe de evaluación.
+- No cambió ningún comportamiento de producción, regla del analyzer, fórmula de score ni arquitectura.
 
-## Security Evaluation
+## Evaluación de seguridad
 
-The following remain validated by existing tests and code review:
+Los siguientes siguen validados por los tests existentes y la revisión de código:
 
-- SSRF and GitHub host allowlist;
-- safe canonical redirects;
-- path traversal, symlink and submodule protections;
-- bounded file/byte/request limits and timeouts;
-- no external repository code execution;
-- no complete secret persistence in evidence;
-- AI context/reference validation and isolation;
-- sanitized API errors.
+- SSRF y allowlist de hosts de GitHub;
+- redirects canónicos seguros;
+- protecciones de path traversal, symlink y submódulo;
+- límites acotados de archivo/byte/request y timeouts;
+- sin ejecución de código externo del repositorio;
+- sin persistencia de secretos completos en la evidencia;
+- validación y aislamiento de contexto/referencias de AI;
+- errores de API saneados.
 
-The real-repository security finding recall was not measured in this phase.
+El recall de findings de seguridad en repositories reales no se midió en esta fase.
 
-## Architecture Assessment
+## Evaluación de arquitectura
 
-| Component | Decision | Evidence |
+| Componente | Decisión | Evidencia |
 | --- | --- | --- |
-| Angular | KEEP | existing report/state tests; no demonstrated UX defect requiring replacement |
-| Fastify | KEEP | API integration tests pass |
-| Application layer | KEEP | deterministic/AI boundary remains isolated |
-| In-process runner | KEEP | no measured load evidence requiring extraction |
-| GitHub REST | KEEP | existing safe ingestion; rate limit is evaluation-environment constraint |
-| Deterministic analyzer | KEEP, calibrate later if evidence appears | controlled cases pass; public recall not freshly measured |
-| Scoring | KEEP | deterministic and transparent; user comprehension remains to measure |
-| SQLite | KEEP | existing persistence tests pass; no operational evidence for migration |
-| Optional AI | KEEP WITH LIMITATIONS | technical boundary passes; real semantic quality unavailable |
+| Angular | KEEP | tests existentes de report/estados; sin defecto de UX demostrado que requiera sustitución |
+| Fastify | KEEP | los tests de integración de la API pasan |
+| Capa de aplicación | KEEP | la frontera determinista/AI sigue aislada |
+| Runner in-process | KEEP | sin evidencia de carga medida que requiera extracción |
+| GitHub REST | KEEP | ingestion segura existente; el rate limit es una restricción del entorno de evaluación |
+| Analyzer determinista | KEEP, calibrar después si aparece evidencia | los casos controlados pasan; el recall público no se midió de nuevo |
+| Scoring | KEEP | determinista y transparente; la comprensión del usuario sigue por medir |
+| SQLite | KEEP | los tests de persistence existentes pasan; sin evidencia operativa para migración |
+| AI opcional | KEEP WITH LIMITATIONS | la frontera técnica pasa; la calidad semántica real no está disponible |
 
-No workers, queues, caches, databases, providers or infrastructure were added.
+No se añadieron workers, colas, cachés, bases de datos, providers ni infraestructura.
 
-## Recommended Changes for Phase 16
+## Cambios recomendados para la Phase 16
 
-1. Run the same benchmark with authorized, non-logged GitHub credentials or after rate-limit reset.
-2. Conduct a small human review with developers for finding usefulness, evidence sufficiency and recommendation actionability.
-3. Validate partial-score wording through a focused UX test before changing the scoring model.
-4. Evaluate real-provider AI semantics only after explicit credentials are configured.
-5. Keep metrics labelled measured, estimated or not validated.
+1. Ejecutar el mismo benchmark con credenciales autorizadas de GitHub no registradas en logs o tras el reset del rate limit.
+2. Realizar una pequeña revisión humana con desarrolladores sobre utilidad de findings, suficiencia de evidencia y accionabilidad de recomendaciones.
+3. Validar el wording de score parcial mediante un test de UX enfocado antes de cambiar el modelo de scoring.
+4. Evaluar la semántica de AI con provider real solo después de configurar credenciales explícitas.
+5. Mantener las métricas etiquetadas como medidas, estimadas o no validadas.
 
-## Deferred Changes
+## Cambios diferidos
 
-- scoring formula redesign;
-- new analyzer rules;
-- richer secret scanning;
-- hash/context evidence redesign;
-- workers, queues, Redis, PostgreSQL and distributed systems;
-- real-time features and new AI capabilities.
+- rediseño de la fórmula de scoring;
+- nuevas reglas del analyzer;
+- escaneo de secretos más rico;
+- rediseño de evidencia hash/contexto;
+- workers, colas, Redis, PostgreSQL y sistemas distribuidos;
+- funcionalidades en tiempo real y nuevas capacidades de AI.
 
-## v1.0.0 Assessment
+## Evaluación del v1.0.0
 
-`READY WITH LIMITATIONS` remains appropriate. Phase 15 did not reveal a release-blocking defect, but it also did not provide enough fresh real-world evidence to upgrade confidence or claim production readiness.
+`READY WITH LIMITATIONS` sigue siendo apropiado. La Phase 15 no reveló un defecto bloqueante del release, pero tampoco proporcionó suficiente evidencia fresca del mundo real para subir la confianza ni para reclamar production readiness.
 
-## Recommendation for Phase 16
+## Recomendación para la Phase 16
 
-Phase 16 should be a focused **human usability + authorized benchmark validation** phase, not an infrastructure phase. It should obtain independent developer judgements on findings/evidence/recommendations and repeat the public benchmark under a controlled GitHub API budget.
+La Phase 16 debería ser una fase enfocada de **usabilidad humana + validación de benchmark autorizado**, no una fase de infraestructura. Debería obtener juicios independientes de desarrolladores sobre findings/evidencia/recomendaciones y repetir el benchmark público bajo un presupuesto controlado de la API de GitHub.
 
-## Status Summary
+## Resumen de estado
 
-- **VALIDATED:** local contracts, deterministic behavior, security calibration fixtures, evidence relationships, nullable/partial scoring semantics, FakeAI technical boundary.
-- **PARTIALLY VALIDATED:** product usefulness, evidence actionability, recommendation usefulness, UX comprehension, real-repository behavior.
-- **NOT VALIDATED:** real-provider AI semantics, fresh public benchmark quality metrics, human usefulness metrics, production performance.
+- **VALIDATED:** contratos locales, comportamiento determinista, fixtures de calibración de seguridad, relaciones de evidencia, semántica de scoring anulable/parcial, frontera técnica de FakeAI.
+- **PARTIALLY VALIDATED:** utilidad del producto, accionabilidad de la evidencia, utilidad de las recomendaciones, comprensión de UX, comportamiento en repositories reales.
+- **NOT VALIDATED:** semántica de AI con provider real, métricas frescas de calidad del benchmark público, métricas de utilidad humana, rendimiento de producción.
 
-## Proposed Conventional Commit
+## Conventional Commit propuesto
 
 ```text
 test: evaluate product usefulness and finding quality

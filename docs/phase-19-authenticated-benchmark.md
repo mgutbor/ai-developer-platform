@@ -1,45 +1,45 @@
-# Phase 19 — Authenticated Benchmark & Snapshot Coverage Validation
+# Phase 19 — Benchmark autenticado y validación de cobertura del snapshot
 
-## 1. Executive Summary
+## 1. Resumen ejecutivo
 
-Phase 19 audited the configured GitHub authentication mechanism and attempted to obtain the evidence required for an authenticated benchmark and snapshot coverage experiment.
+La Phase 19 auditó el mecanismo de autenticación de GitHub configurado e intentó obtener la evidencia requerida para un benchmark autenticado y un experimento de cobertura de snapshot.
 
-No GitHub token was available in the environment. The anonymous GitHub API also had only 2 requests remaining when checked. Per the phase rules, no token was invented, no rate limit was bypassed, and no benchmark was silently reduced or replaced with fixtures.
+No había ningún token de GitHub disponible en el entorno. Además, la API anónima de GitHub solo tenía 2 requests restantes cuando se comprobó. Según las reglas de la fase, no se inventó ningún token, no se eludió ningún rate limit y ningún benchmark se redujo silenciosamente ni se sustituyó por fixtures.
 
-The requested benchmark of at least 15 public repositories and the real `maxFileCount` experiments at 10/50/100 are therefore:
+El benchmark solicitado de al menos 15 repositorios públicos y los experimentos reales de `maxFileCount` a 10/50/100 son, por tanto:
 
 ```text
 BENCHMARK = NOT VALIDATED
 SNAPSHOT COVERAGE EXPERIMENT = NOT VALIDATED
 ```
 
-This is an external credential/quota limitation, not evidence that the product failed. The release decision remains:
+Esto es una limitación externa de credenciales/cuota, no evidencia de que el producto fallara. La decisión de release sigue siendo:
 
 ```text
 GO WITH LIMITATIONS
 ```
 
-## 2. Authentication Status
+## 2. Estado de la autenticación
 
-No `GITHUB_TOKEN` or `GH_TOKEN` variable was present. No token was printed, persisted, requested, or created.
+No estaba presente ninguna variable `GITHUB_TOKEN` ni `GH_TOKEN`. No se imprimió, persistió, solicitó ni creó ningún token.
 
-Observed anonymous GitHub quota at audit time:
+Cuota anónima de GitHub observada en el momento de la auditoría:
 
-- core limit: 60;
-- used: 58;
-- remaining: 2.
+- límite core: 60;
+- usados: 58;
+- restantes: 2.
 
-No AI credentials were present either, but AI validation was not an objective of this phase.
+Tampoco había credenciales de AI, pero la validación de AI no era un objetivo de esta fase.
 
-Authentication status:
+Estado de la autenticación:
 
 ```text
-NOT VALIDATED — authenticated GitHub access was unavailable
+NOT VALIDATED — el acceso autenticado a GitHub no estaba disponible
 ```
 
-## 3. Benchmark Dataset
+## 3. Dataset del benchmark
 
-The required retained repositories were identified from the existing runner:
+Los repositorios retenidos requeridos se identificaron a partir del runner existente:
 
 - `octocat/Hello-World`;
 - `sindresorhus/type-fest`;
@@ -47,153 +47,153 @@ The required retained repositories were identified from the existing runner:
 - `angular/angular`;
 - `facebook/react`.
 
-An additional diverse set of at least 10 repositories was not executed because authenticated quota was unavailable. No commit SHAs, sizes, findings, durations, or status values are claimed for a Phase 19 benchmark.
+No se ejecutó un conjunto adicional diverso de al menos 10 repositorios porque la cuota autenticada no estaba disponible. No se reivindica ningún SHA de commit, tamaño, findings, duración ni valor de estado para un benchmark de la Phase 19.
 
-Historical five-repository measurements remain in `docs/phase-16-real-world-evaluation.md` and are not Phase 19 measurements.
+Las mediciones históricas de cinco repositorios permanecen en `docs/phase-16-real-world-evaluation.md` y no son mediciones de la Phase 19.
 
-## 4. Snapshot Coverage Experiment
+## 4. Experimento de cobertura del snapshot
 
-The intended scenarios were:
+Los escenarios previstos eran:
 
-| Scenario | `maxFileCount` | Status |
+| Escenario | `maxFileCount` | Estado |
 |---|---:|---|
-| A | 10 | NOT VALIDATED against real repositories |
-| B | 50 | NOT VALIDATED against real repositories |
-| C | 100 | NOT VALIDATED against real repositories |
+| A | 10 | NOT VALIDATED contra repositorios reales |
+| B | 50 | NOT VALIDATED contra repositorios reales |
+| C | 100 | NOT VALIDATED contra repositorios reales |
 
-The existing ingestion API accepts per-run limits and the GitHub test suite already exercises bounded values such as 5 and 8 files. Those tests validate limit enforcement and deterministic prioritization, but they do not measure real-repository quality at 10/50/100.
+La API de ingestión existente acepta límites por ejecución y la suite de tests de GitHub ya ejercita valores acotados como 5 y 8 archivos. Esos tests validan el enforcement de límites y la priorización determinista, pero no miden la calidad en repositorios reales a 10/50/100.
 
-Not measured:
+No se midió:
 
-- files and bytes observed per real repository/scenario;
-- requests per scenario;
-- findings by category;
-- score changes;
-- latency changes;
-- false-positive or false-negative changes;
-- metadata/test/dependency detection improvement.
+- archivos y bytes observados por repositorio/escenario real;
+- requests por escenario;
+- findings por categoría;
+- cambios de score;
+- cambios de latencia;
+- cambios de falsos positivos o falsos negativos;
+- mejora en la detección de metadatos/tests/dependencias.
 
-All are:
+Todo ello está en:
 
 ```text
 NOT VALIDATED
 ```
 
-## 5. Ground Truth
+## 5. Ground truth
 
-No new Phase 19 manual ground truth was created because no real benchmark findings were produced.
+No se creó ningún ground truth manual nuevo de la Phase 19 porque no se produjeron findings de benchmark reales.
 
-Existing controlled and historical evidence supports these bounded conclusions:
+La evidencia controlada e histórica existente respalda estas conclusiones acotadas:
 
-- security expressions and realistic secret-like patterns have regression coverage;
-- absence findings are snapshot-scoped when coverage is partial;
-- unresolved imports are heuristic and medium-confidence;
-- root metadata prioritization and safe canonical redirects have regression coverage;
-- secret values are not persisted in evidence.
+- las expresiones de seguridad y los patrones realistas similares a secretos tienen cobertura de regresión;
+- los findings de ausencia están acotados al snapshot cuando la cobertura es parcial;
+- los imports sin resolver son heurísticos y de confianza media;
+- la priorización de metadatos raíz y los redirects canónicos seguros tienen cobertura de regresión;
+- los valores de secretos no se persisten en la evidencia.
 
-Global ground truth metrics remain:
+Las métricas globales de ground truth permanecen en:
 
 ```text
 Precision = NOT VALIDATED
 Recall = NOT VALIDATED
-False-positive rate = NOT VALIDATED
-False-negative count = NOT VALIDATED
+Tasa de falsos positivos = NOT VALIDATED
+Número de falsos negativos = NOT VALIDATED
 ```
 
-UNKNOWN observations were not reclassified as positive or negative.
+Las observaciones UNKNOWN no se reclasificaron como positivas o negativas.
 
-## 6. Finding Accuracy
+## 6. Exactitud de los findings
 
-Status:
+Estado:
 
 ```text
 PARTIALLY VALIDATED
 ```
 
-The existing fixture and five-repository historical evidence validates selected rule behavior, but the Phase 19 expanded authenticated sample was unavailable. No new false positive or false negative is claimed.
+La evidencia existente de fixtures y de los cinco repositorios históricos valida el comportamiento de reglas seleccionadas, pero la muestra autenticada ampliada de la Phase 19 no estuvo disponible. No se reivindica ningún falso positivo o falso negativo nuevo.
 
-## 7. Performance
+## 7. Rendimiento
 
-A Phase 19 10/50/100 comparison was not executed:
+No se ejecutó una comparación 10/50/100 de la Phase 19:
 
 ```text
 NOT VALIDATED
 ```
 
-The historical Phase 16 network-dependent total durations of approximately 1.08–3.79 seconds remain the latest available context only. No evidence from this phase justifies workers, queues, cache, Redis, PostgreSQL, or other infrastructure.
+Las duraciones totales históricas dependientes de la red de la Phase 16, de aproximadamente 1.08–3.79 segundos, siguen siendo el único contexto reciente disponible. Ninguna evidencia de esta fase justifica workers, colas, caché, Redis, PostgreSQL u otra infraestructura.
 
-## 8. Security Regression
+## 8. Regresión de seguridad
 
-No production security behavior was changed. Existing tests continue to cover:
+No se cambió ningún comportamiento de seguridad de producción. Los tests existentes siguen cubriendo:
 
-- HTTPS and GitHub host allowlisting;
-- safe redirects;
-- path traversal, symlinks, and submodules;
-- request, file, byte, tree, and timeout limits;
-- secret redaction/hash-only evidence;
-- AI isolation and reference validation.
+- HTTPS y allowlisting de hosts de GitHub;
+- redirects seguros;
+- path traversal, symlinks y submódulos;
+- límites de requests, archivos, bytes, árbol y timeout;
+- evidencia de solo hash con redacción de secretos;
+- aislamiento de AI y validación de referencias.
 
-No repository code was executed, no repository dependencies were installed, and no repository content or credentials were persisted.
+No se ejecutó ningún código de repositorio, no se instalaron dependencias del repositorio y no se persistió ningún contenido ni credencial del repositorio.
 
-Security regression status:
+Estado de regresión de seguridad:
 
 ```text
-VALIDATED for existing tested controls
+VALIDATED para los controles testeados existentes
 ```
 
-Exhaustive real-world behavior at higher coverage remains `NOT VALIDATED`.
+El comportamiento exhaustivo en el mundo real con mayor cobertura sigue en `NOT VALIDATED`.
 
-## 9. Product Usefulness
+## 9. Utilidad del producto
 
-No human reviewers were available and no user results were simulated:
+No había revisores humanos disponibles y no se simularon resultados de usuarios:
 
 ```text
 HUMAN EVALUATION = NOT VALIDATED
 ```
 
-The effect of increased real snapshot coverage on evidence, recommendations, confidence, and scores is also:
+El efecto del aumento real de cobertura del snapshot en evidencia, recomendaciones, confianza y scores también está en:
 
 ```text
 NOT VALIDATED
 ```
 
-## 10. AI Status
+## 10. Estado de AI
 
-AI was not exercised in this phase.
+La AI no se ejercitó en esta fase.
 
 ```text
 AI LIVE VALIDATION = NOT VALIDATED
 ```
 
-Existing FakeAIProvider tests remain technical integration evidence only.
+Los tests existentes de FakeAIProvider siguen siendo solo evidencia técnica de integración.
 
-## 11. Coverage Decision
+## 11. Decisión de cobertura
 
-Evidence-based decision:
+Decisión basada en evidencia:
 
 ```text
 KEEP CURRENT BOUNDED SELECTION WITH LIMITATIONS
 ```
 
-This is not a conclusion that `maxFileCount = 10` is sufficient in general. It means no evidence was obtained in this phase to justify increasing the default or introducing adaptive selection.
+Esto no es una conclusión de que `maxFileCount = 10` sea suficiente en general. Significa que en esta fase no se obtuvo evidencia que justifique aumentar el valor por defecto o introducir selección adaptativa.
 
-The current policy remains preferable to an unbounded increase because it preserves deterministic, bounded ingestion and already prioritizes metadata/source/test signals. A future authenticated experiment should compare 10/50/100 on the same commit SHAs before changing the default.
+La política actual sigue siendo preferible a un aumento sin límite porque preserva la ingestión determinista y acotada y ya prioriza señales de metadatos/fuente/tests. Un experimento autenticado futuro debería comparar 10/50/100 sobre los mismos SHAs de commit antes de cambiar el valor por defecto.
 
-## 12. Changes Applied
+## 12. Cambios aplicados
 
-Only this documentation file was added:
+Solo se añadió este archivo de documentación:
 
 ```text
 docs/phase-19-authenticated-benchmark.md
 ```
 
-No analyzer, scoring, ingestion, frontend, API, AI, or infrastructure code was changed. No regression test was needed because no new defect was established.
+No se cambió ningún código de analyzer, scoring, ingestion, frontend, API, AI ni infraestructura. No se necesitó ningún test de regresión porque no se estableció ningún defecto nuevo.
 
-## 13. Quality Gates
+## 13. Quality gates
 
-All required gates passed after documentation was created:
+Todos los gates requeridos pasaron después de crear la documentación:
 
-| Command | Result |
+| Comando | Resultado |
 |---|---|
 | `pnpm install --frozen-lockfile` | PASS |
 | `pnpm check:architecture` | PASS |
@@ -205,13 +205,13 @@ All required gates passed after documentation was created:
 | `pnpm audit --audit-level=high` | PASS |
 | `git diff --check` | PASS |
 
-Exact test count:
+Conteo exacto de tests:
 
 ```text
 75 passing
 ```
 
-Breakdown:
+Desglose:
 
 - Domain: 15;
 - GitHub: 19;
@@ -222,43 +222,43 @@ Breakdown:
 - API: 7;
 - Frontend: 4.
 
-Warnings were not hidden: local Node is `25.3.0` while the project targets Node 24, and SQLite remains experimental in the local runtime.
+Las advertencias no se ocultaron: el Node local es `25.3.0` mientras que el proyecto apunta a Node 24, y SQLite sigue siendo experimental en el runtime local.
 
-## 14. Final Release Decision
+## 14. Decisión final de release
 
 ```text
 GO WITH LIMITATIONS
 ```
 
-Justification:
+Justificación:
 
-- existing deterministic and security controls remain green;
-- no new defect was introduced;
-- the authenticated benchmark could not be run because no token was available;
-- anonymous quota was insufficient for the required sample;
-- coverage scenarios 10/50/100 remain unmeasured on real repositories;
-- precision, recall, human usefulness, and live AI quality remain unavailable.
+- los controles deterministas y de seguridad existentes siguen en verde;
+- no se introdujo ningún defecto nuevo;
+- el benchmark autenticado no pudo ejecutarse porque no había token disponible;
+- la cuota anónima era insuficiente para la muestra requerida;
+- los escenarios de cobertura 10/50/100 siguen sin medirse en repositorios reales;
+- la precision, el recall, la utilidad humana y la calidad de AI en vivo siguen sin estar disponibles.
 
-This does not imply production-ready or enterprise-ready status.
+Esto no implica un estado production-ready ni enterprise-ready.
 
-## 15. Remaining Limitations
+## 15. Limitaciones restantes
 
-- authenticated GitHub benchmark of 15+ repositories: `NOT VALIDATED`;
-- snapshot coverage experiment at 10/50/100: `NOT VALIDATED`;
-- no authenticated token available;
-- anonymous GitHub quota limited to 2 remaining requests;
-- precision/recall and false-positive rate unavailable;
-- no independent human reviewers;
-- no live AI validation;
-- partial snapshots and snapshot-scoped absence findings remain a product limitation;
-- no production load, multi-instance, backup/recovery, or HA validation;
-- no browser E2E or complete WCAG audit;
-- local Node 25 differs from project/CI Node 24;
-- `node:sqlite` remains experimental.
+- benchmark autenticado de GitHub de 15+ repositorios: `NOT VALIDATED`;
+- experimento de cobertura de snapshot a 10/50/100: `NOT VALIDATED`;
+- ningún token autenticado disponible;
+- cuota anónima de GitHub limitada a 2 requests restantes;
+- precision/recall y tasa de falsos positivos no disponibles;
+- sin revisores humanos independientes;
+- sin validación de AI en vivo;
+- los snapshots parciales y los findings de ausencia acotados al snapshot siguen siendo una limitación del producto;
+- sin validación de carga de producción, multi-instancia, backup/recovery ni HA;
+- sin E2E de navegador ni auditoría WCAG completa;
+- el Node local 25 difiere del Node 24 del proyecto/CI;
+- `node:sqlite` sigue siendo experimental.
 
-## 16. Recommendation for Next Step
+## 16. Recomendación para el siguiente paso
 
-After a GitHub token is safely available through server-side environment configuration, run the retained five repositories plus at least ten diverse public repositories at `maxFileCount` 10, 50, and 100 using the same commit SHAs where possible. Record requests, bytes, findings, scores, limitations, and timings without persisting repository contents or credentials. Then perform the manual ground-truth review before changing the default selection policy.
+Cuando un token de GitHub esté disponible de forma segura mediante la configuración de entorno server-side, ejecuta los cinco repositorios retenidos más al menos diez repositorios públicos diversos con `maxFileCount` 10, 50 y 100 usando los mismos SHAs de commit cuando sea posible. Registra requests, bytes, findings, scores, limitaciones y tiempos sin persistir contenidos ni credenciales del repositorio. Después realiza la revisión ground-truth manual antes de cambiar la política de selección por defecto.
 
 ## Conventional Commit
 

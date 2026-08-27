@@ -1,14 +1,14 @@
-# Analyzer fixtures
+# Fixtures del analyzer
 
-The deterministic analyzer uses small in-memory fixtures declared in `src/fixtures.ts`.
+El analyzer determinista utiliza pequeños fixtures en memoria declarados en `src/fixtures.ts`.
 
-The fixture set covers:
+El conjunto de fixtures cubre:
 
-- clean TypeScript with tests, documentation, tooling, lockfile and CI;
-- JavaScript without tests;
-- Angular and React framework signals;
-- missing lockfile and documentation;
-- security and code-quality signals;
-- malformed manifests and partial ingestion limitations.
+- TypeScript limpio con tests, documentación, tooling, lockfile y CI;
+- JavaScript sin tests;
+- señales de frameworks Angular y React;
+- ausencia de lockfile y documentación;
+- señales de seguridad y calidad de código;
+- manifests malformados y limitaciones de ingestión parcial.
 
-Fixtures are data only. They are never imported, executed, installed or sent to a network service.
+Los fixtures son solo datos. Nunca se importan, ejecutan, instalan ni envían a ningún servicio de red.

@@ -1,12 +1,12 @@
 # Definición del producto
 
-## Problem statement
+## Declaración del problema
 
 Los equipos reciben repositories que funcionan, pero carecen de una evaluación técnica consistente y trazable. Las revisiones manuales son costosas, dependen de la experiencia de quien las realiza y suelen mezclar hechos observables con opiniones. Las herramientas aisladas detectan aspectos concretos, pero no los reúnen en una explicación priorizada que conecte problema, evidencia, impacto y acción.
 
 AI Developer Platform convierte un repository de GitHub en un Developer Health Report técnico y explorable. El valor del producto está en correlacionar facts y métricas deterministas con razonamiento semántico de IA, sin presentar una inferencia como un hecho.
 
-## Target users
+## Usuarios objetivo
 
 - Frontend developers que necesitan una revisión rápida de estructura, calidad, accesibilidad y testing.
 - Software engineers que mantienen repositories desconocidos o heredados.
@@ -16,11 +16,11 @@ AI Developer Platform convierte un repository de GitHub en un Developer Health R
 
 El usuario primario del MVP es un developer o tech lead que analiza un repository público y puede interpretar sus limitaciones técnicas. No es una herramienta de compliance ni sustituye una revisión humana de seguridad.
 
-## Core use case
+## Caso de uso principal
 
 El usuario introduce la URL de un repository público de GitHub y solicita un análisis. El sistema valida la entrada, fija una revision, ingiere metadata y archivos textuales, ejecuta análisis determinista y muestra un reporte con score determinista, confidence, evidencias, findings y recomendaciones. La IA será una fase posterior y no es necesaria para demostrar el primer valor del producto.
 
-## User journey
+## Journey del usuario
 
 ```text
 Enter GitHub repository
@@ -46,7 +46,7 @@ Explore prioritized recommendations
 
 El flujo debe comunicar estados parciales, errores recuperables, datos insuficientes y el alcance exacto de la revision analizada.
 
-## Product output
+## Output del producto
 
 El reporte contiene:
 
@@ -79,7 +79,7 @@ El reporte contiene:
 - Los límites de tamaño, tiempo y rate limit se respetan de forma visible.
 - El producto sigue siendo útil sin configurar un proveedor de IA.
 
-## Out of scope
+## Fuera de alcance
 
 - Repositories privados y acceso mediante OAuth en la primera versión.
 - Clonar o ejecutar el proyecto analizado, sus scripts, tests, builds o package managers.

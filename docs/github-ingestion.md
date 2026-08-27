@@ -1,102 +1,102 @@
-# GitHub REST ingestion
+# Ingestión GitHub REST
 
-Phase 3 implements `@ai-developer-platform/github`, a framework-independent adapter for bounded snapshots of public GitHub repositories.
+La Fase 3 implementa `@ai-developer-platform/github`, un adapter independiente del framework para snapshots acotados de repositorios públicos de GitHub.
 
-## Supported input
+## Entrada soportada
 
-The accepted input is a canonical public HTTPS URL:
+La entrada aceptada es una URL HTTPS pública canónica:
 
 ```text
 https://github.com/{owner}/{repository}
 https://github.com/{owner}/{repository}/tree/{ref}
 ```
 
-An explicit ref may also be supplied to `parseRepositoryReference` or `ingestRepository`. SSH URLs, Git URLs, HTTP, arbitrary hosts, query strings, fragments, private repositories, and GitHub Enterprise are rejected. A trailing slash and an optional `.git` suffix are normalized.
+También puede suministrarse una ref explícita a `parseRepositoryReference` o `ingestRepository`. Se rechazan URLs SSH, Git, HTTP, hosts arbitrarios, query strings, fragments, repositorios privados y GitHub Enterprise. Una barra final y un sufijo `.git` opcional se normalizan.
 
-## Flow
+## Flujo
 
 ```text
-validated repository URL
+URL de repositorio validada
         |
         v
-repository metadata
+metadatos del repositorio
         |
         v
-requested ref -> commit SHA
+ref solicitada -> commit SHA
         |
         v
-commit tree
+tree del commit
         |
         v
-bounded file selection -> bounded blobs -> UTF-8 text
+selección acotada de archivos -> blobs acotados -> texto UTF-8
         |
         v
-RepositorySnapshot + RepositoryFile[] + limitations
+RepositorySnapshot + RepositoryFile[] + limitaciones
 ```
 
-The snapshot is created through the Phase 2 domain factory. Its identity is derived from normalized owner, repository name, and the full resolved commit SHA. The requested branch/ref is retained as context and is never used as the immutable identity.
+El snapshot se crea mediante la factory de dominio de la Fase 2. Su identidad se deriva del owner normalizado, el nombre del repositorio y el commit SHA completo resuelto. La rama/ref solicitada se conserva como contexto y nunca se usa como identidad inmutable.
 
-## Transport and security
+## Transporte y seguridad
 
-`GitHubRestClient` uses the platform `fetch` API and only constructs requests against `https://api.github.com`. It sends the GitHub JSON media type and API version, applies request and response-size limits, accepts an optional token without logging it, and classifies failures without exposing response bodies.
+`GitHubRestClient` usa la API `fetch` de la plataforma y solo construye requests contra `https://api.github.com`. Envía el media type JSON de GitHub y la versión de la API, aplica límites de request y de tamaño de respuesta, acepta un token opcional sin registrarlo y clasifica los fallos sin exponer los cuerpos de las respuestas.
 
-### Redirect policy
+### Política de redirects
 
-GitHub returns canonical redirects (for example `facebook/react` redirects to `/repositories/{id}` and is canonicalized to `react/react`). The client follows redirects **only** when every hop satisfies all of the following:
+GitHub devuelve redirects canónicos (por ejemplo, `facebook/react` redirige a `/repositories/{id}` y se canonicaliza a `react/react`). El cliente sigue redirects **solo** cuando cada salto cumple todas las condiciones siguientes:
 
-- the target is `https:`;
-- the target host is in the explicit allowlist (`api.github.com` by default);
-- the target has no port;
-- the number of followed redirects does not exceed `maxRedirects` (default 3);
-- the redirect carries a valid `location` header.
+- el destino es `https:`;
+- el host destino está en la allowlist explícita (`api.github.com` por defecto);
+- el destino no tiene puerto;
+- el número de redirects seguidos no supera `maxRedirects` (por defecto 3);
+- el redirect lleva una cabecera `location` válida.
 
-Redirects to external hosts, plain HTTP, or ports are rejected with `security_rejected`. `fetch` is called with `redirect: 'manual'` so the client, not the runtime, decides whether a redirect is safe. When a canonical redirect is followed, the repository identity returned by GitHub is authoritative (so renamed repositories are analyzed under their canonical `owner/name`); when no redirect occurred, the response must match the requested identity exactly.
+Los redirects a hosts externos, HTTP plano o puertos se rechazan con `security_rejected`. `fetch` se llama con `redirect: 'manual'` para que el cliente, y no el runtime, decida si un redirect es seguro. Cuando se sigue un redirect canónico, la identidad del repositorio devuelta por GitHub es autoritativa (así, los repositorios renombrados se analizan bajo su `owner/name` canónico); cuando no hubo redirect, la respuesta debe coincidir exactamente con la identidad solicitada.
 
-The package does not clone repositories, download archives, follow symlinks, fetch submodules, execute repository content, install dependencies, or access the local filesystem. Repository paths remain data and are validated as normalized relative paths.
+El paquete no clona repositorios, no descarga archivos, no sigue symlinks, no obtiene submódulos, no ejecuta contenido del repositorio, no instala dependencias ni accede al filesystem local. Los paths del repositorio siguen siendo datos y se validan como paths relativos normalizados.
 
-## File selection strategy
+## Estrategia de selección de archivos
 
-Selected entries are prioritized deterministically so the bounded file budget is spent on the most informative files first. The limits are never removed; the strategy only decides which files are fetched within them.
+Las entradas seleccionadas se priorizan de forma determinista para que el presupuesto acotado de archivos se gaste primero en los archivos más informativos. Los límites nunca se eliminan; la estrategia solo decide qué archivos se obtienen dentro de ellos.
 
 | Priority | Files |
 | ---: | --- |
-| 1 | Root repository metadata: `package.json`, lockfiles, `README*`, `tsconfig*`, `angular.json`, `vite.config.*`, `next.config.*` |
-| 2 | CI/tooling metadata: `.github/workflows/*`, root `eslint`/`prettier`/`vitest`/`jest`/`playwright` config, `biome.json` |
-| 3 | Source files (TypeScript/JavaScript) |
-| 4 | Test files |
-| 5 | Documentation, examples, fixtures, and other selectable files |
+| 1 | Metadatos raíz del repositorio: `package.json`, lockfiles, `README*`, `tsconfig*`, `angular.json`, `vite.config.*`, `next.config.*` |
+| 2 | Metadatos de CI/tooling: `.github/workflows/*`, config raíz de `eslint`/`prettier`/`vitest`/`jest`/`playwright`, `biome.json` |
+| 3 | Archivos fuente (TypeScript/JavaScript) |
+| 4 | Archivos de tests |
+| 5 | Documentación, ejemplos, fixtures y otros archivos seleccionables |
 
-Within the same priority, files are ordered by path, so selection is stable across runs. This prevents directories such as `.github/`, `.devcontainer/` or `examples/` from consuming the file budget before `package.json`, `README`, `tsconfig.json` and tests are considered.
+Dentro de la misma prioridad, los archivos se ordenan por path, por lo que la selección es estable entre ejecuciones. Esto evita que directorios como `.github/`, `.devcontainer/` o `examples/` consuman el presupuesto de archivos antes de que se consideren `package.json`, `README`, `tsconfig.json` y los tests.
 
-Per-tier caps prevent a single tier from dominating: at most 8 root-metadata files, 2 CI/tooling files, 8 test files, and 2 documentation/example files are kept; source files (priority 3) are unbounded. The global `maxTreeEntries` cap still bounds the final candidate list. This keeps CI-heavy repositories (for example `angular/angular`, whose tree contains dozens of `.github/workflows`) from starving source files.
+Los topes por tier evitan que un solo tier domine: se conservan como máximo 8 archivos de metadatos raíz, 2 de CI/tooling, 8 de tests y 2 de documentación/ejemplos; los archivos fuente (prioridad 3) son ilimitados. El tope global de `maxTreeEntries` sigue acotando la lista final de candidatos. Esto evita que los repositorios con mucho CI (por ejemplo, `angular/angular`, cuyo tree contiene decenas de `.github/workflows`) priven a los archivos fuente.
 
-Lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lock`) are selectable root metadata so that `lockfile_present` reflects the repository instead of the selection policy. Binary `bun.lockb` remains excluded.
+Los lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `bun.lock`) son metadatos raíz seleccionables para que `lockfile_present` refleje el repositorio y no la política de selección. El `bun.lockb` binario sigue excluido.
 
-## Initial MVP limits
+## Límites iniciales del MVP
 
-| Limit | Initial value |
+| Limit | Valor inicial |
 | --- | ---: |
-| Selected files | 50 |
-| File size | 256 KiB |
-| Total file bytes | 2 MiB |
-| Tree entries considered (after priority + tier caps) | 5,000 |
-| API requests per client | 125 |
-| Request timeout | 10 seconds |
-| Ingestion timeout | 60 seconds |
-| JSON response size | 4 MiB |
+| Archivos seleccionados | 50 |
+| Tamaño de archivo | 256 KiB |
+| Bytes totales de archivos | 2 MiB |
+| Entradas de tree consideradas (tras prioridad + topes por tier) | 5.000 |
+| Requests de API por cliente | 125 |
+| Timeout de request | 10 segundos |
+| Timeout de ingestión | 60 segundos |
+| Tamaño de respuesta JSON | 4 MiB |
 
-The values are conservative initial limits, not production calibration. Source files with TypeScript/JavaScript/JSON extensions and selected project metadata are eligible. `node_modules`, `.git`, `dist`, `build`, `coverage`, `.cache`, `vendor`, source maps, generated/minified files, common credential filenames, common private-key extensions, and obvious binary extensions are excluded.
+Los valores son límites iniciales conservadores, no calibración de producción. Los archivos fuente con extensiones TypeScript/JavaScript/JSON y los metadatos de proyecto seleccionados son elegibles. `node_modules`, `.git`, `dist`, `build`, `coverage`, `.cache`, `vendor`, source maps, archivos generados/minificados, nombres de archivo de credenciales comunes, extensiones comunes de claves privadas y extensiones binarias evidentes se excluyen.
 
-Blob responses must be base64, valid UTF-8, size-consistent, and free of obvious binary data. Git LFS pointer files are reported as unavailable rather than resolved.
+Las respuestas de blobs deben ser base64, UTF-8 válido, coherentes en tamaño y libres de datos binarios evidentes. Los punteros de archivos Git LFS se reportan como no disponibles en lugar de resolverse.
 
-## Partial results and errors
+## Resultados parciales y errores
 
-A truncated tree, excluded unsafe path, unavailable blob, oversized file, binary file, request limit, or Git LFS pointer is represented in `IngestionResult.limitations`. The result is not converted into an `AnalysisResult` and no findings are generated.
+Un tree truncado, un path inseguro excluido, un blob no disponible, un archivo sobredimensionado, un archivo binario, un límite de requests o un puntero Git LFS se representan en `IngestionResult.limitations`. El resultado no se convierte en un `AnalysisResult` y no se generan findings.
 
-Transport and validation failures use `GitHubIngestionError` categories such as `invalid_repository`, `repository_not_found`, `invalid_ref`, `rate_limited`, `request_timeout`, `invalid_response`, `security_rejected`, and `ingestion_limit_reached`.
+Los fallos de transporte y validación usan categorías de `GitHubIngestionError` como `invalid_repository`, `repository_not_found`, `invalid_ref`, `rate_limited`, `request_timeout`, `invalid_response`, `security_rejected` e `ingestion_limit_reached`.
 
-## Reproducibility and deferred integration
+## Reproducibilidad e integración diferida
 
-The same normalized repository and resolved commit produce the same snapshot identity. File retrieval order, selected contents, and limitations are bounded by the tree response and policy; operational timestamps are metadata rather than identity.
+El mismo repositorio normalizado y commit resuelto producen la misma identidad de snapshot. El orden de obtención de archivos, los contenidos seleccionados y las limitaciones están acotados por la respuesta del tree y la política; los timestamps operativos son metadatos, no identidad.
 
-Phase 3 intentionally does not expose an HTTP endpoint. Fastify application wiring, persistence, analysis jobs, analyzer rules, evidence generation, scoring, and AI context selection belong to later phases. Caching is also deferred; the commit-anchored snapshot identity is sufficient for a future cache key.
+La Fase 3 deliberadamente no expone un endpoint HTTP. El cableado de la aplicación Fastify, la persistencia, los jobs de análisis, las reglas del analyzer, la generación de evidencia, la puntuación y la selección de contexto de AI pertenecen a fases posteriores. La caché también queda diferida; la identidad del snapshot anclada al commit es suficiente para una futura clave de caché.

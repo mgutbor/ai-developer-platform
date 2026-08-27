@@ -1,22 +1,22 @@
-# SQLite persistence
+# Persistencia SQLite
 
-Phase 5 uses a small adapter in `packages/persistence` around Node 24's built-in `node:sqlite` `DatabaseSync` API.
+La Fase 5 utiliza un pequeño adapter en `packages/persistence` alrededor de la API `DatabaseSync` de `node:sqlite`, integrada en Node 24.
 
-## Decision
+## Decisión
 
-The adapter is preferred over an ORM for this MVP because the schema is small, access patterns are known, and avoiding a runtime dependency keeps the deployment surface narrow. The API is synchronous internally but is isolated behind repository interfaces, so a future implementation can migrate to PostgreSQL without changing domain semantics.
+Se prefiere el adapter a un ORM en este MVP porque el esquema es pequeño, los patrones de acceso son conocidos y evitar una dependencia de runtime mantiene reducida la superficie de despliegue. La API es síncrona internamente pero queda aislada tras interfaces de repositorio, por lo que una implementación futura puede migrar a PostgreSQL sin cambiar la semántica del dominio.
 
-## Stored data
+## Datos almacenados
 
-- `analysis_jobs`: normalized request, lifecycle timestamps, resolved commit, versions, error code, and result reference.
-- `analysis_results`: snapshot metadata, versions, timestamps, and the validated serialized report.
+- `analysis_jobs`: request normalizado, timestamps del ciclo de vida, commit resuelto, versiones, código de error y referencia al resultado.
+- `analysis_results`: metadatos del snapshot, versiones, timestamps y el reporte serializado y validado.
 
-The result payload includes facts, metrics, minimized evidence, findings, recommendations, dimension scores, and limitations. It does not include repository blobs or complete source files.
+El payload del resultado incluye facts, metrics, evidencia minimizada, findings, recomendaciones, puntuaciones por dimensión y limitaciones. No incluye blobs del repositorio ni archivos fuente completos.
 
-## Retention
+## Retención
 
-`deleteOlderThan(cutoffIso)` is deterministic and safe to call repeatedly. It is intentionally exposed as an operation rather than scheduled by an external worker.
+`deleteOlderThan(cutoffIso)` es determinista y seguro de invocar repetidamente. Se expone deliberadamente como una operación en lugar de ser programada por un worker externo.
 
 ## Runtime
 
-`node:sqlite` is experimental in the current Node 24 type/runtime surface. The project engine range remains Node 24, and the adapter is the only package that imports it. Tests use `:memory:` and a temporary file-backed database to verify restart behavior.
+`node:sqlite` es experimental en la superficie actual de tipos/runtime de Node 24. El rango de engine del proyecto sigue siendo Node 24, y el adapter es el único paquete que lo importa. Los tests usan `:memory:` y una base de datos temporal respaldada por archivo para verificar el comportamiento tras un reinicio.

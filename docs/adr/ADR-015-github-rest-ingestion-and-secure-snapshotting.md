@@ -1,48 +1,48 @@
-# ADR-015 — GitHub REST ingestion and secure snapshotting
+# ADR-015 — Ingestión GitHub REST y snapshot seguro
 
-- **Status:** Accepted for Phase 3; amended in Phase 14
-- **Date:** 2026-08-26
+- **Estado:** Aceptado para la Fase 3; enmendado en la Fase 14
+- **Fecha:** 2026-08-26
 
-## Context
+## Contexto
 
-The product needs a reproducible source snapshot before analysis. The first slice must support public GitHub repositories without cloning, archive extraction, repository execution, or unbounded downloads. Repository URLs and repository contents are untrusted input, and the adapter must not become a generic server-side request proxy.
+El producto necesita un snapshot de origen reproducible antes del análisis. El primer corte debe soportar repositorios públicos de GitHub sin clonar, sin extraer archivos, sin ejecutar el repositorio ni realizar descargas ilimitadas. Las URLs de repositorios y el contenido del repositorio son entrada no confiable, y el adapter no debe convertirse en un proxy genérico de requests server-side.
 
-## Decision
+## Decisión
 
-Implement `@ai-developer-platform/github` as a framework-independent GitHub REST adapter and bounded ingestion service.
+Implementar `@ai-developer-platform/github` como un adapter REST de GitHub independiente del framework y un servicio de ingestión acotado.
 
-- Accept only public HTTPS `github.com` repository references.
-- Resolve the requested ref through GitHub REST and anchor the snapshot to the returned full commit SHA.
-- Retrieve metadata, the recursive tree, and selected blobs only through known `api.github.com` endpoints.
-- Apply request/body/ingestion limits, classify rate limits and failures, and avoid response-body logging.
+- Aceptar únicamente referencias de repositorio HTTPS públicas de `github.com`.
+- Resolver la ref solicitada mediante la GitHub REST API y anclar el snapshot al commit SHA completo devuelto.
+- Obtener metadatos, el tree recursivo y blobs seleccionados solo mediante endpoints conocidos de `api.github.com`.
+- Aplicar límites de request/cuerpo/ingestión, clasificar rate limits y fallos, y evitar el logging del cuerpo de las respuestas.
 
-## Phase 14 amendment (2026-08-27)
+## Enmienda de la Fase 14 (2026-08-27)
 
-Real-world validation (Phase 13) showed that disabling redirects entirely prevented analyzing valid public repositories that GitHub serves under canonical URLs (`facebook/react` redirects to `/repositories/{id}` and is canonicalized to `react/react`).
+La validación con repositorios reales (Phase 13) mostró que deshabilitar los redirects por completo impedía analizar repositorios públicos válidos que GitHub sirve bajo URLs canónicas (`facebook/react` redirige a `/repositories/{id}` y se canonicaliza a `react/react`).
 
-**Decision:** follow redirects only when every hop is HTTPS, targets a host in an explicit allowlist (`api.github.com` by default), has no port, carries a valid `location` header, and stays within `maxRedirects` (default 3). `fetch` runs with `redirect: 'manual'` so the client decides each hop. After a safe canonical redirect, the repository identity returned by GitHub is authoritative and used for downstream requests; without a redirect, the response must match the requested identity exactly. Redirects to external hosts, HTTP, or ports are rejected as `security_rejected`.
+**Decisión:** seguir redirects solo cuando cada salto es HTTPS, el host destino está en una allowlist explícita (`api.github.com` por defecto), no tiene puerto, lleva una cabecera `location` válida y se mantiene dentro de `maxRedirects` (por defecto 3). `fetch` se ejecuta con `redirect: 'manual'` para que el cliente decida cada salto. Tras un redirect canónico seguro, la identidad del repositorio devuelta por GitHub es autoritativa y se usa para las requests posteriores; sin redirect, la respuesta debe coincidir exactamente con la identidad solicitada. Los redirects a hosts externos, HTTP o puertos se rechazan como `security_rejected`.
 
-**Decision:** file selection is now prioritized deterministically within the same ingestion limits — root repository metadata (package.json, lockfiles, README, tsconfig, angular.json, vite/next config) first, then CI/tooling config, then source files, then tests, then documentation/examples/other. This prevents `.github/`, `.devcontainer/` or `examples/` from consuming the file budget before `package.json`, `README` and tests are considered.
+**Decisión:** la selección de archivos ahora está priorizada de forma determinista dentro de los mismos límites de ingestión — primero los metadatos raíz del repositorio (package.json, lockfiles, README, tsconfig, angular.json, config de vite/next), luego la config de CI/tooling, después los archivos fuente, luego los tests, y por último documentación/ejemplos/otros. Esto evita que `.github/`, `.devcontainer/` o `examples/` consuman el presupuesto de archivos antes de que se consideren `package.json`, `README` y los tests.
 
-**Consequences:** renamed public repositories are analyzable under their canonical identity; the SSRF surface remains unchanged (host allowlist, HTTPS, hop limit); bounded snapshots are more informative without increasing limits.
-- Select only bounded TypeScript/JavaScript/JSON source and relevant metadata files. Exclude dependency/generated/binary/credential paths.
-- Validate repository-relative paths, reject symlinks and submodules, decode only valid bounded base64 UTF-8 blobs, and never execute repository content.
-- Return an in-memory `IngestionResult`; do not expose an HTTP endpoint or add persistence in this phase.
+**Consecuencias:** los repositorios públicos renombrados son analizables bajo su identidad canónica; la superficie SSRF permanece sin cambios (allowlist de hosts, HTTPS, límite de saltos); los snapshots acotados son más informativos sin aumentar los límites.
+- Seleccionar solo fuente TypeScript/JavaScript/JSON acotada y archivos de metadatos relevantes. Excluir rutas de dependencias, generadas, binarias y de credenciales.
+- Validar los paths relativos al repositorio, rechazar symlinks y submódulos, decodificar solo blobs base64 UTF-8 válidos y acotados, y nunca ejecutar el contenido del repositorio.
+- Devolver un `IngestionResult` en memoria; no exponer un endpoint HTTP ni añadir persistencia en esta fase.
 
-The implementation uses native `fetch` with an injectable transport for deterministic tests. No GitHub SDK, clone library, archive library, queue, worker, or cache is introduced.
+La implementación usa `fetch` nativo con un transporte inyectable para tests deterministas. No se introduce ningún SDK de GitHub, librería de clonado, librería de archivos, cola, worker ni caché.
 
-## Consequences
+## Consecuencias
 
-- Snapshot identity is reproducible for a given owner, repository, and commit SHA.
-- Large, truncated, binary, unavailable, or unsupported content produces explicit limitations instead of false completeness.
-- Fastify remains responsible for future HTTP composition, while the domain remains unaware of GitHub.
-- Initial limits are intentionally conservative and require measurement before production recalibration.
-- A future public endpoint must map the ingestion result to an explicit API contract and apply payload/rate limits at the HTTP boundary.
+- La identidad del snapshot es reproducible para un owner, repositorio y commit SHA dados.
+- El contenido grande, truncado, binario, no disponible o no soportado produce limitaciones explícitas en lugar de una falsa completitud.
+- Fastify sigue siendo responsable de la composición HTTP futura, mientras que el dominio permanece ajeno a GitHub.
+- Los límites iniciales son intencionadamente conservadores y requieren medición antes de una recalibración en producción.
+- Un endpoint público futuro debe mapear el resultado de ingestión a un contrato de API explícito y aplicar límites de payload/rate en la frontera HTTP.
 
-## Alternatives considered
+## Alternativas consideradas
 
-- **GitHub GraphQL:** deferred because the Phase 3 operations are already expressible through a small REST client.
-- **`git clone`:** rejected for the first slice because it expands filesystem, hooks, submodules, LFS, and volume risks.
-- **GitHub archives:** rejected because archive extraction adds zip/archive bomb and path handling complexity.
-- **Octokit or another SDK:** rejected because native `fetch` is sufficient for the small operation surface and keeps transport behavior explicit.
-- **Fastify endpoint in this phase:** deferred because the adapter and security behavior can be tested without prematurely defining ingestion/job API semantics.
+- **GitHub GraphQL:** diferido porque las operaciones de la Fase 3 ya son expresables con un cliente REST pequeño.
+- **`git clone`:** rechazado para el primer corte porque amplía los riesgos de filesystem, hooks, submódulos, LFS y volumen.
+- **Archivos de GitHub:** rechazado porque la extracción añade complejidad de manejo de zip/archive bombs y paths.
+- **Octokit u otro SDK:** rechazado porque `fetch` nativo es suficiente para la pequeña superficie de operaciones y mantiene el comportamiento del transporte explícito.
+- **Endpoint Fastify en esta fase:** diferido porque el adapter y el comportamiento de seguridad pueden testearse sin definir prematuramente la semántica de la API de ingestión/jobs.
