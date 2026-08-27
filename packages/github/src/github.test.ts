@@ -12,6 +12,9 @@ import {
   type GitHubRepository,
   type GitHubTreeResponse,
 } from './index.js';
+import { selectEntries } from './ingestion.js';
+import { DEFAULT_INGESTION_LIMITS } from './policy.js';
+import type { GitHubTreeEntry, IngestionLimits } from './types.js';
 
 const commitSha = 'abcdef1234567890abcdef1234567890abcdef12';
 const repository: GitHubRepository = {
@@ -40,6 +43,8 @@ class FixtureClient implements GitHubClient {
     { sha: string; size: number; encoding: string; content: string }
   >();
   tree: GitHubTreeResponse = { sha: commitSha, truncated: false, entries: [] };
+  treePaths = new Map<string, GitHubTreeResponse>();
+  treeCalls: string[] = [];
   refCalls = 0;
 
   async getRepository(): Promise<GitHubRepository> {
@@ -51,8 +56,13 @@ class FixtureClient implements GitHubClient {
     return commitSha;
   }
 
-  async getTree(): Promise<GitHubTreeResponse> {
-    return this.tree;
+  async resolveTree(): Promise<string> {
+    return this.treePaths.get(`${commitSha}:`)?.sha ?? commitSha;
+  }
+
+  async getTree(_owner: string, _repository: string, treeSha: string): Promise<GitHubTreeResponse> {
+    this.treeCalls.push(treeSha);
+    return this.treePaths.get(`${treeSha}:`) ?? this.tree;
   }
 
   async getBlob(_owner: string, _repository: string, sha: string) {
@@ -146,6 +156,9 @@ describe('GitHubRestClient', () => {
         if (request.url.includes('/commits/main')) {
           return jsonResponse({ sha: commitSha });
         }
+        if (request.url.includes('/commits/')) {
+          return jsonResponse({ tree: { sha: commitSha } });
+        }
         if (request.url.includes('/git/trees/')) {
           return jsonResponse({ sha: commitSha, truncated: false, tree: [] });
         }
@@ -155,14 +168,16 @@ describe('GitHubRestClient', () => {
 
     await client.getRepository('octocat', 'hello-world');
     await client.resolveRef('octocat', 'hello-world', 'main');
+    await client.resolveTree('octocat', 'hello-world', commitSha);
     await client.getTree('octocat', 'hello-world', commitSha);
 
-    assert.equal(requests.length, 3);
+    assert.equal(requests.length, 4);
     assert.equal(new URL(requests[0]!.url).hostname, 'api.github.com');
     assert.equal(requests[0]!.redirect, 'manual');
     assert.equal(requests[0]!.headers.get('accept'), 'application/vnd.github+json');
     assert.equal(requests[0]!.headers.get('x-github-api-version'), '2022-11-28');
     assert.equal(requests[0]!.headers.get('authorization'), 'Bearer secret-token');
+    assert.equal(requests[3]!.url.endsWith(`/git/trees/${commitSha}`), true);
   });
 
   it('classifies private repositories and rate limits without exposing response content', async () => {
@@ -445,6 +460,48 @@ describe('file policy and content decoding', () => {
 });
 
 describe('bounded repository ingestion', () => {
+  it('traverses nested trees using each subtree SHA and accumulates paths', async () => {
+    const client = new FixtureClient();
+    const rootTreeSha = '1111111111111111111111111111111111111111';
+    const srcTreeSha = '2222222222222222222222222222222222222222';
+    const nestedTreeSha = '3333333333333333333333333333333333333333';
+    client.tree = {
+      sha: commitSha,
+      truncated: true,
+      entries: [],
+    };
+    client.treePaths.set(`${commitSha}:`, { sha: rootTreeSha, truncated: false, entries: [] });
+    client.treePaths.set(`${rootTreeSha}:`, {
+      sha: rootTreeSha,
+      truncated: false,
+      entries: [{ path: 'src', mode: '040000', type: 'tree', sha: srcTreeSha }],
+    });
+    client.treePaths.set(`${srcTreeSha}:`, {
+      sha: srcTreeSha,
+      truncated: false,
+      entries: [{ path: 'nested', mode: '040000', type: 'tree', sha: nestedTreeSha }],
+    });
+    client.treePaths.set(`${nestedTreeSha}:`, {
+      sha: nestedTreeSha,
+      truncated: false,
+      entries: [{ path: 'app.ts', mode: '100644', type: 'blob', sha: 'source', size: 5 }],
+    });
+    client.blobs.set('source', {
+      sha: 'source',
+      size: 5,
+      encoding: 'base64',
+      content: base64('hello'),
+    });
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client);
+    assert.deepEqual(
+      result.files.map((file) => file.path),
+      ['src/nested/app.ts'],
+    );
+    assert.deepEqual(client.treeCalls, [rootTreeSha, srcTreeSha, nestedTreeSha]);
+    assert.ok(result.files.length > 0);
+  });
+
   it('creates a commit-anchored snapshot and retrieves only bounded text files', async () => {
     const client = new FixtureClient();
     client.tree = {
@@ -675,6 +732,7 @@ describe('bounded repository ingestion', () => {
     const client: GitHubClient = {
       getRepository: () => new Promise<GitHubRepository>(() => undefined),
       resolveRef: () => new Promise<string>(() => undefined),
+      resolveTree: () => new Promise<string>(() => undefined),
       getTree: () => new Promise<GitHubTreeResponse>(() => undefined),
       getBlob: () => new Promise(() => undefined),
     };
@@ -711,5 +769,293 @@ describe('bounded repository ingestion', () => {
       },
     );
     assert.equal(client.refCalls, 2);
+  });
+});
+
+describe('semantics-preserving bounded traversal', () => {
+  const srcSha = '2222222222222222222222222222222222222222';
+  const zzzSha = '3333333333333333333333333333333333333333';
+  const githubSha = '4444444444444444444444444444444444444444';
+  const workflowsSha = '5555555555555555555555555555555555555555';
+  const nodeModulesSha = '6666666666666666666666666666666666666666';
+
+  function dirEntry(path: string, sha: string): GitHubTreeEntry {
+    return { path, mode: '040000', type: 'tree', sha };
+  }
+
+  function blobEntry(path: string, sha: string, size = 5): GitHubTreeEntry {
+    return { path, mode: '100644', type: 'blob', sha, size };
+  }
+
+  function registerBlobs(
+    client: FixtureClient,
+    contents: readonly (readonly [string, string])[],
+  ): void {
+    for (const [sha, content] of contents) {
+      client.blobs.set(sha, {
+        sha,
+        size: content.length,
+        encoding: 'base64',
+        content: base64(content),
+      });
+    }
+  }
+
+  it('terminates early only when pending subtrees provably cannot change the window', async () => {
+    const client = new FixtureClient();
+    client.tree = {
+      sha: commitSha,
+      truncated: false,
+      entries: [blobEntry('package.json', 'pkg'), dirEntry('src', srcSha), dirEntry('zzz', zzzSha)],
+    };
+    client.treePaths.set(`${srcSha}:`, {
+      sha: srcSha,
+      truncated: false,
+      entries: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map((letter) =>
+        blobEntry(`${letter}.ts`, `src${letter}`),
+      ),
+    });
+    client.treePaths.set(`${zzzSha}:`, {
+      sha: zzzSha,
+      truncated: false,
+      entries: [blobEntry('data.bin', 'bin', 10)],
+    });
+    registerBlobs(client, [
+      ['pkg', '{}\n'],
+      ...['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map(
+        (letter) => [`src${letter}`, `${letter}();\n`] as const,
+      ),
+    ]);
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 10 },
+    });
+    const expectedPaths = [
+      'package.json',
+      'src/a.ts',
+      'src/b.ts',
+      'src/c.ts',
+      'src/d.ts',
+      'src/e.ts',
+      'src/f.ts',
+      'src/g.ts',
+      'src/h.ts',
+      'src/i.ts',
+    ];
+    assert.deepEqual(
+      result.files.map((file) => file.path),
+      expectedPaths,
+    );
+    // The provably irrelevant zzz subtree was never fetched.
+    assert.deepEqual(client.treeCalls, [commitSha, srcSha]);
+    assert.ok(result.limitations.includes('tree_segmented_early_termination'));
+    // The optimized window equals the reference complete-traversal selection.
+    const fullEntries: GitHubTreeEntry[] = [
+      blobEntry('package.json', 'pkg'),
+      ...['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map((letter) =>
+        blobEntry(`src/${letter}.ts`, `src${letter}`),
+      ),
+    ];
+    const reference = selectEntries(
+      fullEntries,
+      { ...DEFAULT_INGESTION_LIMITS, maxFileCount: 10 } as IngestionLimits,
+      DEFAULT_FILE_SELECTION_POLICY,
+      [],
+    );
+    assert.deepEqual(
+      reference.slice(0, 10).map((entry) => entry.path),
+      expectedPaths,
+    );
+  });
+
+  it('keeps traversing while a pending subtree could still displace the window', async () => {
+    const client = new FixtureClient();
+    client.tree = {
+      sha: commitSha,
+      truncated: false,
+      entries: [blobEntry('package.json', 'pkg'), dirEntry('src', srcSha), dirEntry('zzz', zzzSha)],
+    };
+    client.treePaths.set(`${srcSha}:`, {
+      sha: srcSha,
+      truncated: false,
+      entries: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((letter) =>
+        blobEntry(`${letter}.ts`, `src${letter}`),
+      ),
+    });
+    client.treePaths.set(`${zzzSha}:`, {
+      sha: zzzSha,
+      truncated: false,
+      entries: [blobEntry('a.ts', 'zzza')],
+    });
+    registerBlobs(client, [
+      ['pkg', '{}\n'],
+      ...['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(
+        (letter) => [`src${letter}`, `${letter}();\n`] as const,
+      ),
+      ['zzza', 'z();\n'],
+    ]);
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 10 },
+    });
+    const paths = result.files.map((file) => file.path);
+    assert.equal(paths.includes('zzz/a.ts'), true);
+    assert.equal(paths.length, 10);
+    assert.deepEqual(client.treeCalls, [commitSha, srcSha, zzzSha]);
+    assert.equal(result.limitations.includes('tree_segmented_early_termination'), false);
+  });
+
+  it('does not stop at maxFileCount candidates when a tier-2 subtree is pending', async () => {
+    const client = new FixtureClient();
+    client.tree = {
+      sha: commitSha,
+      truncated: false,
+      entries: [
+        blobEntry('package.json', 'pkg'),
+        blobEntry('README.md', 'readme'),
+        blobEntry('tsconfig.json', 'tsconfig'),
+        dirEntry('src', srcSha),
+        dirEntry('.github', githubSha),
+      ],
+    };
+    client.treePaths.set(`${githubSha}:`, {
+      sha: githubSha,
+      truncated: false,
+      entries: [dirEntry('workflows', workflowsSha)],
+    });
+    client.treePaths.set(`${workflowsSha}:`, {
+      sha: workflowsSha,
+      truncated: false,
+      entries: [blobEntry('ci.yml', 'ci')],
+    });
+    client.treePaths.set(`${srcSha}:`, {
+      sha: srcSha,
+      truncated: false,
+      entries: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map((letter) =>
+        blobEntry(`${letter}.ts`, `src${letter}`),
+      ),
+    });
+    registerBlobs(client, [
+      ['pkg', '{}\n'],
+      ['readme', '# hi\n'],
+      ['tsconfig', '{}\n'],
+      ['ci', 'jobs:\n'],
+      ...['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map(
+        (letter) => [`src${letter}`, `${letter}();\n`] as const,
+      ),
+    ]);
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 10 },
+    });
+    const paths = result.files.map((file) => file.path);
+    assert.deepEqual(paths, [
+      'package.json',
+      'README.md',
+      'tsconfig.json',
+      '.github/workflows/ci.yml',
+      'src/a.ts',
+      'src/b.ts',
+      'src/c.ts',
+      'src/d.ts',
+      'src/e.ts',
+      'src/f.ts',
+    ]);
+    // A naive stop at the first 10 candidates would have missed the workflow.
+    assert.equal(paths.includes('src/g.ts'), false);
+    assert.deepEqual(client.treeCalls, [commitSha, githubSha, workflowsSha, srcSha]);
+  });
+
+  it('never terminates early on truncated data and never traverses excluded subtrees', async () => {
+    const client = new FixtureClient();
+    client.tree = {
+      sha: commitSha,
+      truncated: true,
+      entries: [
+        blobEntry('package.json', 'pkg'),
+        dirEntry('src', srcSha),
+        dirEntry('node_modules', nodeModulesSha),
+        dirEntry('zzz', zzzSha),
+      ],
+    };
+    client.treePaths.set(`${srcSha}:`, {
+      sha: srcSha,
+      truncated: false,
+      entries: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map((letter) =>
+        blobEntry(`${letter}.ts`, `src${letter}`),
+      ),
+    });
+    client.treePaths.set(`${nodeModulesSha}:`, {
+      sha: nodeModulesSha,
+      truncated: false,
+      entries: [blobEntry('x/index.js', 'dep')],
+    });
+    client.treePaths.set(`${zzzSha}:`, {
+      sha: zzzSha,
+      truncated: false,
+      entries: [blobEntry('data.bin', 'bin', 10)],
+    });
+    registerBlobs(client, [
+      ['pkg', '{}\n'],
+      ...['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map(
+        (letter) => [`src${letter}`, `${letter}();\n`] as const,
+      ),
+    ]);
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 10 },
+    });
+    assert.deepEqual(
+      result.files.map((file) => file.path),
+      [
+        'package.json',
+        'src/a.ts',
+        'src/b.ts',
+        'src/c.ts',
+        'src/d.ts',
+        'src/e.ts',
+        'src/f.ts',
+        'src/g.ts',
+        'src/h.ts',
+        'src/i.ts',
+      ],
+    );
+    assert.ok(result.limitations.includes('tree_truncated'));
+    assert.equal(result.limitations.includes('tree_segmented_early_termination'), false);
+    assert.deepEqual(client.treeCalls, [commitSha, srcSha, zzzSha]);
+  });
+
+  it('honors a single-file window without fetching lower-tier subtrees', async () => {
+    const client = new FixtureClient();
+    client.tree = {
+      sha: commitSha,
+      truncated: false,
+      entries: [
+        blobEntry('package.json', 'pkg'),
+        blobEntry('README.md', 'readme'),
+        dirEntry('src', srcSha),
+      ],
+    };
+    client.treePaths.set(`${srcSha}:`, {
+      sha: srcSha,
+      truncated: false,
+      entries: [blobEntry('src/a.ts', 'srca'), blobEntry('src/b.ts', 'srcb')],
+    });
+    registerBlobs(client, [
+      ['pkg', '{}\n'],
+      ['readme', '# hi\n'],
+      ['srca', 'a();\n'],
+      ['srcb', 'b();\n'],
+    ]);
+
+    const result = await ingestRepository('https://github.com/octocat/hello-world', client, {
+      limits: { maxFileCount: 1 },
+    });
+    assert.deepEqual(
+      result.files.map((file) => file.path),
+      ['package.json'],
+    );
+    assert.deepEqual(client.treeCalls, [commitSha]);
+    assert.ok(result.limitations.includes('tree_segmented_early_termination'));
   });
 });

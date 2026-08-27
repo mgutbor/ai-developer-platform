@@ -16,10 +16,16 @@ export interface GitHubClient {
     ref: string,
     options?: GitHubClientRequestOptions,
   ): Promise<string>;
-  getTree(
+  resolveTree?(
     owner: string,
     repository: string,
     commitSha: string,
+    options?: GitHubClientRequestOptions,
+  ): Promise<string>;
+  getTree(
+    owner: string,
+    repository: string,
+    treeSha: string,
     options?: GitHubClientRequestOptions,
   ): Promise<GitHubTreeResponse>;
   getBlob(

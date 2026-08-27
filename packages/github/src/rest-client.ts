@@ -391,14 +391,35 @@ export class GitHubRestClient implements GitHubClient {
     return validateRefResponse(payload);
   }
 
-  async getTree(
+  async resolveTree(
     owner: string,
     repository: string,
     commitSha: string,
     options: { readonly signal?: AbortSignal } = {},
+  ): Promise<string> {
+    const { payload } = await this.request(
+      `/repos/${encodePathPart(owner)}/${encodePathPart(repository)}/git/commits/${encodePathPart(commitSha)}`,
+      'ref',
+      options.signal,
+    );
+    if (
+      !isRecord(payload) ||
+      !isRecord(payload['tree']) ||
+      !isRevisionSha(payload['tree']['sha'])
+    ) {
+      throw new GitHubIngestionError('invalid_response', 'GitHub commit response is invalid');
+    }
+    return payload['tree']['sha'].toLowerCase();
+  }
+
+  async getTree(
+    owner: string,
+    repository: string,
+    treeSha: string,
+    options: { readonly signal?: AbortSignal } = {},
   ): Promise<GitHubTreeResponse> {
     const { payload } = await this.request(
-      `/repos/${encodePathPart(owner)}/${encodePathPart(repository)}/git/trees/${encodePathPart(commitSha)}?recursive=1`,
+      `/repos/${encodePathPart(owner)}/${encodePathPart(repository)}/git/trees/${encodePathPart(treeSha)}`,
       'tree',
       options.signal,
     );
