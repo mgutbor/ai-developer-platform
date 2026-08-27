@@ -296,3 +296,25 @@ siguiente iteración debe decidir si cierra la brecha de valor o acepta el rol d
 *Auditoría conceptual — sin cambios de código ni contratos. Evidencia: código de
 `packages/analyzer`, `packages/scoring`, `packages/domain`, `apps/api`, `apps/web`; reportes reales
 de la validación anónima; documentación de Phases 21–25.*
+
+## 16. Addendum — Phase 26 (Evidence & Trust)
+
+La auditoría anterior identificó tres problemas: evidence no verificable (solo hash interno),
+absence-based ambiguo y falsa precisión (`confidence: high` con `coverage` parcial). Phase 26 los
+abordó **sin ampliar el alcance del analyzer**:
+
+- Cada finding declara ahora su semántica de evidencia: `verified` / `absence_based` /
+  `not_inspected` / `not_verified`. La ausencia detectada se expresa como "detectado en el scope
+  inspeccionado", no como "no existe en el repositorio"; la falta de información se expresa como
+  "no evaluado", no como ausencia.
+- El reporte expone el **scope de inspección** (`inspectedScope`: archivos inspeccionados, entradas
+  de árbol vistas, bytes) y el frontend lo presenta como "partial snapshot, not a complete
+  repository analysis".
+- El frontend distingue visualmente los cuatro estados y deja de presentar el hash interno como
+  evidencia principal.
+
+Impacto en las puntuaciones de la auditoría (ver `docs/phase-26-evidence-and-trust.md`):
+verificabilidad 1→3, claridad del finding 2→4, comprensión de absence-based 1→4, comprensión de
+coverage 2→4. La verificabilidad de contenido sigue limitada (3/5) por decisión deliberada de
+seguridad: no se exponen excerpts. El veredicto de Phase 26 es **PASS WITH LIMITATIONS**; esta
+auditoría ya no refleja el estado del contrato de evidencia y debe leerse con este addendum.*

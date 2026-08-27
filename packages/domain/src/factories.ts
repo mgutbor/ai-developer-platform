@@ -13,6 +13,8 @@ import type {
   FactType,
   FactValue,
   Finding,
+  FindingEvidenceStatus,
+  InspectedScope,
   Metadata,
   Metric,
   ObservationStatus,
@@ -87,6 +89,7 @@ export interface CreateFindingInput {
   readonly ruleId?: string | null;
   readonly ruleVersion?: string | null;
   readonly provenance: Provenance;
+  readonly evidenceStatus?: FindingEvidenceStatus;
 }
 
 export interface CreateRecommendationInput {
@@ -122,6 +125,7 @@ export interface CreateAnalysisResultInput {
   readonly analyzerVersion: string;
   readonly limitations: readonly string[];
   readonly createdAt?: string;
+  readonly inspectedScope?: InspectedScope;
 }
 
 const ANALYSIS_DIMENSIONS: readonly AnalysisDimension[] = [
@@ -305,6 +309,24 @@ function validateRange(value: SourceRange): SourceRange {
     fail('range.end must not precede range.start');
   }
   return immutable({ end, start });
+}
+
+function validateInspectedScope(value: InspectedScope): InspectedScope {
+  if (
+    !Number.isInteger(value.fileCount) ||
+    value.fileCount < 0 ||
+    !Number.isInteger(value.treeEntriesSeen) ||
+    value.treeEntriesSeen < 0 ||
+    !Number.isFinite(value.totalBytes) ||
+    value.totalBytes < 0
+  ) {
+    fail('inspectedScope must contain non-negative fileCount, treeEntriesSeen, and totalBytes');
+  }
+  return immutable({
+    fileCount: value.fileCount,
+    totalBytes: value.totalBytes,
+    treeEntriesSeen: value.treeEntriesSeen,
+  });
 }
 
 function validateLocation(value: EvidenceLocation | null): EvidenceLocation | null {
@@ -519,11 +541,21 @@ export function createFinding(input: CreateFindingInput): Finding {
     fail('finding provenance must reference a snapshot');
   }
 
+  const evidenceStatus =
+    input.evidenceStatus === undefined
+      ? undefined
+      : enumValue(
+          input.evidenceStatus,
+          ['verified', 'absence_based', 'not_inspected', 'not_verified'],
+          'finding.evidenceStatus',
+        );
+
   return immutable({
     category,
     confidence,
     description,
     evidenceIds,
+    ...(evidenceStatus === undefined ? {} : { evidenceStatus }),
     id,
     impact,
     provenance,
@@ -629,6 +661,8 @@ export function createAnalysisResult(input: CreateAnalysisResultInput): Analysis
     input.createdAt === undefined
       ? new Date().toISOString()
       : validateIsoDate(input.createdAt, 'createdAt');
+  const inspectedScope =
+    input.inspectedScope === undefined ? undefined : validateInspectedScope(input.inspectedScope);
   const snapshot = createRepositorySnapshot({
     owner: input.snapshot.owner,
     name: input.snapshot.name,
@@ -731,6 +765,7 @@ export function createAnalysisResult(input: CreateAnalysisResultInput): Analysis
     facts,
     findings,
     id,
+    ...(inspectedScope === undefined ? {} : { inspectedScope }),
     limitations,
     metrics,
     recommendations,

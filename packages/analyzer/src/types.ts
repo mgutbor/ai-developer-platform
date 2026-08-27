@@ -1,4 +1,4 @@
-import type { RepositorySnapshot } from '@ai-developer-platform/domain';
+import type { InspectedScope, RepositorySnapshot } from '@ai-developer-platform/domain';
 
 export interface AnalyzerFile {
   readonly path: string;
@@ -12,6 +12,8 @@ export interface AnalyzerInput {
   readonly snapshot: RepositorySnapshot;
   readonly files: readonly AnalyzerFile[];
   readonly limitations?: readonly string[];
+  /** What portion of the repository was actually inspected (from ingestion). */
+  readonly inspectedScope?: InspectedScope;
 }
 
 export interface AnalyzerOptions {

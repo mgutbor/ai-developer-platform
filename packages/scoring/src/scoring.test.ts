@@ -7,6 +7,21 @@ import {
 } from '@ai-developer-platform/analyzer';
 import { scoreAnalysis } from './index.js';
 
+test('preserves inspected scope through scoring', () => {
+  const fixture = cleanTypeScriptFixture();
+  const analyzed = analyze({
+    ...fixture,
+    inspectedScope: { fileCount: 4, treeEntriesSeen: 40, totalBytes: 12000 },
+  });
+  const result = scoreAnalysis(analyzed);
+
+  assert.deepEqual(result.inspectedScope, {
+    fileCount: 4,
+    treeEntriesSeen: 40,
+    totalBytes: 12000,
+  });
+});
+
 test('calculates reproducible nullable dimension scores without a global score', () => {
   const analyzed = analyze(cleanTypeScriptFixture());
   const first = scoreAnalysis(analyzed);

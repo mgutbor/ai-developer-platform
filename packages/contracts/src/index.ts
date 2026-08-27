@@ -57,6 +57,8 @@ export type ApiFactType =
   | 'security'
   | 'accessibility';
 export type ApiEvidenceKind = 'file' | 'config' | 'metric' | 'metadata' | 'dependency' | 'workflow';
+export type ApiFindingEvidenceStatus =
+  'verified' | 'absence_based' | 'not_inspected' | 'not_verified';
 export type ApiConfidenceBand = 'low' | 'medium' | 'high';
 export type ApiCoverage = 'complete' | 'partial' | 'insufficient';
 export type ApiSeverity = 'info' | 'low' | 'medium' | 'high' | 'critical';
@@ -135,6 +137,12 @@ export interface ApiEvidence {
   readonly sourceId: string;
 }
 
+export interface ApiInspectedScope {
+  readonly fileCount: number;
+  readonly treeEntriesSeen: number;
+  readonly totalBytes: number;
+}
+
 export interface ApiFinding {
   readonly id: string;
   readonly category: ApiAnalysisDimension;
@@ -149,6 +157,8 @@ export interface ApiFinding {
   readonly ruleId: string | null;
   readonly ruleVersion: string | null;
   readonly provenance: ApiProvenance;
+  /** Semantic nature of the finding's evidence (verified / absence-based / not inspected / not verified). */
+  readonly evidenceStatus?: ApiFindingEvidenceStatus;
 }
 
 export interface ApiRecommendation {
@@ -218,4 +228,6 @@ export interface AnalysisResultResponse {
   readonly analyzerVersion: string;
   readonly limitations: readonly string[];
   readonly createdAt: string;
+  /** What portion of the repository was actually inspected. Optional for backward compatibility. */
+  readonly inspectedScope?: ApiInspectedScope;
 }

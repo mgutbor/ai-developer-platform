@@ -259,6 +259,46 @@ test('does not persist sensitive source content in evidence', () => {
   assert.ok(result.limitations.includes('malformed_package_json'));
 });
 
+test('classifies finding evidence as verified, absence-based, not inspected, or not verified', () => {
+  const result = analyze(poorTypeScriptFixture());
+  const statusByRule = new Map(
+    result.findings.map((finding) => [finding.ruleId, finding.evidenceStatus]),
+  );
+  // Absence-based rules must never claim verified evidence.
+  assert.equal(statusByRule.get('AN-TEST-001'), 'absence_based');
+  assert.equal(statusByRule.get('AN-TEST-002'), 'absence_based');
+  assert.equal(statusByRule.get('AN-TOOL-001'), 'absence_based');
+  assert.equal(statusByRule.get('AN-DOC-001'), 'absence_based');
+  // Heuristic resolution is explicitly not verified.
+  assert.equal(statusByRule.get('AN-ARCH-002'), 'not_verified');
+  // Not enough information to claim absence (no tsconfig in snapshot).
+  assert.equal(statusByRule.get('AN-CQ-002'), 'not_inspected');
+  // Presence-based findings expose verified evidence.
+  assert.equal(statusByRule.get('AN-CQ-005'), 'verified');
+  for (const finding of result.findings) {
+    assert.ok(
+      finding.evidenceStatus === 'verified' ||
+        finding.evidenceStatus === 'absence_based' ||
+        finding.evidenceStatus === 'not_inspected' ||
+        finding.evidenceStatus === 'not_verified',
+      `finding ${finding.ruleId} has a valid evidenceStatus`,
+    );
+  }
+});
+
+test('propagates the inspected scope from ingestion to the result', () => {
+  const input = cleanTypeScriptFixture();
+  const result = analyze({
+    ...input,
+    inspectedScope: { fileCount: 3, treeEntriesSeen: 40, totalBytes: 12000 },
+  });
+  assert.deepEqual(result.inspectedScope, {
+    fileCount: 3,
+    treeEntriesSeen: 40,
+    totalBytes: 12000,
+  });
+});
+
 test('is deterministic for identical snapshot and analyzer versions', () => {
   const input = cleanTypeScriptFixture();
   const first = analyze(input);

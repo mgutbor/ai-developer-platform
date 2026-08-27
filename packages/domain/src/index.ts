@@ -31,6 +31,8 @@ export type {
   FactType,
   FactValue,
   Finding,
+  FindingEvidenceStatus,
+  InspectedScope,
   Metadata,
   MetadataValue,
   Metric,

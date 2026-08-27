@@ -363,7 +363,12 @@ describe('Finding and Recommendation', () => {
       provenance,
     });
     assert.equal(finding.severity, 'medium');
+    assert.equal(finding.evidenceStatus, undefined);
 
+    assertDomainError(
+      () => createFinding({ ...finding, evidenceStatus: 'invalid' as never }),
+      'invalid evidenceStatus',
+    );
     assertDomainError(
       () => createFinding({ ...finding, severity: 'invalid' as never }),
       'invalid severity',
@@ -376,6 +381,12 @@ describe('Finding and Recommendation', () => {
       () => createFinding({ ...finding, provenance: { ...provenance, source: 'ai' } }),
       'source mismatch',
     );
+
+    const absenceFinding = createFinding({
+      ...finding,
+      evidenceStatus: 'absence_based',
+    });
+    assert.equal(absenceFinding.evidenceStatus, 'absence_based');
 
     const recommendation = createRecommendation({
       id: 'recommendation:valid',

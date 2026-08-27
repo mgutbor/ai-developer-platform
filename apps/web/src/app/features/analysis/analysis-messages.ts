@@ -51,6 +51,46 @@ export function coverageMessage(coverage: string | null | undefined): string {
   }
 }
 
+/** Map a finding evidence status to a short, honest user-facing label. */
+export function evidenceStatusLabel(status: string | null | undefined): {
+  readonly label: string;
+  readonly explanation: string;
+} {
+  switch (status) {
+    case 'verified':
+      return {
+        label: 'Verified evidence',
+        explanation: 'Concrete evidence was observed for this finding.',
+      };
+    case 'absence_based':
+      return {
+        label: 'Based on inspected scope',
+        explanation:
+          'This finding reports that something was not detected within the files actually inspected. ' +
+          'It does not prove the element is absent from the whole repository.',
+      };
+    case 'not_inspected':
+      return {
+        label: 'Not enough information',
+        explanation:
+          'The files relevant to this finding were not included in the acquired snapshot, so this ' +
+          'finding cannot confirm the condition.',
+      };
+    case 'not_verified':
+      return {
+        label: 'Not verified',
+        explanation:
+          'This finding is based on an inspection that could not be verified with the available ' +
+          'data. It should not be read as proven.',
+      };
+    default:
+      return {
+        label: 'Evidence unknown',
+        explanation: 'The evidence status of this finding is not known.',
+      };
+  }
+}
+
 /** Map a single internal limitation code to a user-facing message (friendly first). */
 export function limitationMessage(limitation: string): {
   readonly message: string;

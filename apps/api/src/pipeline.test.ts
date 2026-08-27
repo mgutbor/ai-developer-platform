@@ -47,7 +47,21 @@ describe('analysis pipeline API', () => {
       repositoryUrl: 'https://github.com/fixture-owner/clean-typescript',
     };
     const application = new AnalysisApplication({
-      analyze,
+      analyze: (ingestion) =>
+        analyze({
+          files: ingestion.files,
+          ...(ingestion.metadata === undefined
+            ? {}
+            : {
+                inspectedScope: {
+                  fileCount: ingestion.metadata.selectedFileCount,
+                  totalBytes: ingestion.metadata.totalBytes,
+                  treeEntriesSeen: ingestion.metadata.treeEntriesSeen,
+                },
+              }),
+          limitations: ingestion.limitations,
+          snapshot: ingestion.snapshot,
+        }),
       createId: () => 'fixed-id',
       ingest: async () => ({
         files: fixture.files,
@@ -93,10 +107,16 @@ describe('analysis pipeline API', () => {
       findings: readonly unknown[];
       metrics: readonly unknown[];
       dimensionScores: readonly unknown[];
+      inspectedScope?: { fileCount: number; treeEntriesSeen: number; totalBytes: number };
     };
     assert.equal(reportBody.findings.length, 0);
     assert.equal(reportBody.metrics.length > 0, true);
     assert.equal(reportBody.dimensionScores.length, 6);
+    assert.deepEqual(reportBody.inspectedScope, {
+      fileCount: fixture.files.length,
+      totalBytes: fixture.files.reduce((total, file) => total + file.size, 0),
+      treeEntriesSeen: fixture.files.length,
+    });
 
     const facts = await app.inject({ method: 'GET', url: `/analyses/${createdBody.id}/facts` });
     assert.equal(facts.statusCode, 200);
@@ -110,7 +130,6 @@ describe('analysis pipeline API', () => {
     assert.equal(duplicate.statusCode, 200);
     assert.equal(duplicate.json().id, createdBody.id);
   });
-
   it('marks GitHub failures and runner timeouts as failed jobs', async () => {
     persistence = new SqlitePersistence();
     const application = new AnalysisApplication({

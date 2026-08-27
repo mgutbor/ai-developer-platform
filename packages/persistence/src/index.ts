@@ -342,6 +342,7 @@ export class SqlitePersistence implements PersistenceStore {
       recommendations: payload.recommendations,
       ruleSetVersion: payload.ruleSetVersion,
       snapshot: payload.snapshot,
+      ...(payload.inspectedScope === undefined ? {} : { inspectedScope: payload.inspectedScope }),
     });
   }
 

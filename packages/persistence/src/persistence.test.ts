@@ -22,6 +22,27 @@ function queuedJob(createdAt = '2026-08-26T10:00:00.000Z') {
   });
 }
 
+test('preserves inspected scope through persistence round-trip', () => {
+  const store = new SqlitePersistence();
+  try {
+    const result = scoreAnalysis(
+      analyze({
+        ...cleanTypeScriptFixture(),
+        inspectedScope: { fileCount: 4, treeEntriesSeen: 40, totalBytes: 12000 },
+      }),
+    );
+    store.saveResult(result);
+
+    assert.deepEqual(store.findResultById(result.id)?.inspectedScope, {
+      fileCount: 4,
+      treeEntriesSeen: 40,
+      totalBytes: 12000,
+    });
+  } finally {
+    store.close();
+  }
+});
+
 test('persists and rehydrates jobs and complete analysis results', () => {
   const store = new SqlitePersistence();
   try {

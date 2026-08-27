@@ -52,7 +52,21 @@ function applicationFrom(
     ...(token === undefined || token.trim().length === 0 ? {} : { token: token.trim() }),
   });
   return new AnalysisApplication({
-    analyze,
+    analyze: (ingestion) =>
+      analyze({
+        files: ingestion.files,
+        ...(ingestion.metadata === undefined
+          ? {}
+          : {
+              inspectedScope: {
+                fileCount: ingestion.metadata.selectedFileCount,
+                totalBytes: ingestion.metadata.totalBytes,
+                treeEntriesSeen: ingestion.metadata.treeEntriesSeen,
+              },
+            }),
+        limitations: ingestion.limitations,
+        snapshot: ingestion.snapshot,
+      }),
     ingest: (repositoryUrl, ref) =>
       ingestRepository(repositoryUrl, client, ref === undefined ? {} : { ref }),
     persistence,

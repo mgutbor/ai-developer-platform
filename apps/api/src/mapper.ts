@@ -99,6 +99,7 @@ function mapFinding(finding: Finding): ApiFinding {
     evidenceIds: [...finding.evidenceIds],
     recommendationIds: [...finding.recommendationIds],
     provenance: mapProvenance(finding.provenance),
+    ...(finding.evidenceStatus === undefined ? {} : { evidenceStatus: finding.evidenceStatus }),
   };
 }
 
@@ -143,6 +144,15 @@ export function mapAnalysisResult(result: AnalysisResult): AnalysisResultRespons
     ruleSetVersion: result.ruleSetVersion,
     snapshot: mapSnapshot(result.snapshot),
     coverage: result.coverage,
+    ...(result.inspectedScope === undefined
+      ? {}
+      : {
+          inspectedScope: {
+            fileCount: result.inspectedScope.fileCount,
+            totalBytes: result.inspectedScope.totalBytes,
+            treeEntriesSeen: result.inspectedScope.treeEntriesSeen,
+          },
+        }),
   };
 }
 

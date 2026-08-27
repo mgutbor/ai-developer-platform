@@ -12,6 +12,7 @@ import {
   type Coverage,
   type Evidence,
   type Fact,
+  type FindingEvidenceStatus,
   type Metric,
   type Recommendation,
   type Finding,
@@ -138,6 +139,11 @@ interface FindingSpec {
   readonly recommendationTitle: string;
   readonly recommendationDescription: string;
   readonly priority: 'low' | 'medium' | 'high';
+  /**
+   * Semantic nature of the finding's evidence. Defaults to `verified` when a
+   * concrete source path was observed, otherwise the spec must declare it.
+   */
+  readonly evidenceStatus?: FindingEvidenceStatus | undefined;
 }
 
 interface AnalyzerContext {
@@ -1320,6 +1326,7 @@ function buildFindingSpecs(
       ruleId: 'AN-TEST-001',
       severity: hasTestTooling ? 'low' : 'medium',
       sourceId: testCount.id,
+      evidenceStatus: hasTestTooling ? 'not_inspected' : 'absence_based',
       title: hasTestTooling
         ? 'Test files were not included in the bounded snapshot'
         : 'Test files were not detected',
@@ -1380,6 +1387,7 @@ function buildFindingSpecs(
         severity: 'medium',
         sourceId: lockfile.id,
         sourcePath: signals.packageJson?.path,
+        evidenceStatus: 'absence_based',
         title: 'Package manifest has no detected lockfile',
       });
     }
@@ -1400,6 +1408,7 @@ function buildFindingSpecs(
       severity: 'low',
       sourceId: strict?.id ?? factId('typescript_config_present'),
       sourcePath: signals.configFiles.find((file) => /^tsconfig/i.test(basename(file.path)))?.path,
+      evidenceStatus: 'not_inspected',
       title: 'TypeScript strictness was not verified',
     });
   } else if (strict?.status === 'observed' && strict.value === false) {
@@ -1417,6 +1426,7 @@ function buildFindingSpecs(
       severity: 'low',
       sourceId: strict.id,
       sourcePath: signals.configFiles.find((file) => /^tsconfig/i.test(basename(file.path)))?.path,
+      evidenceStatus: 'verified',
       title: 'TypeScript strict mode is disabled',
     });
   }
@@ -1463,6 +1473,7 @@ function buildFindingSpecs(
       ruleId: 'AN-CQ-004',
       severity: 'low',
       sourceId: todoFact?.id ?? factId('todo_fixme_count'),
+      evidenceStatus: 'verified',
       title: 'Many TODO/FIXME markers were detected',
     });
   }
@@ -1504,6 +1515,7 @@ function buildFindingSpecs(
       severity: 'medium',
       sourceId: factByKey.get('import_count')?.id ?? factId('import_count'),
       sourcePath: reference.sourcePath,
+      evidenceStatus: 'not_verified',
       title: 'A relative import could not be resolved statically',
     });
   }
@@ -1672,6 +1684,8 @@ function createFindingBundle(
       confidence: spec.confidence ?? 'high',
       description: spec.description,
       evidenceIds: [evidenceItem.id],
+      evidenceStatus:
+        spec.evidenceStatus ?? (sourcePath === undefined ? 'absence_based' : 'verified'),
       id: findingKey,
       impact: spec.impact,
       recommendationIds: [recommendation.id],
@@ -1743,6 +1757,7 @@ export function analyze(input: AnalyzerInput, options?: AnalyzerOptions): Analys
     facts,
     findings: bundle.findings,
     id: `analysis:${input.snapshot.id}`,
+    ...(input.inspectedScope === undefined ? {} : { inspectedScope: input.inspectedScope }),
     limitations: signals.limitations,
     metrics,
     recommendations: bundle.recommendations,

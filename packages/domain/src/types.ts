@@ -36,6 +36,28 @@ export type FactType =
 
 export type EvidenceKind = 'file' | 'config' | 'metric' | 'metadata' | 'dependency' | 'workflow';
 
+/**
+ * Semantic nature of a finding's evidence, oriented to the developer:
+ *
+ * - `verified`        — concrete evidence of presence is available (a path/location was observed).
+ * - `absence_based`   — an element was not detected *within the inspected scope*; this does NOT
+ *                       prove absence in the whole repository.
+ * - `not_inspected`   — there is not enough information to claim absence; the relevant files were
+ *                       not acquired in the snapshot.
+ * - `not_verified`    — the finding is based on an inspection that could not be verified with the
+ *                       available data (e.g. heuristic resolution); it must not be read as proven.
+ */
+export type FindingEvidenceStatus = 'verified' | 'absence_based' | 'not_inspected' | 'not_verified';
+
+export interface InspectedScope {
+  /** Files whose content was actually acquired and inspected. */
+  readonly fileCount: number;
+  /** Tree entries seen during acquisition (approximate repository coverage). */
+  readonly treeEntriesSeen: number;
+  /** Total bytes of inspected file content. */
+  readonly totalBytes: number;
+}
+
 export type FactValue = string | number | boolean | readonly string[];
 
 export type MetadataValue = string | number | boolean | null;
@@ -119,6 +141,11 @@ export interface Finding {
   readonly ruleId: string | null;
   readonly ruleVersion: string | null;
   readonly provenance: Provenance;
+  /**
+   * Semantic nature of the finding's evidence. Optional to preserve compatibility
+   * with previously persisted results; the analyzer always sets it explicitly.
+   */
+  readonly evidenceStatus?: FindingEvidenceStatus;
 }
 
 export interface Recommendation {
@@ -154,4 +181,6 @@ export interface AnalysisResult {
   readonly analyzerVersion: string;
   readonly limitations: readonly string[];
   readonly createdAt: string;
+  /** What portion of the repository was actually inspected. Optional for backward compatibility. */
+  readonly inspectedScope?: InspectedScope;
 }

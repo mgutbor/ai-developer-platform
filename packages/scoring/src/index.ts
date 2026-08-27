@@ -124,6 +124,7 @@ export function scoreAnalysis(
     recommendations: result.recommendations,
     ruleSetVersion,
     snapshot: result.snapshot,
+    ...(result.inspectedScope === undefined ? {} : { inspectedScope: result.inspectedScope }),
   });
 }
 

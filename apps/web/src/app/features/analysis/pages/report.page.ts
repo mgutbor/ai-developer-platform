@@ -10,7 +10,7 @@ import type {
   ApiRecommendation,
 } from '@ai-developer-platform/contracts';
 import { AnalysisService } from '../../../core/api/analysis.service';
-import { coverageMessage, limitationMessage } from '../analysis-messages';
+import { coverageMessage, evidenceStatusLabel, limitationMessage } from '../analysis-messages';
 
 @Component({
   imports: [RouterLink],
@@ -93,5 +93,26 @@ export class ReportPage {
 
   protected limitationExplanation(limitation: string): { message: string; code: string } {
     return limitationMessage(limitation);
+  }
+
+  protected evidenceStatus(status: string | null | undefined): {
+    label: string;
+    explanation: string;
+  } {
+    return evidenceStatusLabel(status);
+  }
+
+  protected scopeDescription(report: AnalysisResultResponse): string | null {
+    const scope = report.inspectedScope;
+    if (scope === undefined || scope === null) {
+      return null;
+    }
+    if (report.coverage === 'complete') {
+      return `Inspected ${scope.fileCount} file(s) in this snapshot.`;
+    }
+    return (
+      `Inspected ${scope.fileCount} file(s) out of ${scope.treeEntriesSeen} tree entries. ` +
+      `This is a partial snapshot, not a complete repository analysis.`
+    );
   }
 }

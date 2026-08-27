@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { coverageMessage, failureMessage, limitationMessage } from './analysis-messages';
+import {
+  coverageMessage,
+  evidenceStatusLabel,
+  failureMessage,
+  limitationMessage,
+} from './analysis-messages';
 
 describe('analysis-messages', () => {
   describe('failureMessage', () => {
@@ -47,6 +52,37 @@ describe('analysis-messages', () => {
 
     it('handles unknown coverage', () => {
       expect(coverageMessage(null)).toContain('not known');
+    });
+  });
+
+  describe('evidenceStatusLabel', () => {
+    it('labels verified evidence as concrete', () => {
+      const { label, explanation } = evidenceStatusLabel('verified');
+      expect(label).toContain('Verified');
+      expect(explanation).toContain('Concrete evidence');
+    });
+
+    it('explains absence-based evidence is scoped to inspected files', () => {
+      const { label, explanation } = evidenceStatusLabel('absence_based');
+      expect(label).toContain('inspected scope');
+      expect(explanation).toContain('does not prove the element is absent');
+    });
+
+    it('explains not-inspected findings never claim absence', () => {
+      const { label, explanation } = evidenceStatusLabel('not_inspected');
+      expect(label).toContain('Not enough information');
+      expect(explanation).toContain('cannot confirm');
+    });
+
+    it('explains not-verified findings should not be read as proven', () => {
+      const { label, explanation } = evidenceStatusLabel('not_verified');
+      expect(label).toContain('Not verified');
+      expect(explanation).toContain('should not be read as proven');
+    });
+
+    it('handles unknown status', () => {
+      const { label } = evidenceStatusLabel(null);
+      expect(label).toContain('unknown');
     });
   });
 

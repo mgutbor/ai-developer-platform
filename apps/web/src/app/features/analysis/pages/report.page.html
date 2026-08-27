@@ -43,6 +43,9 @@
         }
       </h2>
       <p>{{ coverageExplanation(currentReport.coverage) }}</p>
+      @if (scopeDescription(currentReport); as scope) {
+        <p class="metadata">{{ scope }}</p>
+      }
     </section>
 
     <section class="panel score-panel" aria-labelledby="score-title">
@@ -141,6 +144,10 @@
               <h3>{{ finding.title }}</h3>
               <p>{{ finding.description }}</p>
               <p><strong>Impact:</strong> {{ finding.impact }}</p>
+              @let status = evidenceStatus(finding.evidenceStatus);
+              <p class="evidence-status" [attr.aria-label]="status.explanation">
+                <strong>{{ status.label }}</strong> — {{ status.explanation }}
+              </p>
               @if (finding.ruleId) {
                 <p class="metadata">Rule: {{ finding.ruleId }}</p>
               }
@@ -159,11 +166,8 @@
                             (lines {{ range.start.line }}–{{ range.end.line }})
                           }
                         </span>
-                      }
-                      @if (evidence.excerptHash) {
-                        <span class="metadata"
-                          >— evidence reference {{ evidence.excerptHash }}</span
-                        >
+                      } @else {
+                        <span class="metadata">— reference-only evidence</span>
                       }
                     </li>
                   }
